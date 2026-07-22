@@ -1,0 +1,321 @@
+CREATE TABLE fiscal_years (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    year SMALLINT UNSIGNED NOT NULL UNIQUE,
+    name VARCHAR(100) NOT NULL,
+    starts_on DATE NULL,
+    ends_on DATE NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'draft',
+    notes TEXT NULL,
+    created_at TIMESTAMP NULL,
+    updated_at TIMESTAMP NULL,
+    deleted_at TIMESTAMP NULL
+);
+
+CREATE TABLE schools (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    short_name VARCHAR(80) NULL,
+    type VARCHAR(80) NULL,
+    city VARCHAR(80) NULL,
+    district VARCHAR(80) NULL,
+    address VARCHAR(255) NULL,
+    postal_code VARCHAR(20) NULL,
+    phone VARCHAR(50) NULL,
+    website VARCHAR(255) NULL,
+    student_count INT UNSIGNED NULL,
+    class_count INT UNSIGNED NULL,
+    category VARCHAR(80) NULL,
+    remote_status VARCHAR(80) NULL,
+    latitude DECIMAL(10, 7) NULL,
+    longitude DECIMAL(10, 7) NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'active',
+    notes TEXT NULL,
+    created_at TIMESTAMP NULL,
+    updated_at TIMESTAMP NULL,
+    deleted_at TIMESTAMP NULL
+);
+
+CREATE TABLE school_contacts (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    school_id BIGINT UNSIGNED NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    title VARCHAR(100) NULL,
+    phone VARCHAR(50) NULL,
+    mobile VARCHAR(50) NULL,
+    email VARCHAR(150) NULL,
+    line_id VARCHAR(100) NULL,
+    note TEXT NULL,
+    created_at TIMESTAMP NULL,
+    updated_at TIMESTAMP NULL,
+    deleted_at TIMESTAMP NULL,
+    CONSTRAINT school_contacts_school_id_foreign FOREIGN KEY (school_id) REFERENCES schools(id)
+);
+
+CREATE TABLE teachers (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    gender VARCHAR(30) NULL,
+    mobile VARCHAR(50) NULL,
+    email VARCHAR(150) NULL,
+    address VARCHAR(255) NULL,
+    education TEXT NULL,
+    experience TEXT NULL,
+    professional_field VARCHAR(150) NULL,
+    teaching_specialty VARCHAR(150) NULL,
+    introduction TEXT NULL,
+    bank_name VARCHAR(100) NULL,
+    bank_branch VARCHAR(100) NULL,
+    bank_account VARCHAR(100) NULL,
+    account_name VARCHAR(100) NULL,
+    hourly_rate DECIMAL(12, 2) NULL,
+    session_rate DECIMAL(12, 2) NULL,
+    transportation_fee DECIMAL(12, 2) NULL,
+    special_rate_note TEXT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'active',
+    created_at TIMESTAMP NULL,
+    updated_at TIMESTAMP NULL,
+    deleted_at TIMESTAMP NULL
+);
+
+CREATE TABLE partners (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    type VARCHAR(80) NULL,
+    contact_person VARCHAR(100) NULL,
+    phone VARCHAR(50) NULL,
+    email VARCHAR(150) NULL,
+    address VARCHAR(255) NULL,
+    website VARCHAR(255) NULL,
+    cooperation_description TEXT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'active',
+    created_at TIMESTAMP NULL,
+    updated_at TIMESTAMP NULL,
+    deleted_at TIMESTAMP NULL
+);
+
+CREATE TABLE work_plans (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    fiscal_year_id BIGINT UNSIGNED NOT NULL,
+    title VARCHAR(150) NOT NULL,
+    summary TEXT NULL,
+    goals TEXT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'draft',
+    approved_at TIMESTAMP NULL,
+    created_at TIMESTAMP NULL,
+    updated_at TIMESTAMP NULL,
+    deleted_at TIMESTAMP NULL,
+    CONSTRAINT work_plans_fiscal_year_id_foreign FOREIGN KEY (fiscal_year_id) REFERENCES fiscal_years(id)
+);
+
+CREATE TABLE projects (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    fiscal_year_id BIGINT UNSIGNED NOT NULL,
+    school_id BIGINT UNSIGNED NULL,
+    partner_id BIGINT UNSIGNED NULL,
+    work_plan_id BIGINT UNSIGNED NULL,
+    name VARCHAR(180) NOT NULL,
+    code VARCHAR(80) NULL,
+    category VARCHAR(80) NOT NULL,
+    manager_name VARCHAR(100) NULL,
+    starts_on DATE NULL,
+    ends_on DATE NULL,
+    budget_amount DECIMAL(12, 2) NOT NULL DEFAULT 0,
+    actual_cost DECIMAL(12, 2) NOT NULL DEFAULT 0,
+    participant_target INT UNSIGNED NULL,
+    participant_actual INT UNSIGNED NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'draft',
+    description TEXT NULL,
+    note TEXT NULL,
+    created_at TIMESTAMP NULL,
+    updated_at TIMESTAMP NULL,
+    deleted_at TIMESTAMP NULL,
+    CONSTRAINT projects_fiscal_year_id_foreign FOREIGN KEY (fiscal_year_id) REFERENCES fiscal_years(id),
+    CONSTRAINT projects_school_id_foreign FOREIGN KEY (school_id) REFERENCES schools(id),
+    CONSTRAINT projects_partner_id_foreign FOREIGN KEY (partner_id) REFERENCES partners(id),
+    CONSTRAINT projects_work_plan_id_foreign FOREIGN KEY (work_plan_id) REFERENCES work_plans(id)
+);
+
+CREATE TABLE courses (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    project_id BIGINT UNSIGNED NOT NULL,
+    school_id BIGINT UNSIGNED NULL,
+    teacher_id BIGINT UNSIGNED NULL,
+    name VARCHAR(180) NOT NULL,
+    semester VARCHAR(80) NULL,
+    assistant_teacher VARCHAR(100) NULL,
+    total_weeks INT UNSIGNED NULL,
+    hours_per_session DECIMAL(5, 2) NULL,
+    participant_count INT UNSIGNED NULL,
+    starts_on DATE NULL,
+    ends_on DATE NULL,
+    description TEXT NULL,
+    teaching_goal TEXT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'planning',
+    created_at TIMESTAMP NULL,
+    updated_at TIMESTAMP NULL,
+    deleted_at TIMESTAMP NULL,
+    CONSTRAINT courses_project_id_foreign FOREIGN KEY (project_id) REFERENCES projects(id),
+    CONSTRAINT courses_school_id_foreign FOREIGN KEY (school_id) REFERENCES schools(id),
+    CONSTRAINT courses_teacher_id_foreign FOREIGN KEY (teacher_id) REFERENCES teachers(id)
+);
+
+CREATE TABLE course_sessions (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    project_id BIGINT UNSIGNED NOT NULL,
+    course_id BIGINT UNSIGNED NOT NULL,
+    teacher_id BIGINT UNSIGNED NULL,
+    session_number INT UNSIGNED NOT NULL,
+    session_date DATE NOT NULL,
+    starts_at TIME NULL,
+    ends_at TIME NULL,
+    student_count INT UNSIGNED NULL,
+    teaching_content TEXT NULL,
+    learning_status TEXT NULL,
+    teacher_note TEXT NULL,
+    administrative_note TEXT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'scheduled',
+    created_at TIMESTAMP NULL,
+    updated_at TIMESTAMP NULL,
+    deleted_at TIMESTAMP NULL,
+    CONSTRAINT course_sessions_project_id_foreign FOREIGN KEY (project_id) REFERENCES projects(id),
+    CONSTRAINT course_sessions_course_id_foreign FOREIGN KEY (course_id) REFERENCES courses(id),
+    CONSTRAINT course_sessions_teacher_id_foreign FOREIGN KEY (teacher_id) REFERENCES teachers(id)
+);
+
+CREATE TABLE activities (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    fiscal_year_id BIGINT UNSIGNED NOT NULL,
+    project_id BIGINT UNSIGNED NULL,
+    school_id BIGINT UNSIGNED NULL,
+    name VARCHAR(180) NOT NULL,
+    type VARCHAR(80) NULL,
+    activity_date DATE NULL,
+    starts_at TIME NULL,
+    ends_at TIME NULL,
+    location VARCHAR(150) NULL,
+    city VARCHAR(80) NULL,
+    district VARCHAR(80) NULL,
+    organizer VARCHAR(150) NULL,
+    co_organizer VARCHAR(150) NULL,
+    contact_person VARCHAR(100) NULL,
+    student_count INT UNSIGNED NOT NULL DEFAULT 0,
+    teacher_count INT UNSIGNED NOT NULL DEFAULT 0,
+    volunteer_count INT UNSIGNED NOT NULL DEFAULT 0,
+    guest_count INT UNSIGNED NOT NULL DEFAULT 0,
+    total_participants INT UNSIGNED NOT NULL DEFAULT 0,
+    budget_amount DECIMAL(12, 2) NOT NULL DEFAULT 0,
+    actual_cost DECIMAL(12, 2) NOT NULL DEFAULT 0,
+    description TEXT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'planning',
+    note TEXT NULL,
+    created_at TIMESTAMP NULL,
+    updated_at TIMESTAMP NULL,
+    deleted_at TIMESTAMP NULL,
+    CONSTRAINT activities_fiscal_year_id_foreign FOREIGN KEY (fiscal_year_id) REFERENCES fiscal_years(id),
+    CONSTRAINT activities_project_id_foreign FOREIGN KEY (project_id) REFERENCES projects(id),
+    CONSTRAINT activities_school_id_foreign FOREIGN KEY (school_id) REFERENCES schools(id)
+);
+
+CREATE TABLE budgets (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    fiscal_year_id BIGINT UNSIGNED NOT NULL,
+    project_id BIGINT UNSIGNED NULL,
+    category VARCHAR(100) NOT NULL,
+    budget_amount DECIMAL(12, 2) NOT NULL DEFAULT 0,
+    actual_amount DECIMAL(12, 2) NOT NULL DEFAULT 0,
+    note TEXT NULL,
+    created_at TIMESTAMP NULL,
+    updated_at TIMESTAMP NULL,
+    deleted_at TIMESTAMP NULL,
+    CONSTRAINT budgets_fiscal_year_id_foreign FOREIGN KEY (fiscal_year_id) REFERENCES fiscal_years(id),
+    CONSTRAINT budgets_project_id_foreign FOREIGN KEY (project_id) REFERENCES projects(id)
+);
+
+CREATE TABLE incomes (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    fiscal_year_id BIGINT UNSIGNED NOT NULL,
+    project_id BIGINT UNSIGNED NULL,
+    activity_id BIGINT UNSIGNED NULL,
+    date DATE NOT NULL,
+    type VARCHAR(100) NOT NULL,
+    amount DECIMAL(12, 2) NOT NULL,
+    payer VARCHAR(150) NULL,
+    payment_method VARCHAR(80) NULL,
+    receipt_number VARCHAR(100) NULL,
+    description TEXT NULL,
+    note TEXT NULL,
+    created_at TIMESTAMP NULL,
+    updated_at TIMESTAMP NULL,
+    deleted_at TIMESTAMP NULL,
+    CONSTRAINT incomes_fiscal_year_id_foreign FOREIGN KEY (fiscal_year_id) REFERENCES fiscal_years(id),
+    CONSTRAINT incomes_project_id_foreign FOREIGN KEY (project_id) REFERENCES projects(id),
+    CONSTRAINT incomes_activity_id_foreign FOREIGN KEY (activity_id) REFERENCES activities(id)
+);
+
+CREATE TABLE expenses (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    fiscal_year_id BIGINT UNSIGNED NOT NULL,
+    project_id BIGINT UNSIGNED NULL,
+    activity_id BIGINT UNSIGNED NULL,
+    date DATE NOT NULL,
+    category VARCHAR(100) NOT NULL,
+    vendor VARCHAR(150) NULL,
+    description TEXT NULL,
+    amount DECIMAL(12, 2) NOT NULL,
+    payment_method VARCHAR(80) NULL,
+    invoice_number VARCHAR(100) NULL,
+    reimbursement_status VARCHAR(50) NOT NULL DEFAULT 'pending',
+    note TEXT NULL,
+    created_at TIMESTAMP NULL,
+    updated_at TIMESTAMP NULL,
+    deleted_at TIMESTAMP NULL,
+    CONSTRAINT expenses_fiscal_year_id_foreign FOREIGN KEY (fiscal_year_id) REFERENCES fiscal_years(id),
+    CONSTRAINT expenses_project_id_foreign FOREIGN KEY (project_id) REFERENCES projects(id),
+    CONSTRAINT expenses_activity_id_foreign FOREIGN KEY (activity_id) REFERENCES activities(id)
+);
+
+CREATE TABLE outcomes (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    project_id BIGINT UNSIGNED NULL,
+    activity_id BIGINT UNSIGNED NULL,
+    title VARCHAR(180) NOT NULL,
+    description TEXT NULL,
+    participant_count INT UNSIGNED NULL,
+    result_summary TEXT NULL,
+    school_feedback TEXT NULL,
+    teacher_feedback TEXT NULL,
+    student_feedback TEXT NULL,
+    created_at TIMESTAMP NULL,
+    updated_at TIMESTAMP NULL,
+    deleted_at TIMESTAMP NULL,
+    CONSTRAINT outcomes_project_id_foreign FOREIGN KEY (project_id) REFERENCES projects(id),
+    CONSTRAINT outcomes_activity_id_foreign FOREIGN KEY (activity_id) REFERENCES activities(id)
+);
+
+CREATE TABLE annual_reports (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    fiscal_year_id BIGINT UNSIGNED NOT NULL,
+    title VARCHAR(180) NOT NULL,
+    work_summary LONGTEXT NULL,
+    financial_summary LONGTEXT NULL,
+    outcome_summary LONGTEXT NULL,
+    status VARCHAR(50) NOT NULL DEFAULT 'draft',
+    created_at TIMESTAMP NULL,
+    updated_at TIMESTAMP NULL,
+    deleted_at TIMESTAMP NULL,
+    CONSTRAINT annual_reports_fiscal_year_id_foreign FOREIGN KEY (fiscal_year_id) REFERENCES fiscal_years(id)
+);
+
+CREATE TABLE attachments (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    attachable_type VARCHAR(255) NOT NULL,
+    attachable_id BIGINT UNSIGNED NOT NULL,
+    file_name VARCHAR(255) NOT NULL,
+    file_path VARCHAR(255) NOT NULL,
+    file_type VARCHAR(100) NULL,
+    file_size BIGINT UNSIGNED NULL,
+    uploaded_by BIGINT UNSIGNED NULL,
+    created_at TIMESTAMP NULL,
+    updated_at TIMESTAMP NULL,
+    INDEX attachments_attachable_index (attachable_type, attachable_id)
+);
