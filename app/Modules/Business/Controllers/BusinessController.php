@@ -183,6 +183,7 @@ final class BusinessController extends Controller
         return [
             ['permission' => 'annual_budgets.view', 'title' => '年度預算', 'href' => '/annual-budgets', 'description' => '年度收支預算、編修與核定。'],
             ['permission' => 'accounting.view', 'title' => '會計系統', 'href' => '/accounting', 'description' => '會計科目、傳票、總帳與報表。'],
+            ['permission' => 'bank_accounts.view', 'title' => '銀行帳戶', 'href' => '/bank-accounts', 'description' => '基金會銀行帳戶、交易紀錄與零用金撥補。'],
             ['permission' => 'petty_cash.view', 'title' => '零用金', 'href' => '/petty-cash', 'description' => '撥補、借支、核銷與月結。'],
             ['permission' => 'income_expenses.view', 'title' => '收支紀錄', 'href' => '/income-expenses', 'description' => '收入、支出、付款方式與專案歸屬。'],
             ['permission' => 'lecturer_expenses.view', 'title' => '講師支出費用', 'href' => '/lecturer-expenses', 'description' => '鐘點費、交通費、扣繳與請款清冊。'],

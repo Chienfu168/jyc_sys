@@ -499,6 +499,10 @@ textarea:focus {
     width: min(420px, 100%);
 }
 
+.bank-filter {
+    width: min(720px, 100%);
+}
+
 .alert {
     padding: 12px 14px;
     border-radius: 8px;
@@ -589,6 +593,7 @@ textarea:focus {
 .form-actions {
     display: flex;
     justify-content: flex-end;
+    gap: 8px;
 }
 
 .page-tools {

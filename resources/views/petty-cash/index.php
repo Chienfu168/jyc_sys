@@ -40,6 +40,7 @@ ob_start();
                 <th>類型</th>
                 <th>項目</th>
                 <th>對象</th>
+                <th>來源銀行</th>
                 <th>單據</th>
                 <th class="amount">金額</th>
                 <th>建立人</th>
@@ -57,6 +58,14 @@ ob_start();
                     </td>
                     <td><?= e($entry['item_name']) ?></td>
                     <td><?= e($entry['payment_to'] ?: '-') ?></td>
+                    <td>
+                        <?php if (!empty($entry['bank_name'])): ?>
+                            <?= e($entry['bank_name']) ?>
+                            <div class="muted-text mono"><?= e($entry['account_no'] ?? '') ?></div>
+                        <?php else: ?>
+                            -
+                        <?php endif; ?>
+                    </td>
                     <td><?= e($entry['receipt_no'] ?: '-') ?></td>
                     <td class="amount"><?= e(petty_cash_money($entry['amount'])) ?></td>
                     <td><?= e($entry['created_by_name'] ?? '-') ?></td>
@@ -68,7 +77,7 @@ ob_start();
                 </tr>
             <?php endforeach; ?>
             <?php if (!$entries): ?>
-                <tr><td colspan="8" class="empty">本月份尚無零用金紀錄</td></tr>
+                <tr><td colspan="9" class="empty">本月份尚無零用金紀錄</td></tr>
             <?php endif; ?>
             </tbody>
         </table>

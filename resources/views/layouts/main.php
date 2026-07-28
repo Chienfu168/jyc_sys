@@ -5,6 +5,7 @@ $financeActive = in_array($activeKey, [
     'finance',
     'annual-budgets',
     'accounting',
+    'bank-accounts',
     'petty-cash',
     'income-expenses',
     'lecturer-expenses',
@@ -25,6 +26,7 @@ $operationsActive = in_array($activeKey, [
 $canFinance = $currentUser && (
     \App\Core\Permission::can('annual_budgets.view')
     || \App\Core\Permission::can('accounting.view')
+    || \App\Core\Permission::can('bank_accounts.view')
     || \App\Core\Permission::can('petty_cash.view')
     || \App\Core\Permission::can('income_expenses.view')
     || \App\Core\Permission::can('lecturer_expenses.view')

@@ -96,6 +96,7 @@ function handle_import_database(): void
 
     execute_sql_file($pdo, BASE_PATH . '/database/schema.sql');
     execute_sql_file($pdo, BASE_PATH . '/database/seeds/initial.sql');
+    apply_pending_migrations($pdo);
 
     header('Location: install.php?step=admin');
     exit;
@@ -243,6 +244,37 @@ function execute_sql_file(PDO $pdo, string $path): void
             continue;
         }
         $pdo->exec($trimmed);
+    }
+}
+
+function apply_pending_migrations(PDO $pdo): void
+{
+    $dir = BASE_PATH . '/database/migrations';
+    if (!is_dir($dir)) {
+        return;
+    }
+
+    $pdo->exec(
+        'CREATE TABLE IF NOT EXISTS schema_migrations (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            migration VARCHAR(190) NOT NULL UNIQUE,
+            applied_at DATETIME NOT NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
+    );
+
+    $applied = $pdo->query('SELECT migration FROM schema_migrations')->fetchAll(PDO::FETCH_COLUMN);
+    $files = glob($dir . DIRECTORY_SEPARATOR . '*.sql') ?: [];
+    sort($files);
+
+    $stmt = $pdo->prepare('INSERT IGNORE INTO schema_migrations (migration, applied_at) VALUES (:migration, NOW())');
+    foreach ($files as $file) {
+        $name = basename($file);
+        if (in_array($name, $applied, true)) {
+            continue;
+        }
+
+        execute_sql_file($pdo, $file);
+        $stmt->execute(['migration' => $name]);
     }
 }
 

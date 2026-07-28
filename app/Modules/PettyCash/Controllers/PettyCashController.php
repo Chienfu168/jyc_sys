@@ -19,9 +19,11 @@ final class PettyCashController extends Controller
             : date('Y-m');
 
         $stmt = Database::pdo()->prepare(
-            'SELECT petty_cash_entries.*, users.name AS created_by_name
+            'SELECT petty_cash_entries.*, users.name AS created_by_name,
+                    bank_accounts.bank_name, bank_accounts.account_no
              FROM petty_cash_entries
              LEFT JOIN users ON users.id = petty_cash_entries.created_by
+             LEFT JOIN bank_accounts ON bank_accounts.id = petty_cash_entries.bank_account_id
              WHERE DATE_FORMAT(petty_cash_entries.occurred_on, "%Y-%m") = :month
              ORDER BY petty_cash_entries.occurred_on DESC, petty_cash_entries.id DESC'
         );
