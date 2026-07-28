@@ -1,39 +1,37 @@
-<?php $items = old('items', $items); ?>
-<form method="post" action="<?= e($action) ?>" class="form">
+<form class="form" method="post" action="<?= e($action) ?>">
     <?= csrf_field() ?>
     <div class="grid-form">
         <label>
             <span>年度</span>
-            <input type="number" name="fiscal_year" value="<?= e((string) old('fiscal_year', $budget['fiscal_year'])) ?>" min="2000" max="2100" required>
+            <input type="number" name="fiscal_year" min="2000" max="2100" value="<?= e((string) old('fiscal_year', $budget['fiscal_year'] ?? '')) ?>" required>
         </label>
         <label>
             <span>狀態</span>
-            <?php $status = old('status', $budget['status'] ?? 'draft'); ?>
             <select name="status">
-                <option value="draft" <?= $status === 'draft' ? 'selected' : '' ?>>草稿</option>
-                <option value="submitted" <?= $status === 'submitted' ? 'selected' : '' ?>>送審</option>
-                <?php if (($budget['status'] ?? '') === 'approved' && \App\Core\Permission::can('annual_budgets.approve')): ?>
-                    <option value="approved" selected>核定</option>
-                <?php endif; ?>
+                <?php foreach (['draft' => '草稿', 'submitted' => '送審', 'approved' => '核定'] as $value => $label): ?>
+                    <?php if ($value !== 'approved' || \App\Core\Permission::can('annual_budgets.approve')): ?>
+                        <option value="<?= e($value) ?>" <?= old('status', $budget['status'] ?? 'draft') === $value ? 'selected' : '' ?>><?= e($label) ?></option>
+                    <?php endif; ?>
+                <?php endforeach; ?>
             </select>
         </label>
         <label class="span-2">
             <span>預算名稱</span>
-            <input type="text" name="title" value="<?= e(old('title', $budget['title'])) ?>" required>
+            <input type="text" name="title" value="<?= e((string) old('title', $budget['title'] ?? '')) ?>" required>
         </label>
         <label class="span-2">
             <span>備註</span>
-            <input type="text" name="notes" value="<?= e(old('notes', $budget['notes'] ?? '')) ?>">
+            <textarea name="notes"><?= e((string) old('notes', $budget['notes'] ?? '')) ?></textarea>
         </label>
     </div>
 
     <div class="panel-header">
-        <h2>預算明細</h2>
-        <button class="btn" type="button" id="add-budget-line">新增明細</button>
+        <h2>預算項目</h2>
+        <button class="btn small" type="button" onclick="addBudgetLine()">新增項目</button>
     </div>
 
     <div class="budget-lines" id="budget-lines">
-        <?php foreach ($items as $index => $item): ?>
+        <?php foreach (($items ?? []) as $index => $item): ?>
             <div class="budget-line">
                 <label>
                     <span>類型</span>
@@ -43,24 +41,24 @@
                     </select>
                 </label>
                 <label>
-                    <span>科目</span>
-                    <input name="items[<?= e((string) $index) ?>][category]" value="<?= e($item['category'] ?? '') ?>">
+                    <span>分類</span>
+                    <input type="text" name="items[<?= e((string) $index) ?>][category]" value="<?= e((string) ($item['category'] ?? '')) ?>">
                 </label>
                 <label>
                     <span>項目名稱</span>
-                    <input name="items[<?= e((string) $index) ?>][item_name]" value="<?= e($item['item_name'] ?? '') ?>">
+                    <input type="text" name="items[<?= e((string) $index) ?>][item_name]" value="<?= e((string) ($item['item_name'] ?? '')) ?>">
                 </label>
                 <label>
                     <span>金額</span>
-                    <input class="amount-input" type="number" min="0" step="1" name="items[<?= e((string) $index) ?>][amount]" value="<?= e((string) ($item['amount'] ?? '')) ?>">
+                    <input type="number" step="1" min="0" name="items[<?= e((string) $index) ?>][amount]" value="<?= e((string) ($item['amount'] ?? '')) ?>">
                 </label>
-                <button class="btn remove-budget-line" type="button">×</button>
+                <button class="btn" type="button" onclick="this.closest('.budget-line').remove()">移除</button>
             </div>
         <?php endforeach; ?>
     </div>
 
     <div class="form-actions">
-        <button class="btn primary" type="submit">儲存年度預算</button>
+        <button class="btn primary" type="submit">儲存</button>
     </div>
 </form>
 
@@ -74,46 +72,30 @@
             </select>
         </label>
         <label>
-            <span>科目</span>
-            <input data-name="category">
+            <span>分類</span>
+            <input type="text" data-name="category">
         </label>
         <label>
             <span>項目名稱</span>
-            <input data-name="item_name">
+            <input type="text" data-name="item_name">
         </label>
         <label>
             <span>金額</span>
-            <input class="amount-input" type="number" min="0" step="1" data-name="amount">
+            <input type="number" step="1" min="0" data-name="amount">
         </label>
-        <button class="btn remove-budget-line" type="button">×</button>
+        <button class="btn" type="button" onclick="this.closest('.budget-line').remove()">移除</button>
     </div>
 </template>
 
 <script>
-    const lines = document.querySelector('#budget-lines');
-    const template = document.querySelector('#budget-line-template');
-    const addButton = document.querySelector('#add-budget-line');
-
-    function nextIndex() {
-        return lines.querySelectorAll('.budget-line').length;
-    }
-
-    function bindRemove(button) {
-        button.addEventListener('click', () => {
-            if (lines.querySelectorAll('.budget-line').length > 1) {
-                button.closest('.budget-line').remove();
-            }
-        });
-    }
-
-    document.querySelectorAll('.remove-budget-line').forEach(bindRemove);
-    addButton.addEventListener('click', () => {
-        const index = nextIndex();
-        const node = template.content.cloneNode(true);
-        node.querySelectorAll('[data-name]').forEach((input) => {
-            input.name = `items[${index}][${input.dataset.name}]`;
-        });
-        bindRemove(node.querySelector('.remove-budget-line'));
-        lines.appendChild(node);
+let budgetLineIndex = <?= count($items ?? []) ?>;
+function addBudgetLine() {
+    const template = document.getElementById('budget-line-template');
+    const line = template.content.firstElementChild.cloneNode(true);
+    line.querySelectorAll('[data-name]').forEach((field) => {
+        field.name = `items[${budgetLineIndex}][${field.dataset.name}]`;
     });
+    budgetLineIndex += 1;
+    document.getElementById('budget-lines').appendChild(line);
+}
 </script>

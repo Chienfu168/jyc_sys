@@ -23,6 +23,7 @@ final class RoleController extends Controller
         $this->render('roles.index', [
             'title' => '角色權限',
             'section' => '後台管理',
+            'active' => 'roles',
             'roles' => $roles,
         ]);
     }

@@ -35,6 +35,7 @@ final class UserController extends Controller
         $this->render('users.index', [
             'title' => '使用者管理',
             'section' => '後台管理',
+            'active' => 'users',
             'users' => $stmt->fetchAll(),
             'keyword' => $keyword,
         ]);
@@ -46,6 +47,7 @@ final class UserController extends Controller
         $this->render('users.create', [
             'title' => '新增使用者',
             'section' => '後台管理',
+            'active' => 'users',
             'roles' => $this->roles(),
             'user' => null,
             'action' => '/users',
@@ -66,7 +68,7 @@ final class UserController extends Controller
         }
 
         if (strlen((string) $_POST['password']) < 10) {
-            $this->backWithInput('/users/create', $_POST, '密碼至少需要 10 個字元');
+            $this->backWithInput('/users/create', $_POST, '密碼至少需要 10 個字元。');
         }
 
         try {
@@ -83,8 +85,8 @@ final class UserController extends Controller
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
-        } catch (\PDOException $e) {
-            $this->backWithInput('/users/create', $_POST, 'Email 已存在或資料格式錯誤');
+        } catch (\PDOException) {
+            $this->backWithInput('/users/create', $_POST, 'Email 已被使用，請改用其他信箱。');
         }
 
         $id = (int) Database::pdo()->lastInsertId();
@@ -101,6 +103,7 @@ final class UserController extends Controller
         $this->render('users.edit', [
             'title' => '編輯使用者',
             'section' => '後台管理',
+            'active' => 'users',
             'roles' => $this->roles(),
             'user' => $user,
             'action' => '/users/' . $id,
@@ -131,7 +134,7 @@ final class UserController extends Controller
         $passwordSql = '';
         if (trim((string) ($_POST['password'] ?? '')) !== '') {
             if (strlen((string) $_POST['password']) < 10) {
-                $this->backWithInput('/users/' . $id . '/edit', $_POST, '密碼至少需要 10 個字元');
+                $this->backWithInput('/users/' . $id . '/edit', $_POST, '密碼至少需要 10 個字元。');
             }
             $passwordSql = ', password_hash = :password_hash, password_changed_at = :password_changed_at';
             $params['password_hash'] = password_hash((string) $_POST['password'], PASSWORD_DEFAULT);
@@ -144,8 +147,8 @@ final class UserController extends Controller
                  SET name = :name, email = :email, role_id = :role_id, status = :status, updated_at = :updated_at {$passwordSql}
                  WHERE id = :id"
             )->execute($params);
-        } catch (\PDOException $e) {
-            $this->backWithInput('/users/' . $id . '/edit', $_POST, 'Email 已存在或資料格式錯誤');
+        } catch (\PDOException) {
+            $this->backWithInput('/users/' . $id . '/edit', $_POST, 'Email 已被使用，請改用其他信箱。');
         }
 
         AuditLog::write('update', 'users', 'users', (int) $id);

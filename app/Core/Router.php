@@ -52,6 +52,6 @@ final class Router
         }
 
         http_response_code(404);
-        view('errors.404', ['title' => '找不到頁面']);
+        view('errors.404', ['title' => '頁面不存在']);
     }
 }

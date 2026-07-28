@@ -29,10 +29,10 @@ ob_start();
                 <tr>
                     <td><?= e((string) $budget['fiscal_year']) ?></td>
                     <td><?= e($budget['title']) ?></td>
-                    <td><span class="badge <?= $budget['status'] === 'approved' ? 'ok' : 'muted' ?>"><?= e(status_label($budget['status'])) ?></span></td>
-                    <td class="amount"><?= e(money($budget['income_total'])) ?></td>
-                    <td class="amount"><?= e(money($budget['expense_total'])) ?></td>
-                    <td class="amount"><?= e(money($balance)) ?></td>
+                    <td><span class="badge <?= $budget['status'] === 'approved' ? 'ok' : 'muted' ?>"><?= e(budget_status_label($budget['status'])) ?></span></td>
+                    <td class="amount"><?= e(budget_money($budget['income_total'])) ?></td>
+                    <td class="amount"><?= e(budget_money($budget['expense_total'])) ?></td>
+                    <td class="amount"><?= e(budget_money($balance)) ?></td>
                     <td><?= e($budget['created_by_name'] ?? '-') ?></td>
                     <td class="actions">
                         <a class="btn small" href="/annual-budgets/<?= e((string) $budget['id']) ?>">查看</a>
@@ -43,18 +43,18 @@ ob_start();
                 </tr>
             <?php endforeach; ?>
             <?php if (!$budgets): ?>
-                <tr><td colspan="8" class="empty">尚無年度預算</td></tr>
+                <tr><td colspan="8" class="empty">目前沒有年度預算</td></tr>
             <?php endif; ?>
             </tbody>
         </table>
     </div>
 </section>
 <?php
-function status_label(string $status): string
+function budget_status_label(string $status): string
 {
     return ['draft' => '草稿', 'submitted' => '送審', 'approved' => '核定'][$status] ?? $status;
 }
-function money($value): string
+function budget_money($value): string
 {
     return number_format((float) $value, 0);
 }

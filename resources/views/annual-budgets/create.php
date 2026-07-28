@@ -5,9 +5,9 @@ ob_start();
 <section class="panel">
     <div class="panel-header">
         <h2>新增年度預算</h2>
-        <a class="btn" href="/annual-budgets">返回</a>
+        <a class="btn" href="/annual-budgets">返回清單</a>
     </div>
-    <?php require base_path('resources/views/annual-budgets/form.php'); ?>
+    <?php require __DIR__ . '/form.php'; ?>
 </section>
 <?php
 $content = ob_get_clean();

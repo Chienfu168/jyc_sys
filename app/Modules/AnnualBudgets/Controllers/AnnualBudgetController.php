@@ -18,15 +18,17 @@ final class AnnualBudgetController extends Controller
         $stmt = Database::pdo()->query(
             'SELECT annual_budgets.*,
                     users.name AS created_by_name,
-                    COALESCE(SUM(CASE WHEN annual_budget_items.item_type = "income" THEN annual_budget_items.amount ELSE 0 END), 0) AS income_total,
-                    COALESCE(SUM(CASE WHEN annual_budget_items.item_type = "expense" THEN annual_budget_items.amount ELSE 0 END), 0) AS expense_total
+                    COALESCE(budget_totals.income_total, 0) AS income_total,
+                    COALESCE(budget_totals.expense_total, 0) AS expense_total
              FROM annual_budgets
              LEFT JOIN users ON users.id = annual_budgets.created_by
-             LEFT JOIN annual_budget_items ON annual_budget_items.annual_budget_id = annual_budgets.id
-             GROUP BY annual_budgets.id, annual_budgets.fiscal_year, annual_budgets.title, annual_budgets.status,
-                      annual_budgets.notes, annual_budgets.created_by, annual_budgets.approved_by,
-                      annual_budgets.approved_at, annual_budgets.created_at, annual_budgets.updated_at,
-                      users.name
+             LEFT JOIN (
+                SELECT annual_budget_id,
+                       SUM(CASE WHEN item_type = "income" THEN amount ELSE 0 END) AS income_total,
+                       SUM(CASE WHEN item_type = "expense" THEN amount ELSE 0 END) AS expense_total
+                FROM annual_budget_items
+                GROUP BY annual_budget_id
+             ) AS budget_totals ON budget_totals.annual_budget_id = annual_budgets.id
              ORDER BY annual_budgets.fiscal_year DESC'
         );
 
@@ -81,11 +83,11 @@ final class AnnualBudgetController extends Controller
             $id = (int) Database::pdo()->lastInsertId();
             $this->replaceItems($id, $_POST['items'] ?? []);
             Database::pdo()->commit();
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             if (Database::pdo()->inTransaction()) {
                 Database::pdo()->rollBack();
             }
-            $this->backWithInput('/annual-budgets/create', $_POST, '年度不可重複，或預算資料格式錯誤');
+            $this->backWithInput('/annual-budgets/create', $_POST, '年度預算儲存失敗，請確認年度沒有重複。');
         }
 
         AuditLog::write('create', 'annual_budgets', 'annual_budgets', $id);
@@ -115,7 +117,7 @@ final class AnnualBudgetController extends Controller
         $budget = $this->findBudget((int) $id);
 
         if ($budget['status'] === 'approved' && !Permission::can('annual_budgets.approve')) {
-            flash('error', '已核定預算不可由此帳號修改');
+            flash('error', '已核定的預算只有具核定權限者可以修改。');
             redirect('/annual-budgets/' . $id);
         }
 
@@ -135,7 +137,7 @@ final class AnnualBudgetController extends Controller
         $budget = $this->findBudget((int) $id);
 
         if ($budget['status'] === 'approved' && !Permission::can('annual_budgets.approve')) {
-            flash('error', '已核定預算不可由此帳號修改');
+            flash('error', '已核定的預算只有具核定權限者可以修改。');
             redirect('/annual-budgets/' . $id);
         }
 
@@ -158,11 +160,11 @@ final class AnnualBudgetController extends Controller
 
             $this->replaceItems((int) $id, $_POST['items'] ?? []);
             Database::pdo()->commit();
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             if (Database::pdo()->inTransaction()) {
                 Database::pdo()->rollBack();
             }
-            $this->backWithInput('/annual-budgets/' . $id . '/edit', $_POST, '年度不可重複，或預算資料格式錯誤');
+            $this->backWithInput('/annual-budgets/' . $id . '/edit', $_POST, '年度預算更新失敗，請確認年度沒有重複。');
         }
 
         AuditLog::write('update', 'annual_budgets', 'annual_budgets', (int) $id);
@@ -201,7 +203,7 @@ final class AnnualBudgetController extends Controller
 
         $year = (int) $_POST['fiscal_year'];
         if ($year < 2000 || $year > 2100) {
-            $this->backWithInput($path, $_POST, '年度格式不正確');
+            $this->backWithInput($path, $_POST, '年度格式不正確。');
         }
     }
 
@@ -308,8 +310,8 @@ final class AnnualBudgetController extends Controller
     private function defaultItems(): array
     {
         return [
-            ['item_type' => 'income', 'category' => '補助收入', 'item_name' => '', 'amount' => '', 'notes' => ''],
             ['item_type' => 'income', 'category' => '捐款收入', 'item_name' => '', 'amount' => '', 'notes' => ''],
+            ['item_type' => 'income', 'category' => '補助收入', 'item_name' => '', 'amount' => '', 'notes' => ''],
             ['item_type' => 'expense', 'category' => '人事費', 'item_name' => '', 'amount' => '', 'notes' => ''],
             ['item_type' => 'expense', 'category' => '業務費', 'item_name' => '', 'amount' => '', 'notes' => ''],
             ['item_type' => 'expense', 'category' => '行政管理費', 'item_name' => '', 'amount' => '', 'notes' => ''],

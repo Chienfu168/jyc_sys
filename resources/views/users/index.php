@@ -44,7 +44,7 @@ ob_start();
                 </tr>
             <?php endforeach; ?>
             <?php if (!$users): ?>
-                <tr><td colspan="6" class="empty">查無資料</td></tr>
+                <tr><td colspan="6" class="empty">沒有符合條件的資料</td></tr>
             <?php endif; ?>
             </tbody>
         </table>

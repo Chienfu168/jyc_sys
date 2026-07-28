@@ -27,7 +27,7 @@
         </select>
     </label>
     <label class="span-2">
-        <span><?= $user ? '新密碼' : '密碼' ?></span>
+        <span><?= $user ? '新密碼（不變更可留空）' : '密碼' ?></span>
         <input type="password" name="password" autocomplete="new-password" <?= $user ? '' : 'required' ?>>
     </label>
     <div class="form-actions span-2">

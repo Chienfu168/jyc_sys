@@ -27,8 +27,9 @@ final class DashboardController extends Controller
         );
 
         $this->render('dashboard.index', [
-            'title' => '儀表板',
+            'title' => '總儀表板',
             'section' => '工作台',
+            'active' => 'dashboard',
             'stats' => $stats,
             'logs' => $stmt->fetchAll(),
         ]);

@@ -23,7 +23,7 @@ ob_start();
 
 <section class="panel">
     <div class="panel-header">
-        <h2>近期操作</h2>
+        <h2>最近操作</h2>
     </div>
     <div class="table-wrap">
         <table>
@@ -47,7 +47,7 @@ ob_start();
                 </tr>
             <?php endforeach; ?>
             <?php if (!$logs): ?>
-                <tr><td colspan="5" class="empty">尚無操作紀錄</td></tr>
+                <tr><td colspan="5" class="empty">目前沒有操作紀錄</td></tr>
             <?php endif; ?>
             </tbody>
         </table>

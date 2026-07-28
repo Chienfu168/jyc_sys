@@ -29,11 +29,11 @@ final class AuthController extends Controller
         }
 
         if (Auth::instance()->tooManyAttempts($email)) {
-            $this->backWithInput('/login', ['email' => $email], '登入失敗次數過多，請稍後再試');
+            $this->backWithInput('/login', ['email' => $email], '登入嘗試次數過多，請稍後再試。');
         }
 
         if (!Auth::instance()->attempt($email, $password)) {
-            $this->backWithInput('/login', ['email' => $email], '帳號或密碼錯誤');
+            $this->backWithInput('/login', ['email' => $email], '帳號或密碼不正確。');
         }
 
         redirect('/');
@@ -54,7 +54,7 @@ final class AuthController extends Controller
     {
         $email = trim((string) ($_POST['email'] ?? ''));
         if ($email === '') {
-            $this->backWithInput('/forgot-password', [], 'Email 不可空白');
+            $this->backWithInput('/forgot-password', [], 'Email 不可空白。');
         }
 
         $stmt = Database::pdo()->prepare('SELECT id, email FROM users WHERE email = :email AND status = "active" LIMIT 1');
@@ -82,7 +82,7 @@ final class AuthController extends Controller
             }
         }
 
-        flash('success', '如果帳號存在，系統會寄出重設密碼通知；本機開發環境可查看 storage/logs/password-reset.log');
+        flash('success', '如果帳號存在，系統已建立重設密碼連結。未啟用郵件時，請查看 storage/logs/password-reset.log。');
         redirect('/forgot-password');
     }
 
@@ -112,11 +112,11 @@ final class AuthController extends Controller
         }
 
         if (strlen($password) < 10) {
-            $this->backWithInput('/reset-password?token=' . urlencode($token) . '&email=' . urlencode($email), [], '密碼至少需要 10 個字元');
+            $this->backWithInput('/reset-password?token=' . urlencode($token) . '&email=' . urlencode($email), [], '密碼至少需要 10 個字元。');
         }
 
         if ($password !== $passwordConfirmation) {
-            $this->backWithInput('/reset-password?token=' . urlencode($token) . '&email=' . urlencode($email), [], '兩次密碼輸入不一致');
+            $this->backWithInput('/reset-password?token=' . urlencode($token) . '&email=' . urlencode($email), [], '兩次輸入的密碼不一致。');
         }
 
         $stmt = Database::pdo()->prepare(
@@ -137,7 +137,7 @@ final class AuthController extends Controller
         $reset = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$reset) {
-            $this->backWithInput('/forgot-password', [], '重設連結無效或已逾期');
+            $this->backWithInput('/forgot-password', [], '重設連結無效或已過期。');
         }
 
         Database::pdo()->beginTransaction();
@@ -154,7 +154,7 @@ final class AuthController extends Controller
             ->execute(['used_at' => now(), 'user_id' => $reset['user_id']]);
         Database::pdo()->commit();
 
-        flash('success', '密碼已更新，請使用新密碼登入');
+        flash('success', '密碼已更新，請使用新密碼登入。');
         redirect('/login');
     }
 }

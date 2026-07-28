@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS annual_budget_items (
 
 INSERT INTO permissions (code, name, module, created_at, updated_at) VALUES
   ('annual_budgets.view', '檢視年度預算', 'annual_budgets', NOW(), NOW()),
-  ('annual_budgets.manage', '編寫年度預算', 'annual_budgets', NOW(), NOW()),
+  ('annual_budgets.manage', '管理年度預算', 'annual_budgets', NOW(), NOW()),
   ('annual_budgets.approve', '核定年度預算', 'annual_budgets', NOW(), NOW())
 ON DUPLICATE KEY UPDATE
   name = VALUES(name),
@@ -68,4 +68,4 @@ INSERT IGNORE INTO role_permissions (role_id, permission_id)
 SELECT roles.id, permissions.id
 FROM roles
 INNER JOIN permissions ON permissions.code = 'annual_budgets.view'
-WHERE roles.name = '一般查詢人員';
+WHERE roles.name = '一般檢視者';
