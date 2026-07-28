@@ -198,3 +198,5 @@ storage：755 或主機要求的可寫權限
 線上更新需要 PHP `zip` extension，也就是 `ZipArchive`。如果 cPanel 沒開啟，請在 Select PHP Version / PHP Extensions 啟用 `zip`。
 
 如果檢查更新出現 HTTP 404，通常是 GitHub repo 尚未建立 Release。請到 GitHub repo 的 `Releases` 建立新版，例如 `v0.1.1`，再回到系統檢查更新。
+
+如果下載更新包出現 HTTP 415，請先手動更新最新版 `app/Modules/SystemUpdate/Services/GithubReleaseService.php`。這通常是舊版更新模組的 GitHub zipball request header 不相容。

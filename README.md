@@ -130,6 +130,8 @@ storage/logs/password-reset.log
 
 如果畫面出現 `GitHub 找不到 Latest Release`，通常代表尚未建立 Release，或私有 repo 的 `GITHUB_TOKEN` 權限不足。
 
+如果下載更新包出現 `HTTP 415`，代表主機上的舊版更新模組送出的 GitHub zipball request header 不相容。請先手動覆蓋最新版 `app/Modules/SystemUpdate/Services/GithubReleaseService.php`，或手動上傳最新版系統檔案一次，之後再使用後台線上更新。
+
 ## 重要部署設定
 
 正式環境網站根目錄應指向 `public`，不要指向專案根目錄。

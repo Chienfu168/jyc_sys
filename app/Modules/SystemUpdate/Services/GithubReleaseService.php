@@ -93,7 +93,7 @@ final class GithubReleaseService
     {
         $headers = [
             'User-Agent: Foundation-System-Updater',
-            'Accept: ' . ($binary ? 'application/octet-stream' : 'application/vnd.github+json'),
+            'Accept: application/vnd.github+json',
             'X-GitHub-Api-Version: 2022-11-28',
         ];
 
@@ -175,6 +175,10 @@ final class GithubReleaseService
 
         if ($status === 401 || $status === 403) {
             return 'GitHub 權限不足或 API 限制。請確認 GITHUB_TOKEN 是否正確，並具備 Contents: Read-only 權限。';
+        }
+
+        if ($status === 415) {
+            return 'GitHub 不接受目前的下載請求格式。請更新系統更新模組後再下載 Release zip。';
         }
 
         return "GitHub 請求失敗，HTTP {$status}";
