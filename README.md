@@ -118,7 +118,16 @@ storage/logs/password-reset.log
 
 ### 建立 GitHub Release
 
-線上更新讀取的是 GitHub Release，不是單純的 commit。每次要提供線上更新時，請到 GitHub 建立新版 Release：
+線上更新讀取的是 GitHub Release，不是單純的 commit。
+
+目前 repository 已加入 GitHub Actions 自動 Release 流程。每次要提供線上更新時：
+
+1. 調高 `.env.example` 的 `APP_VERSION`，例如 `0.1.2` 改成 `0.1.3`
+2. commit 並 push 到 `main`
+3. GitHub Actions 會自動建立 `v0.1.3` Release
+4. 主機後台「系統更新」即可檢查到新版
+
+也可以手動到 GitHub 建立 Release：
 
 1. 進入 `https://github.com/Chienfu168/jyc_sys`
 2. 點右側或上方的 `Releases`
