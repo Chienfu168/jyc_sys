@@ -115,6 +115,21 @@ storage/logs/password-reset.log
 
 更新不會覆蓋 `.env`、`storage`、`.git`、上傳檔案與備份檔。套用失敗時系統會嘗試還原程式備份；資料庫備份會保留供人工還原。
 
+### 建立 GitHub Release
+
+線上更新讀取的是 GitHub Release，不是單純的 commit。每次要提供線上更新時，請到 GitHub 建立新版 Release：
+
+1. 進入 `https://github.com/Chienfu168/jyc_sys`
+2. 點右側或上方的 `Releases`
+3. 點 `Draft a new release`
+4. 建立新 tag，例如 `v0.1.1`
+5. Release title 可填 `v0.1.1`
+6. 按 `Publish release`
+7. 將主機 `.env` 的 `APP_VERSION` 維持在目前已安裝版本，例如 `0.1.0`
+8. 後台「系統更新」按 `檢查更新`
+
+如果畫面出現 `GitHub 找不到 Latest Release`，通常代表尚未建立 Release，或私有 repo 的 `GITHUB_TOKEN` 權限不足。
+
 ## 重要部署設定
 
 正式環境網站根目錄應指向 `public`，不要指向專案根目錄。

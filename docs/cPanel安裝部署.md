@@ -196,3 +196,5 @@ storage：755 或主機要求的可寫權限
 - 更新 `.env` 的 `APP_VERSION`
 
 線上更新需要 PHP `zip` extension，也就是 `ZipArchive`。如果 cPanel 沒開啟，請在 Select PHP Version / PHP Extensions 啟用 `zip`。
+
+如果檢查更新出現 HTTP 404，通常是 GitHub repo 尚未建立 Release。請到 GitHub repo 的 `Releases` 建立新版，例如 `v0.1.1`，再回到系統檢查更新。

@@ -125,7 +125,7 @@ final class GithubReleaseService
         curl_close($ch);
 
         if ($content === false || $status >= 400) {
-            throw new RuntimeException($error ?: "GitHub 請求失敗，HTTP {$status}");
+            throw new RuntimeException($error ?: $this->httpErrorMessage($url, $status));
         }
 
         return (string) $content;
@@ -146,7 +146,7 @@ final class GithubReleaseService
         $status = $this->streamStatusCode($http_response_header ?? []);
 
         if ($content === false || $status >= 400) {
-            throw new RuntimeException("GitHub 請求失敗，HTTP {$status}");
+            throw new RuntimeException($this->httpErrorMessage($url, $status));
         }
 
         return (string) $content;
@@ -161,6 +161,23 @@ final class GithubReleaseService
         }
 
         return 200;
+    }
+
+    private function httpErrorMessage(string $url, int $status): string
+    {
+        if ($status === 404 && str_contains($url, '/releases/latest')) {
+            return 'GitHub 找不到 Latest Release。請先到 GitHub 建立正式 Release；如果 repo 是私有，請確認 GITHUB_TOKEN 具備 Contents: Read-only 權限。';
+        }
+
+        if ($status === 404 && str_contains($url, '/releases')) {
+            return 'GitHub 找不到可用的 Release。請確認 repo 名稱正確、已建立 Release，或 GITHUB_TOKEN 有讀取權限。';
+        }
+
+        if ($status === 401 || $status === 403) {
+            return 'GitHub 權限不足或 API 限制。請確認 GITHUB_TOKEN 是否正確，並具備 Contents: Read-only 權限。';
+        }
+
+        return "GitHub 請求失敗，HTTP {$status}";
     }
 
     private function isNewer(string $remoteTag, string $currentVersion): bool
