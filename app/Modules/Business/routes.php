@@ -11,7 +11,6 @@ $router->get('/projects', [BusinessController::class, 'projects']);
 $router->get('/lecturers', [BusinessController::class, 'lecturers']);
 $router->get('/calendar', [BusinessController::class, 'calendar']);
 $router->get('/accounting', [BusinessController::class, 'accounting']);
-$router->get('/petty-cash', [BusinessController::class, 'pettyCash']);
 $router->get('/income-expenses', [BusinessController::class, 'incomeExpenses']);
 $router->get('/lecturer-expenses', [BusinessController::class, 'lecturerExpenses']);
 $router->get('/travel-expenses', [BusinessController::class, 'travelExpenses']);
