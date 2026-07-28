@@ -32,6 +32,7 @@ final class AnnualBudgetController extends Controller
 
         $this->render('annual-budgets.index', [
             'title' => '年度預算',
+            'section' => '主要業務',
             'active' => 'annual-budgets',
             'budgets' => $stmt->fetchAll(),
         ]);
@@ -44,6 +45,7 @@ final class AnnualBudgetController extends Controller
         $year = (int) date('Y') + 1;
         $this->render('annual-budgets.create', [
             'title' => '新增年度預算',
+            'section' => '主要業務',
             'active' => 'annual-budgets',
             'budget' => [
                 'fiscal_year' => $year,
@@ -99,6 +101,7 @@ final class AnnualBudgetController extends Controller
 
         $this->render('annual-budgets.show', [
             'title' => $budget['title'],
+            'section' => '主要業務',
             'active' => 'annual-budgets',
             'budget' => $budget,
             'items' => $items,
@@ -118,6 +121,7 @@ final class AnnualBudgetController extends Controller
 
         $this->render('annual-budgets.edit', [
             'title' => '編輯年度預算',
+            'section' => '主要業務',
             'active' => 'annual-budgets',
             'budget' => $budget,
             'items' => $this->items((int) $id),

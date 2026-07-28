@@ -17,6 +17,7 @@ final class SystemUpdateController extends Controller
 
         $this->render('system-update.index', [
             'title' => '系統更新',
+            'section' => '系統設定',
             'active' => 'system-update',
             'release' => null,
             'repo' => config('app.github_repo', ''),
@@ -45,6 +46,7 @@ final class SystemUpdateController extends Controller
 
         $this->render('system-update.index', [
             'title' => '系統更新',
+            'section' => '系統設定',
             'active' => 'system-update',
             'release' => $release,
             'repo' => config('app.github_repo', ''),

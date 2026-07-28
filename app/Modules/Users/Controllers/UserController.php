@@ -34,6 +34,7 @@ final class UserController extends Controller
 
         $this->render('users.index', [
             'title' => '使用者管理',
+            'section' => '後台管理',
             'users' => $stmt->fetchAll(),
             'keyword' => $keyword,
         ]);
@@ -44,6 +45,7 @@ final class UserController extends Controller
         $this->requirePermission('users.create');
         $this->render('users.create', [
             'title' => '新增使用者',
+            'section' => '後台管理',
             'roles' => $this->roles(),
             'user' => null,
             'action' => '/users',
@@ -98,6 +100,7 @@ final class UserController extends Controller
 
         $this->render('users.edit', [
             'title' => '編輯使用者',
+            'section' => '後台管理',
             'roles' => $this->roles(),
             'user' => $user,
             'action' => '/users/' . $id,

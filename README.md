@@ -8,6 +8,7 @@ PHP + MySQL 內部管理系統，採模組化架構設計。
 - 忘記密碼與重設密碼 token 流程
 - 登入失敗次數限制
 - CSRF 防護
+- 分區式後台版型：主要業務、後台管理、系統設定
 - 使用者管理
 - 角色與權限基礎
 - 儀表板
@@ -50,7 +51,7 @@ copy .env.example .env
 如需啟用 GitHub 更新檢查，另設定：
 
 ```env
-APP_VERSION=0.1.3
+APP_VERSION=0.1.4
 GITHUB_REPO=your-org/foundation-system
 GITHUB_TOKEN=
 UPDATE_CHANNEL=stable
@@ -122,7 +123,7 @@ storage/logs/password-reset.log
 
 目前 repository 已加入 GitHub Actions 自動 Release 流程。每次要提供線上更新時：
 
-1. 調高 `.env.example` 的 `APP_VERSION`，例如 `0.1.2` 改成 `0.1.3`
+1. 調高 `.env.example` 的 `APP_VERSION`，例如 `0.1.3` 改成 `0.1.4`
 2. commit 並 push 到 `main`
 3. GitHub Actions 會自動建立 `v0.1.3` Release
 4. 主機後台「系統更新」即可檢查到新版
