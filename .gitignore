@@ -1,11 +1,12 @@
 .env
-.agents/
+/.agents/
+/.codex/
+/.git_broken_*/
+/舊資料夾/
 /vendor/
 /storage/logs/*.log
 /storage/cache/*
 /storage/private_uploads/*
 /storage/updates/*
-!/storage/cache/.gitkeep
-!/storage/logs/.gitkeep
-!/storage/private_uploads/.gitkeep
-!/storage/updates/.gitkeep
+/storage/installed.lock
+!.gitkeep

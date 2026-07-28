@@ -5,7 +5,7 @@ use App\Core\Csrf;
 
 function base_path(string $path = ''): string
 {
-    $base = dirname(__DIR__, 2);
+    $base = defined('BASE_PATH') ? BASE_PATH : dirname(__DIR__, 2);
     return $path === '' ? $base : $base . DIRECTORY_SEPARATOR . ltrim($path, DIRECTORY_SEPARATOR);
 }
 

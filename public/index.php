@@ -7,7 +7,10 @@ use App\Core\Csrf;
 use App\Core\Env;
 use App\Core\Router;
 
-require dirname(__DIR__) . '/app/Support/helpers.php';
+$basePath = $_SERVER['APP_BASE_PATH'] ?? dirname(__DIR__);
+define('BASE_PATH', realpath($basePath) ?: $basePath);
+
+require BASE_PATH . '/app/Support/helpers.php';
 
 spl_autoload_register(function (string $class): void {
     $prefix = 'App\\';
@@ -16,7 +19,7 @@ spl_autoload_register(function (string $class): void {
     }
 
     $relative = substr($class, strlen($prefix));
-    $path = dirname(__DIR__) . '/app/' . str_replace('\\', '/', $relative) . '.php';
+    $path = BASE_PATH . '/app/' . str_replace('\\', '/', $relative) . '.php';
     if (file_exists($path)) {
         require $path;
     }
@@ -24,6 +27,13 @@ spl_autoload_register(function (string $class): void {
 
 Env::load(base_path('.env'));
 date_default_timezone_set(config('app.timezone', 'Asia/Taipei'));
+
+if (!file_exists(base_path('storage/installed.lock')) && basename($_SERVER['SCRIPT_NAME'] ?? '') !== 'install.php') {
+    $scriptDir = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/');
+    $installUrl = ($scriptDir === '' || $scriptDir === '.') ? '/install.php' : $scriptDir . '/install.php';
+    header('Location: ' . $installUrl, true, 302);
+    exit;
+}
 
 session_name(config('security.session_name', 'foundation_session'));
 session_set_cookie_params([
