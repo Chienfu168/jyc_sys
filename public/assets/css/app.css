@@ -40,7 +40,7 @@ a {
 
 .app-shell {
     display: grid;
-    grid-template-columns: minmax(280px, 18rem) minmax(0, 1fr);
+    grid-template-columns: 300px minmax(0, 1fr);
     width: 100%;
     min-height: 100vh;
 }
@@ -68,7 +68,7 @@ a {
     height: 100vh;
     background: var(--sidebar);
     color: #fff;
-    padding: 22px 18px;
+    padding: 24px 20px;
     overflow-y: auto;
 }
 
@@ -119,13 +119,13 @@ a {
 .nav {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 22px;
 }
 
 .nav-section {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
     min-width: 0;
 }
 
@@ -144,8 +144,8 @@ a {
     align-items: center;
     gap: 10px;
     width: 100%;
-    min-height: 42px;
-    padding: 10px;
+    min-height: 44px;
+    padding: 10px 12px;
     border-radius: 8px;
     color: #d9e4df;
     font-weight: 600;
@@ -187,7 +187,7 @@ a {
     min-width: 0;
     width: 100%;
     max-width: none;
-    padding: 28px clamp(18px, 2.5vw, 36px) 44px;
+    padding: 32px clamp(24px, 3vw, 44px) 48px;
     overflow-x: hidden;
 }
 
@@ -280,6 +280,12 @@ a {
     gap: 14px;
 }
 
+.module-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+}
+
 .stat-card,
 .feature-card {
     padding: 18px;
@@ -314,6 +320,41 @@ a {
     display: block;
     font-size: 17px;
     line-height: 1.45;
+}
+
+.module-card {
+    display: block;
+    min-height: 150px;
+    padding: 20px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+    box-shadow: 0 1px 2px rgba(24, 32, 28, 0.04);
+}
+
+.module-card:hover {
+    border-color: rgba(31, 122, 91, 0.42);
+    box-shadow: 0 8px 18px rgba(24, 32, 28, 0.08);
+}
+
+.module-card span {
+    display: block;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.module-card strong {
+    display: block;
+    font-size: 20px;
+    margin-bottom: 10px;
+}
+
+.module-card p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.6;
 }
 
 .table-wrap {
@@ -707,7 +748,8 @@ textarea:focus {
     .stats-grid,
     .update-summary,
     .budget-summary,
-    .grid-form {
+    .grid-form,
+    .module-grid {
         grid-template-columns: 1fr;
     }
 
