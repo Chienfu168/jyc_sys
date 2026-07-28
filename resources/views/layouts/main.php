@@ -48,7 +48,14 @@ $canOperations = $currentUser && (
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= e(($title ?? '') . ' | ' . config('app.name')) ?></title>
-    <link rel="stylesheet" href="/assets/css/app.css">
+    <link rel="stylesheet" href="/assets/css/app.css?v=<?= e(config('app.version', '0')) ?>">
+    <style>
+        .sidebar .nav { display: block !important; }
+        .sidebar .nav-section { display: block !important; margin-bottom: 22px !important; }
+        .sidebar .nav-section-title { display: block !important; margin: 0 0 8px !important; padding: 0 10px !important; }
+        .sidebar .nav a { display: flex !important; width: 100% !important; align-items: center !important; margin: 0 0 8px !important; white-space: nowrap !important; }
+        .sidebar .nav a span:last-child { display: block !important; min-width: 0 !important; overflow: hidden !important; text-overflow: ellipsis !important; }
+    </style>
 </head>
 <body>
 <div class="app-shell <?= $currentUser ? '' : 'guest-shell' ?>">
