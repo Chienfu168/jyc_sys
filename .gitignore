@@ -4,6 +4,7 @@
 /.git_broken_*/
 /舊資料夾/
 /vendor/
+/.tools/
 /storage/logs/*.log
 /storage/cache/*
 /storage/private_uploads/*
