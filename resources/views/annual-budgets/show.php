@@ -24,7 +24,7 @@ ob_start();
     <div class="panel-header no-print">
         <div>
             <h2><?= e($budget['title']) ?></h2>
-            <p class="muted-text"><?= e((string) $budget['fiscal_year']) ?> 年度，狀態：<?= e(annual_budget_status_label($budget['status'])) ?></p>
+            <p class="muted-text"><?= e(roc_year_label($budget['fiscal_year'])) ?>，狀態：<?= e(annual_budget_status_label($budget['status'])) ?></p>
         </div>
         <div class="actions">
             <a class="btn" href="/annual-budgets">返回列表</a>
@@ -48,13 +48,13 @@ ob_start();
         </tr>
         <tr>
             <th>年度</th>
-            <td><?= e((string) $budget['fiscal_year']) ?></td>
+            <td><?= e(roc_year_label($budget['fiscal_year'])) ?></td>
             <th>類型</th>
             <td><?= e(annual_budget_type_label($budget['budget_type'] ?? 'annual')) ?></td>
         </tr>
         <tr>
             <th>期間</th>
-            <td><?= e(($budget['period_start'] ?: '-') . ' ~ ' . ($budget['period_end'] ?: '-')) ?></td>
+            <td><?= e(roc_date_range($budget['period_start'] ?? null, $budget['period_end'] ?? null)) ?></td>
             <th>核定會議 / 文號</th>
             <td><?= e($budget['board_meeting_no'] ?: '-') ?></td>
         </tr>

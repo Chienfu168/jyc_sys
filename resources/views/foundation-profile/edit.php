@@ -21,6 +21,18 @@ ob_start();
             <input type="text" name="registration_no" value="<?= e((string) old('registration_no', $profile['registration_no'] ?? '')) ?>">
         </label>
         <label>
+            <span>主管機關</span>
+            <input type="text" name="competent_authority" value="<?= e((string) old('competent_authority', $profile['competent_authority'] ?? '')) ?>">
+        </label>
+        <label>
+            <span>核准日期</span>
+            <input type="date" name="approval_date" value="<?= e((string) old('approval_date', $profile['approval_date'] ?? '')) ?>">
+        </label>
+        <label class="span-2">
+            <span>核准文號</span>
+            <input type="text" name="approval_doc_no" value="<?= e((string) old('approval_doc_no', $profile['approval_doc_no'] ?? '')) ?>">
+        </label>
+        <label>
             <span>董事長</span>
             <input type="text" name="representative" value="<?= e((string) old('representative', $profile['representative'] ?? '')) ?>">
         </label>

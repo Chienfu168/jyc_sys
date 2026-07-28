@@ -15,8 +15,8 @@ final class WorkPlanController extends Controller
     {
         $this->requirePermission('work_plans.view');
 
-        $year = (int) ($_GET['year'] ?? date('Y'));
-        if ($year < 2000 || $year > 2100) {
+        $year = normalize_fiscal_year($_GET['year'] ?? date('Y'));
+        if ($year < 1912 || $year > 2100) {
             $year = (int) date('Y');
         }
 
@@ -56,7 +56,7 @@ final class WorkPlanController extends Controller
             'plan' => [
                 'fiscal_year' => $year,
                 'plan_code' => '',
-                'title' => $year . ' 年度工作計畫',
+                'title' => roc_year($year) . ' 年度工作計畫',
                 'department' => '',
                 'owner_name' => auth()->user()['name'] ?? '',
                 'period_start' => $year . '-01-01',
@@ -218,14 +218,14 @@ final class WorkPlanController extends Controller
     private function validatePlan(string $path): void
     {
         if ($error = Validator::required($_POST, [
-            'fiscal_year' => '年度',
+            'fiscal_year' => '民國年度',
             'title' => '計畫名稱',
         ])) {
             $this->backWithInput($path, $_POST, $error);
         }
 
-        $year = (int) $_POST['fiscal_year'];
-        if ($year < 2000 || $year > 2100) {
+        $year = normalize_fiscal_year($_POST['fiscal_year']);
+        if ($year < 1912 || $year > 2100) {
             $this->backWithInput($path, $_POST, '年度格式不正確。');
         }
     }
@@ -233,7 +233,7 @@ final class WorkPlanController extends Controller
     private function payload(): array
     {
         return [
-            'fiscal_year' => (int) $_POST['fiscal_year'],
+            'fiscal_year' => normalize_fiscal_year($_POST['fiscal_year']),
             'plan_code' => trim((string) ($_POST['plan_code'] ?? '')),
             'title' => trim((string) $_POST['title']),
             'department' => trim((string) ($_POST['department'] ?? '')),

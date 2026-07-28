@@ -1,13 +1,13 @@
 <?php
 $active = 'petty-cash';
 ob_start();
-$periodLabel = $month === '' ? $year . ' 年' : $year . ' 年 ' . (int) $month . ' 月';
+$periodLabel = $month === '' ? roc_year_label($year) : roc_year_label($year) . ' ' . (int) $month . ' 月';
 ?>
 <section class="panel no-print">
     <form class="form grid-form" method="get" action="/petty-cash/report">
         <label>
-            <span>年度</span>
-            <input type="number" name="year" min="2000" max="2100" value="<?= e((string) $year) ?>">
+            <span>民國年度</span>
+            <input type="number" name="year" min="1" max="2100" value="<?= e((string) roc_year($year)) ?>">
         </label>
         <label>
             <span>月份</span>
@@ -112,7 +112,7 @@ $periodLabel = $month === '' ? $year . ' 年' : $year . ' 年 ' . (int) $month .
                 <tbody>
                 <?php foreach ($monthly as $row): ?>
                     <tr>
-                        <td><?= e($row['report_month']) ?></td>
+                        <td><?= e(roc_report_month($row['report_month'])) ?></td>
                         <td class="amount"><?= e(report_money($row['income_total'])) ?></td>
                         <td class="amount"><?= e(report_money($row['expense_total'])) ?></td>
                         <td class="amount"><?= e(report_money((float) $row['income_total'] - (float) $row['expense_total'])) ?></td>
@@ -149,7 +149,7 @@ $periodLabel = $month === '' ? $year . ' 年' : $year . ' 年 ' . (int) $month .
                 <tbody>
                 <?php foreach ($entries as $entry): ?>
                     <tr>
-                        <td><?= e($entry['occurred_on']) ?></td>
+                        <td><?= e(roc_date($entry['occurred_on'])) ?></td>
                         <td><?= e($entry['item_type'] === 'income' ? '收入' : '支出') ?></td>
                         <td><?= e($entry['item_name']) ?></td>
                         <td><?= e($entry['payment_to'] ?: '-') ?></td>
@@ -171,6 +171,14 @@ $periodLabel = $month === '' ? $year . ' 年' : $year . ' 年 ' . (int) $month .
 function report_money($value): string
 {
     return number_format((float) $value, 0);
+}
+function roc_report_month(string $month): string
+{
+    if (!preg_match('/^(\d{4})-(\d{2})$/', $month, $matches)) {
+        return $month;
+    }
+
+    return '民國 ' . (((int) $matches[1]) - 1911) . ' 年 ' . (int) $matches[2] . ' 月';
 }
 $content = ob_get_clean();
 require base_path('resources/views/layouts/main.php');

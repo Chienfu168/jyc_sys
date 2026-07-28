@@ -2,8 +2,8 @@
     <?= csrf_field() ?>
     <div class="grid-form">
         <label>
-            <span>年度</span>
-            <input type="number" name="fiscal_year" min="2000" max="2100" value="<?= e((string) old('fiscal_year', $budget['fiscal_year'] ?? '')) ?>" required>
+            <span>民國年度</span>
+            <input type="number" name="fiscal_year" min="1" max="2100" value="<?= e((string) old('fiscal_year', roc_year($budget['fiscal_year'] ?? date('Y')))) ?>" required>
         </label>
         <label>
             <span>預算類型</span>

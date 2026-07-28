@@ -30,7 +30,7 @@ ob_start();
             <?php foreach ($budgets as $budget): ?>
                 <?php $balance = (float) $budget['income_total'] - (float) $budget['expense_total']; ?>
                 <tr>
-                    <td><?= e((string) $budget['fiscal_year']) ?></td>
+                    <td><?= e(roc_year_label($budget['fiscal_year'])) ?></td>
                     <td><?= e($budget['title']) ?></td>
                     <td><span class="badge <?= $budget['status'] === 'approved' ? 'ok' : 'muted' ?>"><?= e(budget_status_label($budget['status'])) ?></span></td>
                     <td class="amount"><?= e(budget_money($budget['income_total'])) ?></td>

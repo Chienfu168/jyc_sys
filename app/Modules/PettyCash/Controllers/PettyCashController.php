@@ -68,8 +68,8 @@ final class PettyCashController extends Controller
     {
         $this->requirePermission('petty_cash.view');
 
-        $year = (int) ($_GET['year'] ?? date('Y'));
-        if ($year < 2000 || $year > 2100) {
+        $year = normalize_fiscal_year($_GET['year'] ?? date('Y'));
+        if ($year < 1912 || $year > 2100) {
             $year = (int) date('Y');
         }
 

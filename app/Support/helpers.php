@@ -103,6 +103,42 @@ function now(): string
     return date('Y-m-d H:i:s');
 }
 
+function roc_year(int|string|null $year = null): int
+{
+    $year = (int) ($year ?: date('Y'));
+    return $year > 1911 ? $year - 1911 : $year;
+}
+
+function gregorian_year_from_roc(int|string|null $year = null): int
+{
+    $year = (int) ($year ?: date('Y'));
+    return $year < 1912 ? $year + 1911 : $year;
+}
+
+function normalize_fiscal_year(int|string|null $year = null): int
+{
+    return gregorian_year_from_roc($year);
+}
+
+function roc_year_label(int|string|null $year = null): string
+{
+    return '民國 ' . roc_year($year) . ' 年';
+}
+
+function roc_date(?string $date): string
+{
+    if (!$date || !preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $date, $matches)) {
+        return '-';
+    }
+
+    return sprintf('民國 %d 年 %d 月 %d 日', ((int) $matches[1]) - 1911, (int) $matches[2], (int) $matches[3]);
+}
+
+function roc_date_range(?string $start, ?string $end): string
+{
+    return roc_date($start) . ' ~ ' . roc_date($end);
+}
+
 function foundation_profile(): array
 {
     static $profile = null;
@@ -116,6 +152,9 @@ function foundation_profile(): array
         'english_name' => '',
         'tax_id' => '',
         'registration_no' => '',
+        'competent_authority' => '',
+        'approval_date' => '',
+        'approval_doc_no' => '',
         'representative' => '',
         'executive_director' => '',
         'undertaker' => '',

@@ -5,7 +5,7 @@ ob_start();
 <section class="panel">
     <div class="panel-header">
         <form class="search" method="get" action="/work-plans">
-            <input type="number" name="year" min="2000" max="2100" value="<?= e((string) $year) ?>">
+            <input type="number" name="year" min="1" max="2100" value="<?= e((string) roc_year($year)) ?>">
             <button class="btn" type="submit">查詢</button>
         </form>
         <?php if (\App\Core\Permission::can('work_plans.manage')): ?>
@@ -29,11 +29,11 @@ ob_start();
             <tbody>
             <?php foreach ($plans as $plan): ?>
                 <tr>
-                    <td><?= e((string) $plan['fiscal_year']) ?></td>
+                    <td><?= e(roc_year_label($plan['fiscal_year'])) ?></td>
                     <td><?= e($plan['title']) ?></td>
                     <td><?= e($plan['department'] ?: '-') ?></td>
                     <td><?= e($plan['owner_name'] ?: '-') ?></td>
-                    <td><?= e(($plan['period_start'] ?: '-') . ' ~ ' . ($plan['period_end'] ?: '-')) ?></td>
+                    <td><?= e(roc_date_range($plan['period_start'] ?? null, $plan['period_end'] ?? null)) ?></td>
                     <td class="amount"><?= e(number_format((float) $plan['budget_total'], 0)) ?></td>
                     <td><span class="badge <?= $plan['status'] === 'approved' ? 'ok' : 'muted' ?>"><?= e(work_plan_status_label($plan['status'])) ?></span></td>
                     <td class="actions">

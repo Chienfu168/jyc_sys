@@ -52,7 +52,7 @@ final class AnnualBudgetController extends Controller
             'budget' => [
                 'fiscal_year' => $year,
                 'budget_type' => 'annual',
-                'title' => $year . ' 年度預算',
+                'title' => roc_year($year) . ' 年度預算',
                 'period_start' => $year . '-01-01',
                 'period_end' => $year . '-12-31',
                 'status' => 'draft',
@@ -80,7 +80,7 @@ final class AnnualBudgetController extends Controller
                  VALUES
                  (:fiscal_year, :budget_type, :title, :period_start, :period_end, :status, :notes, :purpose, :legal_basis, :expected_benefit, :board_meeting_no, :created_by, :created_at, :updated_at)'
             )->execute([
-                'fiscal_year' => (int) $_POST['fiscal_year'],
+                'fiscal_year' => normalize_fiscal_year($_POST['fiscal_year']),
                 'budget_type' => $this->budgetTypeValue(),
                 'title' => trim((string) $_POST['title']),
                 'period_start' => $this->dateOrNull('period_start'),
@@ -178,7 +178,7 @@ final class AnnualBudgetController extends Controller
                      updated_at = :updated_at
                  WHERE id = :id'
             )->execute([
-                'fiscal_year' => (int) $_POST['fiscal_year'],
+                'fiscal_year' => normalize_fiscal_year($_POST['fiscal_year']),
                 'budget_type' => $this->budgetTypeValue(),
                 'title' => trim((string) $_POST['title']),
                 'period_start' => $this->dateOrNull('period_start'),
@@ -236,8 +236,8 @@ final class AnnualBudgetController extends Controller
             $this->backWithInput($path, $_POST, $error);
         }
 
-        $year = (int) $_POST['fiscal_year'];
-        if ($year < 2000 || $year > 2100) {
+        $year = normalize_fiscal_year($_POST['fiscal_year']);
+        if ($year < 1912 || $year > 2100) {
             $this->backWithInput($path, $_POST, '年度格式不正確。');
         }
     }
