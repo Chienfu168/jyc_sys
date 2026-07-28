@@ -237,6 +237,10 @@ a {
     color: var(--muted);
 }
 
+.account-name {
+    font-weight: 600;
+}
+
 .panel,
 .stat-card,
 .auth-card {
@@ -557,6 +561,24 @@ textarea:focus {
 
 .auth-heading {
     margin-bottom: 22px;
+}
+
+.captcha-row {
+    display: grid;
+    grid-template-columns: 96px minmax(0, 1fr);
+    gap: 10px;
+    align-items: center;
+}
+
+.captcha-row strong {
+    display: grid;
+    place-items: center;
+    min-height: 42px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #f6f8f7;
+    font-size: 20px;
+    letter-spacing: .12em;
 }
 
 .text-link {

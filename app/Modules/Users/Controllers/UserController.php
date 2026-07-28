@@ -73,13 +73,20 @@ final class UserController extends Controller
 
         try {
             Database::pdo()->prepare(
-                'INSERT INTO users (name, email, password_hash, role_id, status, password_changed_at, created_at, updated_at)
-                 VALUES (:name, :email, :password_hash, :role_id, :status, :password_changed_at, :created_at, :updated_at)'
+                'INSERT INTO users
+                 (name, email, phone, password_hash, role_id, department, job_title, employee_no, profile_notes, status, password_changed_at, created_at, updated_at)
+                 VALUES
+                 (:name, :email, :phone, :password_hash, :role_id, :department, :job_title, :employee_no, :profile_notes, :status, :password_changed_at, :created_at, :updated_at)'
             )->execute([
                 'name' => trim((string) $_POST['name']),
                 'email' => trim((string) $_POST['email']),
+                'phone' => trim((string) ($_POST['phone'] ?? '')),
                 'password_hash' => password_hash((string) $_POST['password'], PASSWORD_DEFAULT),
                 'role_id' => (int) $_POST['role_id'],
+                'department' => trim((string) ($_POST['department'] ?? '')),
+                'job_title' => trim((string) ($_POST['job_title'] ?? '')),
+                'employee_no' => trim((string) ($_POST['employee_no'] ?? '')),
+                'profile_notes' => trim((string) ($_POST['profile_notes'] ?? '')),
                 'status' => $_POST['status'] ?? 'active',
                 'password_changed_at' => now(),
                 'created_at' => now(),
@@ -125,7 +132,12 @@ final class UserController extends Controller
         $params = [
             'name' => trim((string) $_POST['name']),
             'email' => trim((string) $_POST['email']),
+            'phone' => trim((string) ($_POST['phone'] ?? '')),
             'role_id' => (int) $_POST['role_id'],
+            'department' => trim((string) ($_POST['department'] ?? '')),
+            'job_title' => trim((string) ($_POST['job_title'] ?? '')),
+            'employee_no' => trim((string) ($_POST['employee_no'] ?? '')),
+            'profile_notes' => trim((string) ($_POST['profile_notes'] ?? '')),
             'status' => $_POST['status'] ?? 'active',
             'updated_at' => now(),
             'id' => (int) $id,
@@ -144,7 +156,16 @@ final class UserController extends Controller
         try {
             Database::pdo()->prepare(
                 "UPDATE users
-                 SET name = :name, email = :email, role_id = :role_id, status = :status, updated_at = :updated_at {$passwordSql}
+                 SET name = :name,
+                     email = :email,
+                     phone = :phone,
+                     role_id = :role_id,
+                     department = :department,
+                     job_title = :job_title,
+                     employee_no = :employee_no,
+                     profile_notes = :profile_notes,
+                     status = :status,
+                     updated_at = :updated_at {$passwordSql}
                  WHERE id = :id"
             )->execute($params);
         } catch (\PDOException) {

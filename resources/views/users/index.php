@@ -18,6 +18,7 @@ ob_start();
             <tr>
                 <th>姓名</th>
                 <th>Email</th>
+                <th>部門 / 職稱</th>
                 <th>角色</th>
                 <th>狀態</th>
                 <th>最後登入</th>
@@ -29,6 +30,7 @@ ob_start();
                 <tr>
                     <td><?= e($user['name']) ?></td>
                     <td><?= e($user['email']) ?></td>
+                    <td><?= e(trim(($user['department'] ?? '') . ' ' . ($user['job_title'] ?? '')) ?: '-') ?></td>
                     <td><?= e($user['role_name'] ?? '-') ?></td>
                     <td><span class="badge <?= $user['status'] === 'active' ? 'ok' : 'muted' ?>"><?= e($user['status'] === 'active' ? '啟用' : '停用') ?></span></td>
                     <td><?= e($user['last_login_at'] ?? '-') ?></td>
@@ -44,7 +46,7 @@ ob_start();
                 </tr>
             <?php endforeach; ?>
             <?php if (!$users): ?>
-                <tr><td colspan="6" class="empty">沒有符合條件的資料</td></tr>
+                <tr><td colspan="7" class="empty">沒有符合條件的資料</td></tr>
             <?php endif; ?>
             </tbody>
         </table>

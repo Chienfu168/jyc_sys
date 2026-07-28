@@ -47,6 +47,10 @@
         <input type="text" name="receipt_no" value="<?= e((string) old('receipt_no', $entry['receipt_no'] ?? '')) ?>">
     </label>
     <label class="span-2">
+        <span>登錄帳號</span>
+        <input type="text" value="<?= e((string) ($entry['created_by_name'] ?? auth()->user()['name'] ?? '')) ?>" readonly>
+    </label>
+    <label class="span-2">
         <span>備註</span>
         <textarea name="notes"><?= e((string) old('notes', $entry['notes'] ?? '')) ?></textarea>
     </label>

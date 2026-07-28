@@ -4,6 +4,7 @@ use App\Modules\PettyCash\Controllers\PettyCashController;
 use App\Modules\PettyCash\Controllers\PettyCashItemController;
 
 $router->get('/petty-cash', [PettyCashController::class, 'index']);
+$router->get('/petty-cash/report', [PettyCashController::class, 'report']);
 $router->get('/petty-cash/create', [PettyCashController::class, 'create']);
 $router->post('/petty-cash', [PettyCashController::class, 'store']);
 $router->get('/petty-cash/{id}/edit', [PettyCashController::class, 'edit']);

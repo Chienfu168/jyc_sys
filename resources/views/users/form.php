@@ -9,6 +9,10 @@
         <input type="email" name="email" value="<?= e(old('email', $user['email'] ?? '')) ?>" required>
     </label>
     <label>
+        <span>電話</span>
+        <input type="text" name="phone" value="<?= e(old('phone', $user['phone'] ?? '')) ?>">
+    </label>
+    <label>
         <span>角色</span>
         <select name="role_id" required>
             <option value="">請選擇</option>
@@ -26,9 +30,25 @@
             <option value="disabled" <?= $status === 'disabled' ? 'selected' : '' ?>>停用</option>
         </select>
     </label>
+    <label>
+        <span>部門</span>
+        <input type="text" name="department" value="<?= e(old('department', $user['department'] ?? '')) ?>">
+    </label>
+    <label>
+        <span>職稱</span>
+        <input type="text" name="job_title" value="<?= e(old('job_title', $user['job_title'] ?? '')) ?>">
+    </label>
+    <label>
+        <span>員工編號</span>
+        <input type="text" name="employee_no" value="<?= e(old('employee_no', $user['employee_no'] ?? '')) ?>">
+    </label>
     <label class="span-2">
         <span><?= $user ? '新密碼（不變更可留空）' : '密碼' ?></span>
         <input type="password" name="password" autocomplete="new-password" <?= $user ? '' : 'required' ?>>
+    </label>
+    <label class="span-2">
+        <span>備註</span>
+        <textarea name="profile_notes"><?= e(old('profile_notes', $user['profile_notes'] ?? '')) ?></textarea>
     </label>
     <div class="form-actions span-2">
         <button class="btn primary" type="submit">儲存</button>

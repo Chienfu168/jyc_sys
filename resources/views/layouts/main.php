@@ -135,7 +135,7 @@ $canOperations = $currentUser && (
                     <h1><?= e($title ?? '') ?></h1>
                 </div>
                 <div class="account">
-                    <span><?= e($currentUser['name']) ?></span>
+                    <a class="account-name" href="/account/profile"><?= e($currentUser['name']) ?></a>
                     <small><?= e($currentUser['role_name'] ?? '') ?></small>
                     <form method="post" action="/logout">
                         <?= csrf_field() ?>

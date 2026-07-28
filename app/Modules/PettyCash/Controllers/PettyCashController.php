@@ -55,9 +55,75 @@ final class PettyCashController extends Controller
                 'payment_to' => '',
                 'receipt_no' => '',
                 'notes' => '',
+                'created_by_name' => auth()->user()['name'] ?? '',
             ],
             'items' => $this->items(),
             'action' => '/petty-cash',
+        ]);
+    }
+
+    public function report(): void
+    {
+        $this->requirePermission('petty_cash.view');
+
+        $year = (int) ($_GET['year'] ?? date('Y'));
+        if ($year < 2000 || $year > 2100) {
+            $year = (int) date('Y');
+        }
+
+        $month = preg_match('/^(0[1-9]|1[0-2])$/', (string) ($_GET['month'] ?? ''))
+            ? (string) $_GET['month']
+            : '';
+        $mode = ($_GET['mode'] ?? '') === 'detail' ? 'detail' : 'summary';
+
+        [$dateWhere, $params] = $this->dateScope($year, $month);
+
+        $entriesStmt = Database::pdo()->prepare(
+            "SELECT petty_cash_entries.*, users.name AS created_by_name
+             FROM petty_cash_entries
+             LEFT JOIN users ON users.id = petty_cash_entries.created_by
+             WHERE {$dateWhere}
+             ORDER BY petty_cash_entries.occurred_on, petty_cash_entries.id"
+        );
+        $entriesStmt->execute($params);
+        $entries = $entriesStmt->fetchAll();
+
+        $summaryStmt = Database::pdo()->prepare(
+            "SELECT item_type, item_name, COUNT(*) AS entry_count, SUM(amount) AS subtotal
+             FROM petty_cash_entries
+             WHERE {$dateWhere}
+             GROUP BY item_type, item_name
+             ORDER BY item_type, subtotal DESC, item_name"
+        );
+        $summaryStmt->execute($params);
+        $summary = $summaryStmt->fetchAll();
+
+        $monthlyStmt = Database::pdo()->prepare(
+            'SELECT DATE_FORMAT(occurred_on, "%Y-%m") AS report_month,
+                    SUM(CASE WHEN item_type = "income" THEN amount ELSE 0 END) AS income_total,
+                    SUM(CASE WHEN item_type = "expense" THEN amount ELSE 0 END) AS expense_total
+             FROM petty_cash_entries
+             WHERE YEAR(occurred_on) = :year
+             GROUP BY DATE_FORMAT(occurred_on, "%Y-%m")
+             ORDER BY report_month'
+        );
+        $monthlyStmt->execute(['year' => $year]);
+
+        $totals = $this->totals($entries);
+
+        $this->render('petty-cash.report', [
+            'title' => '零用金統計表',
+            'section' => '財務會計',
+            'active' => 'petty-cash',
+            'year' => $year,
+            'month' => $month,
+            'mode' => $mode,
+            'entries' => $entries,
+            'summary' => $summary,
+            'monthly' => $monthlyStmt->fetchAll(),
+            'totals' => $totals,
+            'expenseTotal' => $totals['expense'],
+            'incomeTotal' => $totals['income'],
         ]);
     }
 
@@ -178,7 +244,13 @@ final class PettyCashController extends Controller
 
     private function findEntry(int $id): array
     {
-        $stmt = Database::pdo()->prepare('SELECT * FROM petty_cash_entries WHERE id = :id LIMIT 1');
+        $stmt = Database::pdo()->prepare(
+            'SELECT petty_cash_entries.*, users.name AS created_by_name
+             FROM petty_cash_entries
+             LEFT JOIN users ON users.id = petty_cash_entries.created_by
+             WHERE petty_cash_entries.id = :id
+             LIMIT 1'
+        );
         $stmt->execute(['id' => $id]);
         $entry = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -242,5 +314,20 @@ final class PettyCashController extends Controller
     private function amountValue(): float
     {
         return round((float) ($_POST['amount'] ?? 0), 2);
+    }
+
+    private function dateScope(int $year, string $month): array
+    {
+        if ($month !== '') {
+            return [
+                'DATE_FORMAT(petty_cash_entries.occurred_on, "%Y-%m") = :report_month',
+                ['report_month' => $year . '-' . $month],
+            ];
+        }
+
+        return [
+            'YEAR(petty_cash_entries.occurred_on) = :report_year',
+            ['report_year' => $year],
+        ];
     }
 }

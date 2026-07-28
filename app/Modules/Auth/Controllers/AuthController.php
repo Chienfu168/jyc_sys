@@ -16,16 +16,26 @@ final class AuthController extends Controller
             redirect('/');
         }
 
-        $this->render('auth.login', ['title' => '系統登入']);
+        $_SESSION['login_captcha'] = (string) random_int(1000, 9999);
+
+        $this->render('auth.login', [
+            'title' => '系統登入',
+            'captcha' => $_SESSION['login_captcha'],
+        ]);
     }
 
     public function login(): void
     {
         $email = trim((string) ($_POST['email'] ?? ''));
         $password = (string) ($_POST['password'] ?? '');
+        $captcha = trim((string) ($_POST['captcha'] ?? ''));
 
-        if ($error = Validator::required($_POST, ['email' => 'Email', 'password' => '密碼'])) {
+        if ($error = Validator::required($_POST, ['email' => 'Email', 'password' => '密碼', 'captcha' => '驗證碼'])) {
             $this->backWithInput('/login', ['email' => $email], $error);
+        }
+
+        if ($captcha !== (string) ($_SESSION['login_captcha'] ?? '')) {
+            $this->backWithInput('/login', ['email' => $email], '驗證碼輸入錯誤，請重新輸入。');
         }
 
         if (Auth::instance()->tooManyAttempts($email)) {
@@ -36,6 +46,7 @@ final class AuthController extends Controller
             $this->backWithInput('/login', ['email' => $email], '帳號或密碼不正確。');
         }
 
+        unset($_SESSION['login_captcha']);
         redirect('/');
     }
 

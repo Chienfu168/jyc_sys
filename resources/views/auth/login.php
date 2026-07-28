@@ -18,6 +18,13 @@ ob_start();
                 <span>密碼</span>
                 <input type="password" name="password" autocomplete="current-password" required>
             </label>
+            <label>
+                <span>驗證碼</span>
+                <div class="captcha-row">
+                    <strong><?= e($captcha ?? '') ?></strong>
+                    <input type="text" name="captcha" inputmode="numeric" autocomplete="off" required>
+                </div>
+            </label>
             <button class="btn primary full" type="submit">登入</button>
             <a class="text-link" href="/forgot-password">忘記密碼</a>
         </form>
