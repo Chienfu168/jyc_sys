@@ -21,13 +21,34 @@ ob_start();
     </div>
 </section>
 
-<section class="panel">
-    <div class="panel-header">
-        <h2>GitHub Release 檢查</h2>
+<section class="panel ops-bar">
+    <div>
+        <h2>更新操作</h2>
+        <p class="muted-text">依序檢查 GitHub Release、下載更新包，已下載後即可套用更新。</p>
+    </div>
+    <div class="ops-actions">
         <form method="post" action="/system-update/check">
             <?= csrf_field() ?>
             <button class="btn primary" type="submit">檢查更新</button>
         </form>
+        <?php if ($release && $release['is_newer']): ?>
+            <form method="post" action="/system-update/download">
+                <?= csrf_field() ?>
+                <button class="btn primary" type="submit">下載更新包</button>
+            </form>
+        <?php endif; ?>
+        <?php if ($latestPackage): ?>
+            <form method="post" action="/system-update/apply" onsubmit="return confirm('系統會先備份程式與資料庫，再套用已下載更新包。確定要繼續？');">
+                <?= csrf_field() ?>
+                <button class="btn primary" type="submit">套用已下載更新包</button>
+            </form>
+        <?php endif; ?>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <h2>GitHub Release 檢查</h2>
     </div>
 
     <?php if (!$repo): ?>
@@ -47,10 +68,6 @@ ob_start();
             <div class="release-actions">
                 <?php if ($release['is_newer']): ?>
                     <span class="badge ok">可更新</span>
-                    <form method="post" action="/system-update/download">
-                        <?= csrf_field() ?>
-                        <button class="btn primary" type="submit">下載更新包</button>
-                    </form>
                 <?php else: ?>
                     <span class="badge muted">目前無新版</span>
                 <?php endif; ?>
@@ -70,12 +87,6 @@ ob_start();
 <section class="panel">
     <div class="panel-header">
         <h2>套用更新</h2>
-        <?php if ($latestPackage): ?>
-            <form method="post" action="/system-update/apply" onsubmit="return confirm('系統會先備份程式與資料庫，再套用已下載更新包。確定要繼續？');">
-                <?= csrf_field() ?>
-                <button class="btn primary" type="submit">套用已下載更新包</button>
-            </form>
-        <?php endif; ?>
     </div>
     <?php if ($latestPackage): ?>
         <div class="release-box">

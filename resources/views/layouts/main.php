@@ -55,6 +55,10 @@ $canOperations = $currentUser && (
         .sidebar .nav-section-title { display: block !important; margin: 0 0 8px !important; padding: 0 10px !important; }
         .sidebar .nav a { display: flex !important; width: 100% !important; align-items: center !important; margin: 0 0 8px !important; white-space: nowrap !important; }
         .sidebar .nav a span:last-child { display: block !important; min-width: 0 !important; overflow: hidden !important; text-overflow: ellipsis !important; }
+        .app-shell { max-width: 100vw !important; overflow-x: clip !important; }
+        .main { min-width: 0 !important; max-width: 100% !important; overflow-x: hidden !important; }
+        .content-area { min-width: 0 !important; max-width: 1280px !important; }
+        .panel, .stat-card, .release-box { min-width: 0 !important; }
     </style>
 </head>
 <body>
