@@ -102,7 +102,7 @@ DB_PASSWORD=你的資料庫密碼
 如果要使用 GitHub 更新檢查：
 
 ```env
-APP_VERSION=0.1.2
+APP_VERSION=0.1.3
 GITHUB_REPO=your-org/foundation-system
 GITHUB_TOKEN=
 UPDATE_CHANNEL=stable

@@ -50,7 +50,7 @@ copy .env.example .env
 如需啟用 GitHub 更新檢查，另設定：
 
 ```env
-APP_VERSION=0.1.2
+APP_VERSION=0.1.3
 GITHUB_REPO=your-org/foundation-system
 GITHUB_TOKEN=
 UPDATE_CHANNEL=stable
