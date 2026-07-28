@@ -70,7 +70,7 @@ $canOperations = $currentUser && (
             <div class="brand">
                 <div class="brand-mark">基</div>
                 <div class="brand-text">
-                    <strong><?= e(config('app.name')) ?></strong>
+                    <strong><?= e(foundation_name()) ?></strong>
                     <span>內部管理</span>
                 </div>
             </div>
@@ -114,13 +114,21 @@ $canOperations = $currentUser && (
                     </div>
                 <?php endif; ?>
 
-                <?php if (\App\Core\Permission::can('system_updates.manage')): ?>
+                <?php if (\App\Core\Permission::can('system_updates.manage') || \App\Core\Permission::can('foundation_profile.view')): ?>
                     <div class="nav-section">
                         <span class="nav-section-title">系統設定</span>
-                        <a class="<?= $activeKey === 'system-update' ? 'active' : '' ?>" href="/system-update">
-                            <span class="nav-icon">更</span>
-                            <span>系統更新</span>
-                        </a>
+                        <?php if (\App\Core\Permission::can('foundation_profile.view')): ?>
+                            <a class="<?= $activeKey === 'foundation-profile' ? 'active' : '' ?>" href="/foundation-profile">
+                                <span class="nav-icon">基</span>
+                                <span>基本資料</span>
+                            </a>
+                        <?php endif; ?>
+                        <?php if (\App\Core\Permission::can('system_updates.manage')): ?>
+                            <a class="<?= $activeKey === 'system-update' ? 'active' : '' ?>" href="/system-update">
+                                <span class="nav-icon">更</span>
+                                <span>系統更新</span>
+                            </a>
+                        <?php endif; ?>
                     </div>
                 <?php endif; ?>
             </nav>

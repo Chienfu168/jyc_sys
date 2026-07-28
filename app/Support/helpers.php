@@ -102,3 +102,42 @@ function now(): string
 {
     return date('Y-m-d H:i:s');
 }
+
+function foundation_profile(): array
+{
+    static $profile = null;
+
+    if ($profile !== null) {
+        return $profile;
+    }
+
+    $fallback = [
+        'foundation_name' => config('app.name'),
+        'english_name' => '',
+        'tax_id' => '',
+        'registration_no' => '',
+        'representative' => '',
+        'executive_director' => '',
+        'undertaker' => '',
+        'phone' => '',
+        'email' => '',
+        'address' => '',
+        'mission' => '',
+        'service_area' => '',
+        'fiscal_year_start_month' => 1,
+    ];
+
+    try {
+        $stmt = \App\Core\Database::pdo()->query('SELECT * FROM foundation_profiles WHERE id = 1 LIMIT 1');
+        $profile = $stmt->fetch(PDO::FETCH_ASSOC) ?: $fallback;
+    } catch (Throwable) {
+        $profile = $fallback;
+    }
+
+    return $profile + $fallback;
+}
+
+function foundation_name(): string
+{
+    return foundation_profile()['foundation_name'] ?: config('app.name');
+}

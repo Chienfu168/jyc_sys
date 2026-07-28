@@ -682,9 +682,26 @@ textarea:focus {
     align-items: end;
 }
 
+.nonprofit-line {
+    grid-template-columns: 120px 150px 180px 90px 100px 120px 130px 150px minmax(220px, 1fr) minmax(180px, 1fr) 64px;
+}
+
+.work-plan-line {
+    grid-template-columns: 120px 180px minmax(260px, 1fr) 180px 140px 64px;
+}
+
+.span-wide {
+    min-width: 0;
+}
+
 .budget-line .btn {
     width: 44px;
     padding: 0;
+}
+
+.nonprofit-line .btn,
+.work-plan-line .btn {
+    width: 64px;
 }
 
 .amount {
@@ -725,6 +742,74 @@ textarea:focus {
 .steps li.done {
     color: var(--success);
     font-weight: 600;
+}
+
+.print-document-header {
+    display: none;
+    text-align: center;
+    margin-bottom: 18px;
+}
+
+.print-document-header h2,
+.print-document-header h3 {
+    margin: 0;
+}
+
+.print-document-header h2 {
+    font-size: 22px;
+}
+
+.print-document-header h3 {
+    margin-top: 8px;
+    font-size: 18px;
+}
+
+.print-meta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px 18px;
+    margin-top: 8px;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.meta-table th {
+    width: 150px;
+    background: #f6f8f7;
+}
+
+.meta-table td {
+    white-space: normal;
+    line-height: 1.6;
+}
+
+.signature-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(160px, 1fr));
+    gap: 18px;
+    margin-top: 34px;
+}
+
+.signature-box {
+    min-height: 86px;
+    border-top: 1px solid var(--line);
+    padding-top: 10px;
+}
+
+.signature-box span {
+    display: block;
+    color: var(--muted);
+    margin-bottom: 22px;
+}
+
+.signature-box strong {
+    display: block;
+    min-height: 24px;
+}
+
+.print-notes {
+    line-height: 1.7;
 }
 
 @media print {
@@ -793,6 +878,14 @@ textarea:focus {
     td {
         white-space: normal;
         padding: 8px 6px;
+    }
+
+    .print-document-header {
+        display: block;
+    }
+
+    .signature-grid {
+        break-inside: avoid;
     }
 }
 

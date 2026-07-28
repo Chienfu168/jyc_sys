@@ -51,9 +51,16 @@ final class AnnualBudgetController extends Controller
             'active' => 'annual-budgets',
             'budget' => [
                 'fiscal_year' => $year,
+                'budget_type' => 'annual',
                 'title' => $year . ' 年度預算',
+                'period_start' => $year . '-01-01',
+                'period_end' => $year . '-12-31',
                 'status' => 'draft',
                 'notes' => '',
+                'purpose' => '',
+                'legal_basis' => '',
+                'expected_benefit' => '',
+                'board_meeting_no' => '',
             ],
             'items' => $this->defaultItems(),
             'action' => '/annual-budgets',
@@ -68,13 +75,22 @@ final class AnnualBudgetController extends Controller
         try {
             Database::pdo()->beginTransaction();
             Database::pdo()->prepare(
-                'INSERT INTO annual_budgets (fiscal_year, title, status, notes, created_by, created_at, updated_at)
-                 VALUES (:fiscal_year, :title, :status, :notes, :created_by, :created_at, :updated_at)'
+                'INSERT INTO annual_budgets
+                 (fiscal_year, budget_type, title, period_start, period_end, status, notes, purpose, legal_basis, expected_benefit, board_meeting_no, created_by, created_at, updated_at)
+                 VALUES
+                 (:fiscal_year, :budget_type, :title, :period_start, :period_end, :status, :notes, :purpose, :legal_basis, :expected_benefit, :board_meeting_no, :created_by, :created_at, :updated_at)'
             )->execute([
                 'fiscal_year' => (int) $_POST['fiscal_year'],
+                'budget_type' => $this->budgetTypeValue(),
                 'title' => trim((string) $_POST['title']),
+                'period_start' => $this->dateOrNull('period_start'),
+                'period_end' => $this->dateOrNull('period_end'),
                 'status' => $this->statusValue(),
                 'notes' => trim((string) ($_POST['notes'] ?? '')),
+                'purpose' => trim((string) ($_POST['purpose'] ?? '')),
+                'legal_basis' => trim((string) ($_POST['legal_basis'] ?? '')),
+                'expected_benefit' => trim((string) ($_POST['expected_benefit'] ?? '')),
+                'board_meeting_no' => trim((string) ($_POST['board_meeting_no'] ?? '')),
                 'created_by' => auth()->user()['id'] ?? null,
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -108,6 +124,7 @@ final class AnnualBudgetController extends Controller
             'budget' => $budget,
             'items' => $items,
             'totals' => $this->totals($items),
+            'profile' => foundation_profile(),
         ]);
     }
 
@@ -147,13 +164,31 @@ final class AnnualBudgetController extends Controller
             Database::pdo()->beginTransaction();
             Database::pdo()->prepare(
                 'UPDATE annual_budgets
-                 SET fiscal_year = :fiscal_year, title = :title, status = :status, notes = :notes, updated_at = :updated_at
+                 SET fiscal_year = :fiscal_year,
+                     budget_type = :budget_type,
+                     title = :title,
+                     period_start = :period_start,
+                     period_end = :period_end,
+                     status = :status,
+                     notes = :notes,
+                     purpose = :purpose,
+                     legal_basis = :legal_basis,
+                     expected_benefit = :expected_benefit,
+                     board_meeting_no = :board_meeting_no,
+                     updated_at = :updated_at
                  WHERE id = :id'
             )->execute([
                 'fiscal_year' => (int) $_POST['fiscal_year'],
+                'budget_type' => $this->budgetTypeValue(),
                 'title' => trim((string) $_POST['title']),
+                'period_start' => $this->dateOrNull('period_start'),
+                'period_end' => $this->dateOrNull('period_end'),
                 'status' => $this->statusValue(),
                 'notes' => trim((string) ($_POST['notes'] ?? '')),
+                'purpose' => trim((string) ($_POST['purpose'] ?? '')),
+                'legal_basis' => trim((string) ($_POST['legal_basis'] ?? '')),
+                'expected_benefit' => trim((string) ($_POST['expected_benefit'] ?? '')),
+                'board_meeting_no' => trim((string) ($_POST['board_meeting_no'] ?? '')),
                 'updated_at' => now(),
                 'id' => (int) $id,
             ]);
@@ -224,15 +259,20 @@ final class AnnualBudgetController extends Controller
 
         $stmt = Database::pdo()->prepare(
             'INSERT INTO annual_budget_items
-             (annual_budget_id, item_type, category, item_name, amount, sort_order, notes, created_at, updated_at)
-             VALUES (:annual_budget_id, :item_type, :category, :item_name, :amount, :sort_order, :notes, :created_at, :updated_at)'
+             (annual_budget_id, item_type, category, item_name, description, unit, quantity, unit_price, amount, funding_source, sort_order, notes, created_at, updated_at)
+             VALUES (:annual_budget_id, :item_type, :category, :item_name, :description, :unit, :quantity, :unit_price, :amount, :funding_source, :sort_order, :notes, :created_at, :updated_at)'
         );
 
         $sort = 1;
         foreach ($items as $item) {
             $name = trim((string) ($item['item_name'] ?? ''));
             $category = trim((string) ($item['category'] ?? ''));
-            $amount = (float) ($item['amount'] ?? 0);
+            $quantity = max(0, round((float) ($item['quantity'] ?? 1), 2));
+            $unitPrice = max(0, round((float) ($item['unit_price'] ?? 0), 2));
+            $amount = round((float) ($item['amount'] ?? 0), 2);
+            if ($amount <= 0 && $quantity > 0 && $unitPrice > 0) {
+                $amount = $quantity * $unitPrice;
+            }
             $type = ($item['item_type'] ?? '') === 'expense' ? 'expense' : 'income';
 
             if ($name === '' && $category === '' && $amount == 0.0) {
@@ -244,7 +284,12 @@ final class AnnualBudgetController extends Controller
                 'item_type' => $type,
                 'category' => $category ?: '未分類',
                 'item_name' => $name ?: '未命名項目',
+                'description' => trim((string) ($item['description'] ?? '')),
+                'unit' => trim((string) ($item['unit'] ?? '')),
+                'quantity' => $quantity ?: 1,
+                'unit_price' => $unitPrice,
                 'amount' => max(0, $amount),
+                'funding_source' => trim((string) ($item['funding_source'] ?? '')),
                 'sort_order' => $sort++,
                 'notes' => trim((string) ($item['notes'] ?? '')),
                 'created_at' => now(),
@@ -310,11 +355,23 @@ final class AnnualBudgetController extends Controller
     private function defaultItems(): array
     {
         return [
-            ['item_type' => 'income', 'category' => '捐款收入', 'item_name' => '', 'amount' => '', 'notes' => ''],
-            ['item_type' => 'income', 'category' => '補助收入', 'item_name' => '', 'amount' => '', 'notes' => ''],
-            ['item_type' => 'expense', 'category' => '人事費', 'item_name' => '', 'amount' => '', 'notes' => ''],
-            ['item_type' => 'expense', 'category' => '業務費', 'item_name' => '', 'amount' => '', 'notes' => ''],
-            ['item_type' => 'expense', 'category' => '行政管理費', 'item_name' => '', 'amount' => '', 'notes' => ''],
+            ['item_type' => 'income', 'category' => '捐款收入', 'item_name' => '', 'description' => '', 'unit' => '', 'quantity' => 1, 'unit_price' => '', 'amount' => '', 'funding_source' => '民間捐款', 'notes' => ''],
+            ['item_type' => 'income', 'category' => '補助收入', 'item_name' => '', 'description' => '', 'unit' => '', 'quantity' => 1, 'unit_price' => '', 'amount' => '', 'funding_source' => '政府補助', 'notes' => ''],
+            ['item_type' => 'expense', 'category' => '人事費', 'item_name' => '', 'description' => '', 'unit' => '月', 'quantity' => 1, 'unit_price' => '', 'amount' => '', 'funding_source' => '', 'notes' => ''],
+            ['item_type' => 'expense', 'category' => '業務費', 'item_name' => '', 'description' => '', 'unit' => '式', 'quantity' => 1, 'unit_price' => '', 'amount' => '', 'funding_source' => '', 'notes' => ''],
+            ['item_type' => 'expense', 'category' => '行政管理費', 'item_name' => '', 'description' => '', 'unit' => '式', 'quantity' => 1, 'unit_price' => '', 'amount' => '', 'funding_source' => '', 'notes' => ''],
         ];
+    }
+
+    private function budgetTypeValue(): string
+    {
+        $type = (string) ($_POST['budget_type'] ?? 'annual');
+        return in_array($type, ['annual', 'project', 'grant'], true) ? $type : 'annual';
+    }
+
+    private function dateOrNull(string $key): ?string
+    {
+        $value = trim((string) ($_POST[$key] ?? ''));
+        return preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) ? $value : null;
     }
 }

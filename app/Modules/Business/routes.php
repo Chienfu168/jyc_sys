@@ -4,7 +4,6 @@ use App\Modules\Business\Controllers\BusinessController;
 
 $router->get('/finance', [BusinessController::class, 'finance']);
 $router->get('/operations', [BusinessController::class, 'operations']);
-$router->get('/work-plans', [BusinessController::class, 'workPlans']);
 $router->get('/personnel', [BusinessController::class, 'personnel']);
 $router->get('/activities', [BusinessController::class, 'activities']);
 $router->get('/projects', [BusinessController::class, 'projects']);
