@@ -124,6 +124,12 @@ CREATE TABLE system_update_logs (
   INDEX idx_system_update_logs_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE schema_migrations (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  migration VARCHAR(190) NOT NULL UNIQUE,
+  applied_at DATETIME NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE donors (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   donor_type ENUM('person', 'organization') NOT NULL DEFAULT 'person',

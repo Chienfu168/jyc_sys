@@ -21,6 +21,22 @@ final class UpdateLogService
         return $stmt->fetchAll();
     }
 
+    public function latestSuccessfulDownload(): ?array
+    {
+        $stmt = Database::pdo()->query(
+            'SELECT *
+             FROM system_update_logs
+             WHERE action = "download"
+               AND status = "success"
+               AND package_path IS NOT NULL
+             ORDER BY created_at DESC
+             LIMIT 1'
+        );
+        $row = $stmt->fetch();
+
+        return $row ?: null;
+    }
+
     public function create(string $action, string $status, array $payload = []): void
     {
         Database::pdo()->prepare(

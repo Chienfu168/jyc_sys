@@ -7,7 +7,7 @@
 - PHP 8.2 或以上
 - MySQL 8 或 MariaDB 10.6 或以上
 - Apache 並支援 `.htaccess`
-- PHP extension：PDO、pdo_mysql
+- PHP extension：PDO、pdo_mysql、zip
 - 可設定資料庫使用者與密碼
 
 ## 二、建議部署方式
@@ -174,3 +174,25 @@ storage：755 或主機要求的可寫權限
 - 網站根目錄優先指向 `public`
 - MySQL 使用者只給本系統資料庫權限
 - 定期備份資料庫與 `storage`
+
+## 九、線上更新
+
+後台「系統更新」可串接 GitHub Release：
+
+1. 在 `.env` 設定 `GITHUB_REPO`
+2. 私有 repo 另設定 `GITHUB_TOKEN`
+3. 到後台「系統更新」檢查版本
+4. 下載更新包
+5. 按「套用已下載更新包」
+
+套用更新時會自動：
+
+- 建立程式備份到 `storage/backups`
+- 建立資料庫備份到 `storage/backups`
+- 建立 `storage/maintenance.lock` 進入維護模式
+- 解壓並驗證 GitHub zip
+- 覆蓋系統程式檔
+- 執行尚未套用的 SQL migration
+- 更新 `.env` 的 `APP_VERSION`
+
+線上更新需要 PHP `zip` extension，也就是 `ZipArchive`。如果 cPanel 沒開啟，請在 Select PHP Version / PHP Extensions 啟用 `zip`。

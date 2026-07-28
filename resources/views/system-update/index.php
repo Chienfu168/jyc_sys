@@ -17,7 +17,7 @@ ob_start();
     </div>
     <div class="stat-card">
         <span>模式</span>
-        <strong>半自動</strong>
+        <strong>一鍵套用</strong>
     </div>
 </section>
 
@@ -69,16 +69,43 @@ ob_start();
 
 <section class="panel">
     <div class="panel-header">
+        <h2>套用更新</h2>
+        <?php if ($latestPackage): ?>
+            <form method="post" action="/system-update/apply" onsubmit="return confirm('系統會先備份程式與資料庫，再套用已下載更新包。確定要繼續？');">
+                <?= csrf_field() ?>
+                <button class="btn primary" type="submit">套用已下載更新包</button>
+            </form>
+        <?php endif; ?>
+    </div>
+    <?php if ($latestPackage): ?>
+        <div class="release-box">
+            <div>
+                <span class="muted-text">可套用版本</span>
+                <h3><?= e($latestPackage['version_to'] ?? '-') ?></h3>
+                <p><?= e($latestPackage['package_path'] ?? '-') ?></p>
+                <p class="mono"><?= e($latestPackage['package_sha256'] ?? '') ?></p>
+            </div>
+            <div class="release-actions">
+                <span class="badge ok">已下載</span>
+            </div>
+        </div>
+    <?php else: ?>
+        <p class="muted-text">尚無已下載的更新包。請先檢查更新並下載 GitHub Release zip。</p>
+    <?php endif; ?>
+</section>
+
+<section class="panel">
+    <div class="panel-header">
         <h2>安全更新流程</h2>
     </div>
     <ol class="steps">
         <li class="done">檢查 GitHub Release</li>
         <li class="done">下載 zip 更新包到 storage/updates</li>
-        <li>備份目前程式與資料庫</li>
-        <li>解壓至暫存目錄並驗證檔案</li>
-        <li>切換維護模式</li>
-        <li>覆蓋程式並執行 migration</li>
-        <li>失敗時 rollback</li>
+        <li class="done">備份目前程式與資料庫</li>
+        <li class="done">解壓至暫存目錄並驗證檔案</li>
+        <li class="done">切換維護模式</li>
+        <li class="done">覆蓋程式並執行 migration</li>
+        <li class="done">失敗時嘗試還原程式備份</li>
     </ol>
 </section>
 

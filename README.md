@@ -21,6 +21,7 @@ PHP + MySQL 內部管理系統，採模組化架構設計。
 - PHP 8.2+
 - MySQL 8 或 MariaDB 10.6+
 - Apache 或 Nginx
+- PHP extensions：PDO、pdo_mysql、zip
 - Laragon 或 XAMPP 可作為本機開發環境
 
 ## 安裝步驟
@@ -99,14 +100,20 @@ storage/logs/password-reset.log
 
 ## GitHub 系統更新
 
-後台「系統更新」目前採半自動安全流程：
+後台「系統更新」支援 GitHub Release 線上一鍵更新：
 
 - 檢查 GitHub Releases 最新版本
 - 比對 `.env` 的 `APP_VERSION`
 - 下載 zip 更新包到 `storage/updates`
+- 備份目前程式到 `storage/backups`
+- 備份目前資料庫到 `storage/backups`
+- 解壓並驗證更新包
+- 套用 `app`、`config`、`database`、`docs`、`public`、`resources` 等系統檔案
+- 執行尚未套用的 SQL migration
+- 更新 `.env` 的 `APP_VERSION`
 - 記錄 sha256 與操作紀錄
 
-目前尚未自動覆蓋正式程式與執行 migration。下一階段應加入備份、解壓驗證、維護模式、檔案切換與 rollback 後，再開放真正一鍵套用更新。
+更新不會覆蓋 `.env`、`storage`、`.git`、上傳檔案與備份檔。套用失敗時系統會嘗試還原程式備份；資料庫備份會保留供人工還原。
 
 ## 重要部署設定
 

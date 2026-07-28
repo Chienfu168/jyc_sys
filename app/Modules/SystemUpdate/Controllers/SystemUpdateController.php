@@ -5,6 +5,7 @@ namespace App\Modules\SystemUpdate\Controllers;
 use App\Core\AuditLog;
 use App\Core\Controller;
 use App\Modules\SystemUpdate\Services\GithubReleaseService;
+use App\Modules\SystemUpdate\Services\UpdateService;
 use App\Modules\SystemUpdate\Services\UpdateLogService;
 use Throwable;
 
@@ -21,6 +22,7 @@ final class SystemUpdateController extends Controller
             'repo' => config('app.github_repo', ''),
             'version' => config('app.version', '0.1.0'),
             'logs' => (new UpdateLogService())->latest(),
+            'latestPackage' => (new UpdateLogService())->latestSuccessfulDownload(),
         ]);
     }
 
@@ -48,6 +50,7 @@ final class SystemUpdateController extends Controller
             'repo' => config('app.github_repo', ''),
             'version' => config('app.version', '0.1.0'),
             'logs' => (new UpdateLogService())->latest(),
+            'latestPackage' => (new UpdateLogService())->latestSuccessfulDownload(),
         ]);
     }
 
@@ -80,6 +83,40 @@ final class SystemUpdateController extends Controller
             flash('success', '更新包已下載：' . $package['file_name']);
         } catch (Throwable $e) {
             (new UpdateLogService())->create('download', 'failed', ['message' => $e->getMessage()]);
+            flash('error', $e->getMessage());
+        }
+
+        redirect('/system-update');
+    }
+
+    public function apply(): void
+    {
+        $this->requirePermission('system_updates.manage');
+
+        $logService = new UpdateLogService();
+
+        try {
+            $result = (new UpdateService())->applyLatestPackage();
+
+            $logService->create('apply', 'success', [
+                'version_to' => $result['version_to'],
+                'package_path' => $result['package_path'],
+                'package_sha256' => $result['package_sha256'],
+                'message' => '更新已套用；程式備份：' . $result['backup_app']
+                    . '；資料庫備份：' . $result['backup_database']
+                    . '；migration：' . (count($result['migrations']) ? implode(', ', $result['migrations']) : '無'),
+            ]);
+
+            AuditLog::write('apply_update', 'system_update', null, null, [
+                'version_to' => $result['version_to'],
+                'backup_app' => $result['backup_app'],
+                'backup_database' => $result['backup_database'],
+                'migrations' => $result['migrations'],
+            ]);
+
+            flash('success', '更新已套用完成，版本：' . $result['version_to']);
+        } catch (Throwable $e) {
+            $logService->create('apply', 'failed', ['message' => $e->getMessage()]);
             flash('error', $e->getMessage());
         }
 

@@ -35,6 +35,13 @@ if (!file_exists(base_path('storage/installed.lock')) && basename($_SERVER['SCRI
     exit;
 }
 
+$requestPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?: '';
+if (file_exists(base_path('storage/maintenance.lock')) && !str_contains($requestPath, '/system-update')) {
+    http_response_code(503);
+    echo '<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><title>系統維護中</title></head><body style="font-family:Arial,sans-serif;padding:40px"><h1>系統維護中</h1><p>系統正在套用更新，請稍後再試。</p></body></html>';
+    exit;
+}
+
 session_name(config('security.session_name', 'foundation_session'));
 session_set_cookie_params([
     'lifetime' => 0,

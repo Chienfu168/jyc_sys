@@ -8,5 +8,7 @@
 /storage/cache/*
 /storage/private_uploads/*
 /storage/updates/*
+/storage/backups/*
 /storage/installed.lock
+/storage/maintenance.lock
 !.gitkeep

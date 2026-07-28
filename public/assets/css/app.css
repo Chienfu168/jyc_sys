@@ -340,6 +340,12 @@ select:focus {
     color: var(--muted);
 }
 
+.mono {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 13px;
+    overflow-wrap: anywhere;
+}
+
 .auth-panel {
     display: grid;
     place-items: center;
