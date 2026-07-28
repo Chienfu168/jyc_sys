@@ -199,4 +199,4 @@ storage：755 或主機要求的可寫權限
 
 如果檢查更新出現 HTTP 404，通常是 GitHub repo 尚未建立 Release。請到 GitHub repo 的 `Releases` 建立新版，例如 `v0.1.1`，再回到系統檢查更新。
 
-如果下載更新包出現 HTTP 415，請先手動更新最新版 `app/Modules/SystemUpdate/Services/GithubReleaseService.php`。這通常是舊版更新模組的 GitHub zipball request header 不相容。
+如果下載更新包出現 HTTP 415，請先手動更新最新版 `app/Modules/SystemUpdate/Services/GithubReleaseService.php`。這通常是舊版更新模組的 GitHub zipball request header 不相容；新版會改用 `codeload.github.com` 下載 zip。

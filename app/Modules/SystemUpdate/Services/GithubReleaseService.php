@@ -30,7 +30,7 @@ final class GithubReleaseService
             'name' => (string) ($release['name'] ?? $release['tag_name'] ?? ''),
             'published_at' => (string) ($release['published_at'] ?? ''),
             'html_url' => (string) ($release['html_url'] ?? ''),
-            'zipball_url' => (string) ($release['zipball_url'] ?? ''),
+            'zipball_url' => $this->downloadUrl((string) ($release['tag_name'] ?? '')),
             'body' => (string) ($release['body'] ?? ''),
             'prerelease' => (bool) ($release['prerelease'] ?? false),
             'draft' => (bool) ($release['draft'] ?? false),
@@ -40,7 +40,7 @@ final class GithubReleaseService
 
     public function downloadZip(string $zipballUrl, string $tagName): array
     {
-        if ($zipballUrl === '' || !str_starts_with($zipballUrl, 'https://api.github.com/')) {
+        if ($zipballUrl === '' || !preg_match('#^https://(api\.github\.com|codeload\.github\.com)/#', $zipballUrl)) {
             throw new RuntimeException('GitHub 更新包網址無效');
         }
 
@@ -53,6 +53,11 @@ final class GithubReleaseService
         }
 
         file_put_contents($target, $content);
+
+        if (!$this->looksLikeZip($target)) {
+            @unlink($target);
+            throw new RuntimeException('下載內容不是有效的 zip 更新包，請確認 GitHub Release 與下載權限');
+        }
 
         return [
             'path' => $target,
@@ -93,12 +98,15 @@ final class GithubReleaseService
     {
         $headers = [
             'User-Agent: Foundation-System-Updater',
-            'Accept: application/vnd.github+json',
-            'X-GitHub-Api-Version: 2022-11-28',
+            'Accept: ' . ($binary ? 'application/zip, application/octet-stream, */*' : 'application/vnd.github+json'),
         ];
 
+        if (!$binary) {
+            $headers[] = 'X-GitHub-Api-Version: 2022-11-28';
+        }
+
         $token = trim((string) config('app.github_token', ''));
-        if ($token !== '') {
+        if ($token !== '' && str_starts_with($url, 'https://api.github.com/')) {
             $headers[] = 'Authorization: Bearer ' . $token;
         }
 
@@ -182,6 +190,29 @@ final class GithubReleaseService
         }
 
         return "GitHub 請求失敗，HTTP {$status}";
+    }
+
+    private function downloadUrl(string $tagName): string
+    {
+        $repo = trim((string) config('app.github_repo', ''));
+        if ($repo === '' || $tagName === '') {
+            return '';
+        }
+
+        return 'https://codeload.github.com/' . $repo . '/zip/refs/tags/' . rawurlencode($tagName);
+    }
+
+    private function looksLikeZip(string $path): bool
+    {
+        $handle = fopen($path, 'rb');
+        if (!$handle) {
+            return false;
+        }
+
+        $signature = fread($handle, 4);
+        fclose($handle);
+
+        return $signature === "PK\x03\x04" || $signature === "PK\x05\x06" || $signature === "PK\x07\x08";
     }
 
     private function isNewer(string $remoteTag, string $currentVersion): bool
