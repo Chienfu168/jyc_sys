@@ -29,13 +29,53 @@
                 </div>
 
                 <div class="nav-section">
-                    <span class="nav-section-title">主要業務</span>
+                    <span class="nav-section-title">財務會計</span>
                     <?php if (\App\Core\Permission::can('annual_budgets.view')): ?>
                         <a class="<?= ($active ?? '') === 'annual-budgets' ? 'active' : '' ?>" href="/annual-budgets">
                             <span class="nav-icon">預</span>
                             <span>年度預算</span>
                         </a>
                     <?php endif; ?>
+                    <?php if (\App\Core\Permission::can('accounting.view')): ?>
+                        <a class="<?= ($active ?? '') === 'accounting' ? 'active' : '' ?>" href="/accounting">
+                            <span class="nav-icon">會</span>
+                            <span>會計系統</span>
+                        </a>
+                    <?php endif; ?>
+                    <?php if (\App\Core\Permission::can('petty_cash.view')): ?>
+                        <a class="<?= ($active ?? '') === 'petty-cash' ? 'active' : '' ?>" href="/petty-cash">
+                            <span class="nav-icon">零</span>
+                            <span>零用金</span>
+                        </a>
+                    <?php endif; ?>
+                    <?php if (\App\Core\Permission::can('income_expenses.view')): ?>
+                        <a class="<?= ($active ?? '') === 'income-expenses' ? 'active' : '' ?>" href="/income-expenses">
+                            <span class="nav-icon">收</span>
+                            <span>收支紀錄</span>
+                        </a>
+                    <?php endif; ?>
+                    <?php if (\App\Core\Permission::can('lecturer_expenses.view')): ?>
+                        <a class="<?= ($active ?? '') === 'lecturer-expenses' ? 'active' : '' ?>" href="/lecturer-expenses">
+                            <span class="nav-icon">講</span>
+                            <span>講師支出費用</span>
+                        </a>
+                    <?php endif; ?>
+                    <?php if (\App\Core\Permission::can('travel_expenses.view')): ?>
+                        <a class="<?= ($active ?? '') === 'travel-expenses' ? 'active' : '' ?>" href="/travel-expenses">
+                            <span class="nav-icon">差</span>
+                            <span>出差費用</span>
+                        </a>
+                    <?php endif; ?>
+                    <?php if (\App\Core\Permission::can('payroll.view')): ?>
+                        <a class="<?= ($active ?? '') === 'payroll' ? 'active' : '' ?>" href="/payroll">
+                            <span class="nav-icon">薪</span>
+                            <span>薪資管理</span>
+                        </a>
+                    <?php endif; ?>
+                </div>
+
+                <div class="nav-section">
+                    <span class="nav-section-title">人事活動</span>
                     <?php if (\App\Core\Permission::can('work_plans.view')): ?>
                         <a class="<?= ($active ?? '') === 'work-plans' ? 'active' : '' ?>" href="/work-plans">
                             <span class="nav-icon">計</span>
@@ -64,6 +104,18 @@
                         <a class="<?= ($active ?? '') === 'personnel' ? 'active' : '' ?>" href="/personnel">
                             <span class="nav-icon">人</span>
                             <span>人事管理</span>
+                        </a>
+                    <?php endif; ?>
+                    <?php if (\App\Core\Permission::can('leave_requests.view')): ?>
+                        <a class="<?= ($active ?? '') === 'leave-requests' ? 'active' : '' ?>" href="/leave-requests">
+                            <span class="nav-icon">假</span>
+                            <span>人事請假</span>
+                        </a>
+                    <?php endif; ?>
+                    <?php if (\App\Core\Permission::can('volunteers.view')): ?>
+                        <a class="<?= ($active ?? '') === 'volunteers' ? 'active' : '' ?>" href="/volunteers">
+                            <span class="nav-icon">志</span>
+                            <span>志工管理</span>
                         </a>
                     <?php endif; ?>
                     <?php if (\App\Core\Permission::can('calendar.view')): ?>
@@ -123,6 +175,12 @@
                     </form>
                 </div>
             </header>
+
+            <?php if (($printable ?? true) !== false): ?>
+                <div class="page-tools no-print">
+                    <button class="btn" type="button" onclick="window.print()">列印 / 另存 PDF</button>
+                </div>
+            <?php endif; ?>
         <?php endif; ?>
 
         <?php if ($message = flash('success')): ?>

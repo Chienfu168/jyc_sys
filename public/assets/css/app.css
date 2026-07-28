@@ -514,6 +514,12 @@ textarea:focus {
     justify-content: flex-end;
 }
 
+.page-tools {
+    display: flex;
+    justify-content: flex-end;
+    margin: -8px 0 18px;
+}
+
 .update-summary {
     grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
 }
@@ -607,6 +613,75 @@ textarea:focus {
 .steps li.done {
     color: var(--success);
     font-weight: 600;
+}
+
+@media print {
+    :root {
+        --bg: #ffffff;
+        --surface: #ffffff;
+        --line: #d8d8d8;
+        --text: #000000;
+        --muted: #555555;
+    }
+
+    body {
+        background: #ffffff;
+        color: #000000;
+        font-size: 12px;
+        overflow: visible;
+    }
+
+    .app-shell {
+        display: block;
+        min-height: 0;
+    }
+
+    .sidebar,
+    .topbar,
+    .page-tools,
+    .alert,
+    .no-print,
+    .btn,
+    .actions form {
+        display: none !important;
+    }
+
+    .main {
+        width: 100%;
+        padding: 0;
+        overflow: visible;
+    }
+
+    .content-area {
+        display: block;
+    }
+
+    .panel,
+    .stat-card,
+    .feature-card {
+        break-inside: avoid;
+        box-shadow: none;
+        border-color: #d8d8d8;
+        margin-bottom: 12px;
+    }
+
+    .panel {
+        padding: 14px;
+    }
+
+    .table-wrap {
+        overflow: visible;
+    }
+
+    table {
+        font-size: 11px;
+    }
+
+    th,
+    td {
+        white-space: normal;
+        padding: 8px 6px;
+    }
 }
 
 @media (max-width: 900px) {
