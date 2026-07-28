@@ -28,7 +28,10 @@ INSERT INTO permissions (code, name, module, created_at, updated_at) VALUES
   ('reports.view', '檢視報表', 'reports', NOW(), NOW()),
   ('reports.export', '匯出報表', 'reports', NOW(), NOW()),
   ('settings.manage', '管理系統設定', 'settings', NOW(), NOW()),
-  ('system_updates.manage', '管理系統更新', 'system_updates', NOW(), NOW())
+  ('system_updates.manage', '管理系統更新', 'system_updates', NOW(), NOW()),
+  ('annual_budgets.view', '檢視年度預算', 'annual_budgets', NOW(), NOW()),
+  ('annual_budgets.manage', '編寫年度預算', 'annual_budgets', NOW(), NOW()),
+  ('annual_budgets.approve', '核定年度預算', 'annual_budgets', NOW(), NOW())
 ON DUPLICATE KEY UPDATE
   name = VALUES(name),
   module = VALUES(module),
@@ -49,7 +52,9 @@ WHERE code IN (
   'volunteers.view',
   'documents.view',
   'reports.view',
-  'reports.export'
+  'reports.export',
+  'annual_budgets.view',
+  'annual_budgets.approve'
 );
 
 INSERT IGNORE INTO role_permissions (role_id, permission_id)
@@ -65,7 +70,9 @@ WHERE code IN (
   'volunteers.view',
   'volunteers.manage',
   'documents.view',
-  'documents.manage'
+  'documents.manage',
+  'annual_budgets.view',
+  'annual_budgets.manage'
 );
 
 INSERT IGNORE INTO role_permissions (role_id, permission_id)
@@ -77,5 +84,6 @@ WHERE code IN (
   'activities.view',
   'volunteers.view',
   'documents.view',
-  'reports.view'
+  'reports.view',
+  'annual_budgets.view'
 );

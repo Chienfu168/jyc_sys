@@ -20,6 +20,9 @@
             </div>
             <nav class="nav">
                 <a class="<?= ($active ?? '') === 'dashboard' ? 'active' : '' ?>" href="/">儀表板</a>
+                <?php if (\App\Core\Permission::can('annual_budgets.view')): ?>
+                    <a class="<?= ($active ?? '') === 'annual-budgets' ? 'active' : '' ?>" href="/annual-budgets">年度預算</a>
+                <?php endif; ?>
                 <?php if (\App\Core\Permission::can('users.view')): ?>
                     <a class="<?= ($active ?? '') === 'users' ? 'active' : '' ?>" href="/users">使用者管理</a>
                 <?php endif; ?>

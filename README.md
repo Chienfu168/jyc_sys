@@ -12,6 +12,7 @@ PHP + MySQL 內部管理系統，採模組化架構設計。
 - 角色與權限基礎
 - 儀表板
 - 操作紀錄
+- 年度預算編寫
 - GitHub Release 檢查與更新包下載
 - MySQL schema
 - 預留捐款人、捐款紀錄、活動、志工、文件模組資料表
@@ -49,7 +50,7 @@ copy .env.example .env
 如需啟用 GitHub 更新檢查，另設定：
 
 ```env
-APP_VERSION=0.1.0
+APP_VERSION=0.1.2
 GITHUB_REPO=your-org/foundation-system
 GITHUB_TOKEN=
 UPDATE_CHANNEL=stable
@@ -131,6 +132,16 @@ storage/logs/password-reset.log
 如果畫面出現 `GitHub 找不到 Latest Release`，通常代表尚未建立 Release，或私有 repo 的 `GITHUB_TOKEN` 權限不足。
 
 如果下載更新包出現 `HTTP 415`，代表主機上的舊版更新模組送出的 GitHub zipball request header 不相容。請先手動覆蓋最新版 `app/Modules/SystemUpdate/Services/GithubReleaseService.php`，或手動上傳最新版系統檔案一次，之後再使用後台線上更新。
+
+## 年度預算
+
+後台「年度預算」提供基金會年度預算編寫：
+
+- 建立年度預算主檔
+- 編寫收入與支出明細
+- 自動計算收入、支出與餘絀
+- 草稿、送審、核定狀態
+- 主管可核定年度預算
 
 ## 重要部署設定
 
