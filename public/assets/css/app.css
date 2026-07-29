@@ -745,6 +745,21 @@ textarea:focus {
     gap: 10px;
 }
 
+.calc-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    min-height: 42px;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #f8faf9;
+}
+
+.calc-summary span {
+    margin: 0;
+}
+
 .sr-only {
     position: absolute;
     width: 1px;
