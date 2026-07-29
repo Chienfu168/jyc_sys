@@ -745,6 +745,126 @@ textarea:focus {
     gap: 10px;
 }
 
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.calendar-weekday,
+.calendar-day {
+    min-width: 0;
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+}
+
+.calendar-weekday:nth-child(7n),
+.calendar-day:nth-child(7n) {
+    border-right: 0;
+}
+
+.calendar-weekday {
+    padding: 10px;
+    background: #f6f8f7;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 700;
+    text-align: center;
+}
+
+.calendar-day {
+    min-height: 132px;
+    padding: 9px;
+    background: #fff;
+}
+
+.calendar-day.outside {
+    background: #f8faf9;
+    color: var(--muted);
+}
+
+.calendar-date {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.calendar-date span {
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.calendar-events {
+    display: grid;
+    gap: 5px;
+}
+
+.calendar-event,
+.calendar-more {
+    display: block;
+    min-width: 0;
+    padding: 5px 7px;
+    border-radius: 6px;
+    background: #eef6f2;
+    color: #155f47;
+    font-size: 12px;
+    line-height: 1.35;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.calendar-event span {
+    margin-right: 4px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.calendar-event.deadline {
+    background: #fff4df;
+    color: #765014;
+}
+
+.calendar-event.leave {
+    background: #eef2ff;
+    color: #31436d;
+}
+
+.calendar-event.cancelled,
+.calendar-event.other {
+    background: #eef2ef;
+    color: var(--muted);
+}
+
+.calendar-more {
+    background: transparent;
+    color: var(--muted);
+}
+
+.checkbox-field {
+    align-self: end;
+}
+
+.inline-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 42px;
+}
+
+.inline-check input {
+    width: 18px;
+    min-height: 18px;
+}
+
+.inline-check span {
+    margin: 0;
+    color: var(--text);
+}
+
 .calc-summary {
     display: flex;
     flex-wrap: wrap;
@@ -1008,6 +1128,19 @@ textarea:focus {
 
     .voucher-line {
         grid-template-columns: 1fr;
+    }
+
+    .calendar-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .calendar-weekday {
+        display: none;
+    }
+
+    .calendar-day {
+        min-height: auto;
+        border-right: 0;
     }
 
     .voucher-line-head {
