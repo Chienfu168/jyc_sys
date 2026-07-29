@@ -523,6 +523,12 @@ textarea:focus {
     border: 1px solid #f2c1c1;
 }
 
+.alert.warning {
+    color: #946200;
+    background: #fff7db;
+    border: 1px solid #f4d27b;
+}
+
 .badge {
     display: inline-flex;
     align-items: center;
@@ -540,6 +546,16 @@ textarea:focus {
 .badge.muted {
     color: var(--muted);
     background: #eef2ef;
+}
+
+.badge.danger {
+    color: var(--danger);
+    background: var(--danger-bg);
+}
+
+.danger-text {
+    color: var(--danger);
+    font-weight: 700;
 }
 
 .empty,

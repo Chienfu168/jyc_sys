@@ -28,6 +28,7 @@ ob_start();
         </div>
         <div class="actions">
             <a class="btn" href="/annual-budgets">返回列表</a>
+            <a class="btn primary" href="/annual-budgets/<?= e((string) $budget['id']) ?>/execution">預算執行表</a>
             <?php if (\App\Core\Permission::can('annual_budgets.manage')): ?>
                 <a class="btn" href="/annual-budgets/<?= e((string) $budget['id']) ?>/edit">編輯</a>
             <?php endif; ?>

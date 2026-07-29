@@ -63,6 +63,7 @@ final class AnnualBudgetController extends Controller
                 'board_meeting_no' => '',
             ],
             'items' => $this->defaultItems(),
+            'accounts' => $this->budgetAccounts(),
             'action' => '/annual-budgets',
         ]);
     }
@@ -128,6 +129,27 @@ final class AnnualBudgetController extends Controller
         ]);
     }
 
+    public function execution(string $id): void
+    {
+        $this->requirePermission('annual_budgets.view');
+        $budget = $this->findBudget((int) $id);
+        $start = (string) ($budget['period_start'] ?: $budget['fiscal_year'] . '-01-01');
+        $end = (string) ($budget['period_end'] ?: $budget['fiscal_year'] . '-12-31');
+        $items = $this->executionItems((int) $id, $start, $end);
+
+        $this->render('annual-budgets.execution', [
+            'title' => '預算執行控管',
+            'section' => '財務會計',
+            'active' => 'annual-budgets',
+            'budget' => $budget,
+            'startDate' => $start,
+            'endDate' => $end,
+            'items' => $items,
+            'totals' => $this->executionTotals($items),
+            'profile' => foundation_profile(),
+        ]);
+    }
+
     public function edit(string $id): void
     {
         $this->requirePermission('annual_budgets.manage');
@@ -144,6 +166,7 @@ final class AnnualBudgetController extends Controller
             'active' => 'annual-budgets',
             'budget' => $budget,
             'items' => $this->items((int) $id),
+            'accounts' => $this->budgetAccounts(),
             'action' => '/annual-budgets/' . $id,
         ]);
     }
@@ -259,8 +282,8 @@ final class AnnualBudgetController extends Controller
 
         $stmt = Database::pdo()->prepare(
             'INSERT INTO annual_budget_items
-             (annual_budget_id, item_type, category, item_name, description, unit, quantity, unit_price, amount, funding_source, sort_order, notes, created_at, updated_at)
-             VALUES (:annual_budget_id, :item_type, :category, :item_name, :description, :unit, :quantity, :unit_price, :amount, :funding_source, :sort_order, :notes, :created_at, :updated_at)'
+             (annual_budget_id, item_type, account_id, category, item_name, description, unit, quantity, unit_price, amount, funding_source, sort_order, notes, created_at, updated_at)
+             VALUES (:annual_budget_id, :item_type, :account_id, :category, :item_name, :description, :unit, :quantity, :unit_price, :amount, :funding_source, :sort_order, :notes, :created_at, :updated_at)'
         );
 
         $sort = 1;
@@ -282,6 +305,7 @@ final class AnnualBudgetController extends Controller
             $stmt->execute([
                 'annual_budget_id' => $budgetId,
                 'item_type' => $type,
+                'account_id' => $this->nullablePositiveInt($item['account_id'] ?? null),
                 'category' => $category ?: '未分類',
                 'item_name' => $name ?: '未命名項目',
                 'description' => trim((string) ($item['description'] ?? '')),
@@ -323,13 +347,108 @@ final class AnnualBudgetController extends Controller
     private function items(int $budgetId): array
     {
         $stmt = Database::pdo()->prepare(
-            'SELECT * FROM annual_budget_items
+            'SELECT annual_budget_items.*,
+                    accounting_accounts.code AS account_code,
+                    accounting_accounts.name AS account_name
+             FROM annual_budget_items
+             LEFT JOIN accounting_accounts ON accounting_accounts.id = annual_budget_items.account_id
              WHERE annual_budget_id = :annual_budget_id
              ORDER BY sort_order, id'
         );
         $stmt->execute(['annual_budget_id' => $budgetId]);
 
         return $stmt->fetchAll();
+    }
+
+    private function executionItems(int $budgetId, string $start, string $end): array
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT annual_budget_items.*,
+                    accounting_accounts.code AS account_code,
+                    accounting_accounts.name AS account_name,
+                    accounting_accounts.normal_balance,
+                    COALESCE(actuals.debit_total, 0) AS debit_total,
+                    COALESCE(actuals.credit_total, 0) AS credit_total
+             FROM annual_budget_items
+             LEFT JOIN accounting_accounts ON accounting_accounts.id = annual_budget_items.account_id
+             LEFT JOIN (
+                SELECT accounting_voucher_lines.account_id,
+                       SUM(accounting_voucher_lines.debit) AS debit_total,
+                       SUM(accounting_voucher_lines.credit) AS credit_total
+                FROM accounting_voucher_lines
+                INNER JOIN accounting_vouchers ON accounting_vouchers.id = accounting_voucher_lines.voucher_id
+                WHERE accounting_vouchers.status = "posted"
+                  AND accounting_vouchers.voucher_date BETWEEN :start_date AND :end_date
+                GROUP BY accounting_voucher_lines.account_id
+             ) AS actuals ON actuals.account_id = annual_budget_items.account_id
+             WHERE annual_budget_items.annual_budget_id = :annual_budget_id
+             ORDER BY annual_budget_items.item_type, annual_budget_items.sort_order, annual_budget_items.id'
+        );
+        $stmt->execute([
+            'start_date' => $start,
+            'end_date' => $end,
+            'annual_budget_id' => $budgetId,
+        ]);
+
+        $items = $stmt->fetchAll();
+        foreach ($items as &$item) {
+            $actual = 0.0;
+            if (!empty($item['account_id'])) {
+                $actual = $item['normal_balance'] === 'credit'
+                    ? (float) $item['credit_total'] - (float) $item['debit_total']
+                    : (float) $item['debit_total'] - (float) $item['credit_total'];
+            }
+
+            $budget = (float) $item['amount'];
+            $item['actual_amount'] = max(0, $actual);
+            $item['remaining_amount'] = $budget - (float) $item['actual_amount'];
+            $item['execution_rate'] = $budget > 0 ? round(((float) $item['actual_amount'] / $budget) * 100, 2) : 0;
+        }
+        unset($item);
+
+        return $items;
+    }
+
+    private function executionTotals(array $items): array
+    {
+        $totals = [
+            'income_budget' => 0.0,
+            'income_actual' => 0.0,
+            'expense_budget' => 0.0,
+            'expense_actual' => 0.0,
+            'unmapped' => 0,
+            'over_budget' => 0,
+        ];
+
+        foreach ($items as $item) {
+            $type = $item['item_type'] === 'income' ? 'income' : 'expense';
+            $totals[$type . '_budget'] += (float) $item['amount'];
+            $totals[$type . '_actual'] += (float) $item['actual_amount'];
+            if (empty($item['account_id'])) {
+                $totals['unmapped']++;
+            }
+            if ($item['item_type'] === 'expense' && (float) $item['remaining_amount'] < 0) {
+                $totals['over_budget']++;
+            }
+        }
+
+        $totals['income_rate'] = $totals['income_budget'] > 0 ? round(($totals['income_actual'] / $totals['income_budget']) * 100, 2) : 0;
+        $totals['expense_rate'] = $totals['expense_budget'] > 0 ? round(($totals['expense_actual'] / $totals['expense_budget']) * 100, 2) : 0;
+        $totals['budget_balance'] = $totals['income_budget'] - $totals['expense_budget'];
+        $totals['actual_balance'] = $totals['income_actual'] - $totals['expense_actual'];
+
+        return $totals;
+    }
+
+    private function budgetAccounts(): array
+    {
+        return Database::pdo()->query(
+            'SELECT id, code, name, account_type
+             FROM accounting_accounts
+             WHERE status = "active"
+               AND account_type IN ("income", "expense")
+             ORDER BY account_type, sort_order, code'
+        )->fetchAll();
     }
 
     private function totals(array $items): array
@@ -373,5 +492,11 @@ final class AnnualBudgetController extends Controller
     {
         $value = trim((string) ($_POST[$key] ?? ''));
         return preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) ? $value : null;
+    }
+
+    private function nullablePositiveInt(mixed $value): ?int
+    {
+        $id = (int) $value;
+        return $id > 0 ? $id : null;
     }
 }

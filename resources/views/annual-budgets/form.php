@@ -83,6 +83,18 @@
                     <input type="text" name="items[<?= e((string) $index) ?>][item_name]" value="<?= e((string) ($item['item_name'] ?? '')) ?>">
                 </label>
                 <label>
+                    <span>會計科目</span>
+                    <?php $selectedAccountId = (int) ($item['account_id'] ?? 0); ?>
+                    <select name="items[<?= e((string) $index) ?>][account_id]">
+                        <option value="">未對應</option>
+                        <?php foreach (($accounts ?? []) as $account): ?>
+                            <option value="<?= e((string) $account['id']) ?>" <?= $selectedAccountId === (int) $account['id'] ? 'selected' : '' ?>>
+                                <?= e($account['code'] . ' ' . $account['name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
+                <label>
                     <span>單位</span>
                     <input type="text" name="items[<?= e((string) $index) ?>][unit]" value="<?= e((string) ($item['unit'] ?? '')) ?>">
                 </label>
@@ -148,6 +160,12 @@ let budgetLineIndex = <?= count($items ?? []) ?>;
 function addBudgetLine() {
     const template = document.getElementById('budget-line-template');
     const line = template.content.firstElementChild.cloneNode(true);
+    const itemName = line.querySelector('[data-name="item_name"]');
+    if (itemName && !line.querySelector('[data-name="account_id"]')) {
+        const accountLabel = document.createElement('label');
+        accountLabel.innerHTML = `<?= str_replace('`', '\\`', '<span>會計科目</span><select data-name="account_id"><option value="">未對應</option>' . implode('', array_map(static fn (array $account): string => '<option value="' . e((string) $account['id']) . '">' . e($account['code'] . ' ' . $account['name']) . '</option>', $accounts ?? [])) . '</select>') ?>`;
+        itemName.closest('label').after(accountLabel);
+    }
     line.querySelectorAll('[data-name]').forEach((field) => {
         field.name = `items[${budgetLineIndex}][${field.dataset.name}]`;
     });
