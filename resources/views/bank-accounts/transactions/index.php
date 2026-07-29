@@ -32,6 +32,7 @@ ob_start();
         </form>
         <div class="actions">
             <a class="btn" href="/bank-accounts">銀行帳戶</a>
+            <a class="btn" href="/bank-transactions/reconciliation?month=<?= e($month) ?>&bank_account_id=<?= e((string) $accountId) ?>">銀行對帳</a>
             <?php if (\App\Core\Permission::can('bank_accounts.manage')): ?>
                 <a class="btn primary" href="/bank-transactions/create">新增交易</a>
             <?php endif; ?>
@@ -49,6 +50,7 @@ ob_start();
                 <th>對象</th>
                 <th>憑證</th>
                 <th class="amount">金額</th>
+                <th>對帳</th>
                 <th>零用金</th>
             </tr>
             </thead>
@@ -65,6 +67,7 @@ ob_start();
                     <td><?= e($transaction['counterparty'] ?: '-') ?></td>
                     <td><?= e($transaction['reference_no'] ?: '-') ?></td>
                     <td class="amount"><?= e(bank_transaction_money($transaction['amount'])) ?></td>
+                    <td><span class="badge <?= ($transaction['reconciliation_status'] ?? 'unreconciled') === 'reconciled' ? 'ok' : 'muted' ?>"><?= e(bank_reconciliation_label($transaction['reconciliation_status'] ?? 'unreconciled')) ?></span></td>
                     <td>
                         <?php if (!empty($transaction['petty_cash_entry_id'])): ?>
                             <span class="badge ok">已同步</span>
@@ -75,7 +78,7 @@ ob_start();
                 </tr>
             <?php endforeach; ?>
             <?php if (!$transactions): ?>
-                <tr><td colspan="8" class="empty">本月份尚無銀行交易。</td></tr>
+                <tr><td colspan="9" class="empty">本月份尚無銀行交易。</td></tr>
             <?php endif; ?>
             </tbody>
         </table>
@@ -95,6 +98,10 @@ function bank_transaction_type_label(string $type): string
         'fee' => '銀行手續費',
         'interest' => '利息收入',
     ][$type] ?? $type;
+}
+function bank_reconciliation_label(string $status): string
+{
+    return ['unreconciled' => '未對帳', 'reconciled' => '已對帳', 'ignored' => '略過'][$status] ?? $status;
 }
 $content = ob_get_clean();
 require base_path('resources/views/layouts/main.php');

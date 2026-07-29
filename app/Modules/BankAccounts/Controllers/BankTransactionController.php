@@ -48,6 +48,58 @@ final class BankTransactionController extends Controller
         ]);
     }
 
+    public function reconciliation(): void
+    {
+        $this->requirePermission('bank_accounts.view');
+
+        $month = preg_match('/^\d{4}-\d{2}$/', (string) ($_GET['month'] ?? ''))
+            ? (string) $_GET['month']
+            : date('Y-m');
+        $accountId = (int) ($_GET['bank_account_id'] ?? 0);
+        $status = in_array(($_GET['status'] ?? ''), ['unreconciled', 'reconciled', 'ignored'], true)
+            ? (string) $_GET['status']
+            : '';
+
+        $where = ['DATE_FORMAT(bank_account_transactions.transacted_on, "%Y-%m") = :month'];
+        $params = ['month' => $month];
+        if ($accountId > 0) {
+            $where[] = 'bank_account_transactions.bank_account_id = :bank_account_id';
+            $params['bank_account_id'] = $accountId;
+        }
+        if ($status !== '') {
+            $where[] = 'bank_account_transactions.reconciliation_status = :status';
+            $params['status'] = $status;
+        }
+
+        $stmt = Database::pdo()->prepare(
+            'SELECT bank_account_transactions.*,
+                    bank_accounts.bank_name,
+                    bank_accounts.account_no,
+                    bank_accounts.account_name,
+                    users.name AS reconciled_by_name
+             FROM bank_account_transactions
+             INNER JOIN bank_accounts ON bank_accounts.id = bank_account_transactions.bank_account_id
+             LEFT JOIN users ON users.id = bank_account_transactions.reconciled_by
+             WHERE ' . implode(' AND ', $where) . '
+             ORDER BY bank_account_transactions.transacted_on, bank_account_transactions.id'
+        );
+        $stmt->execute($params);
+        $transactions = $stmt->fetchAll();
+
+        $this->render('bank-accounts.transactions.reconciliation', [
+            'title' => '銀行對帳',
+            'section' => '財務會計',
+            'active' => 'bank-accounts',
+            'transactions' => $transactions,
+            'accounts' => $this->accounts(false),
+            'month' => $month,
+            'accountId' => $accountId,
+            'status' => $status,
+            'totals' => $this->reconciliationTotals($transactions),
+            'profile' => foundation_profile(),
+        ]);
+    }
+
     public function create(): void
     {
         $this->requirePermission('bank_accounts.manage');
@@ -131,6 +183,46 @@ final class BankTransactionController extends Controller
         AuditLog::write('create', 'bank_accounts', 'bank_account_transactions', $transactionId);
         flash('success', $type === 'transfer_to_petty_cash' ? '銀行交易已建立，並已同步新增零用金收入。' : '銀行交易已建立。');
         redirect('/bank-transactions?month=' . substr((string) $_POST['transacted_on'], 0, 7));
+    }
+
+    public function updateReconciliation(string $id): void
+    {
+        $this->requirePermission('bank_accounts.manage');
+
+        $transaction = $this->findTransaction((int) $id);
+        $status = in_array(($_POST['reconciliation_status'] ?? ''), ['unreconciled', 'reconciled', 'ignored'], true)
+            ? (string) $_POST['reconciliation_status']
+            : 'unreconciled';
+        $reconciledOn = trim((string) ($_POST['reconciled_on'] ?? ''));
+        if ($status === 'reconciled' && $reconciledOn === '') {
+            $reconciledOn = date('Y-m-d');
+        }
+        if ($reconciledOn !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $reconciledOn)) {
+            $this->backWithInput('/bank-transactions/reconciliation?month=' . substr((string) $transaction['transacted_on'], 0, 7), $_POST, '對帳日期格式不正確。');
+        }
+
+        Database::pdo()->prepare(
+            'UPDATE bank_account_transactions
+             SET reconciliation_status = :reconciliation_status,
+                 reconciled_on = :reconciled_on,
+                 reconciliation_note = :reconciliation_note,
+                 reconciled_by = :reconciled_by,
+                 updated_at = :updated_at
+             WHERE id = :id'
+        )->execute([
+            'reconciliation_status' => $status,
+            'reconciled_on' => $status === 'reconciled' ? $reconciledOn : null,
+            'reconciliation_note' => trim((string) ($_POST['reconciliation_note'] ?? '')),
+            'reconciled_by' => $status === 'unreconciled' ? null : (auth()->user()['id'] ?? null),
+            'updated_at' => now(),
+            'id' => (int) $transaction['id'],
+        ]);
+
+        AuditLog::write('reconcile', 'bank_accounts', 'bank_account_transactions', (int) $transaction['id'], [
+            'status' => $status,
+        ]);
+        flash('success', '銀行交易對帳狀態已更新。');
+        redirect('/bank-transactions/reconciliation?month=' . substr((string) $transaction['transacted_on'], 0, 7) . '&bank_account_id=' . (int) $transaction['bank_account_id']);
     }
 
     private function validateTransaction(string $path): void
@@ -217,6 +309,21 @@ final class BankTransactionController extends Controller
         return $account;
     }
 
+    private function findTransaction(int $id): array
+    {
+        $stmt = Database::pdo()->prepare('SELECT * FROM bank_account_transactions WHERE id = :id LIMIT 1');
+        $stmt->execute(['id' => $id]);
+        $transaction = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$transaction) {
+            http_response_code(404);
+            view('errors.404', ['title' => '找不到銀行交易']);
+            exit;
+        }
+
+        return $transaction;
+    }
+
     private function pettyCashTransferItem(): ?array
     {
         $stmt = Database::pdo()->prepare(
@@ -250,6 +357,34 @@ final class BankTransactionController extends Controller
         }
 
         return compact('deposit', 'withdrawal', 'pettyCash');
+    }
+
+    private function reconciliationTotals(array $transactions): array
+    {
+        $deposit = 0.0;
+        $withdrawal = 0.0;
+        $reconciled = 0;
+        $unreconciled = 0;
+        $ignored = 0;
+
+        foreach ($transactions as $transaction) {
+            $amount = (float) $transaction['amount'];
+            if (in_array($transaction['transaction_type'], ['deposit', 'interest'], true)) {
+                $deposit += $amount;
+            } else {
+                $withdrawal += $amount;
+            }
+
+            if ($transaction['reconciliation_status'] === 'reconciled') {
+                $reconciled++;
+            } elseif ($transaction['reconciliation_status'] === 'ignored') {
+                $ignored++;
+            } else {
+                $unreconciled++;
+            }
+        }
+
+        return compact('deposit', 'withdrawal', 'reconciled', 'unreconciled', 'ignored');
     }
 
     private function types(): array

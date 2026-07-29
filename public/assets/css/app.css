@@ -1015,6 +1015,13 @@ textarea:focus {
     min-height: 72px;
 }
 
+.recon-form {
+    display: grid;
+    grid-template-columns: 120px 140px minmax(160px, 1fr) 64px;
+    gap: 8px;
+    min-width: 520px;
+}
+
 @media print {
     :root {
         --bg: #ffffff;
@@ -1157,6 +1164,11 @@ textarea:focus {
     .calendar-day {
         min-height: auto;
         border-right: 0;
+    }
+
+    .recon-form {
+        grid-template-columns: 1fr;
+        min-width: 0;
     }
 
     .voucher-line-head {
