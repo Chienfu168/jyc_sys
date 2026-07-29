@@ -454,6 +454,8 @@ th {
 }
 
 .grid-form {
+    display: grid;
+    gap: 14px;
     grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
@@ -704,6 +706,57 @@ textarea:focus {
     width: 64px;
 }
 
+.voucher-lines {
+    display: grid;
+    gap: 10px;
+    min-width: 0;
+}
+
+.voucher-line {
+    display: grid;
+    grid-template-columns: minmax(190px, 1.1fr) minmax(220px, 1.4fr) minmax(110px, .7fr) minmax(110px, .7fr) 64px;
+    gap: 10px;
+    align-items: end;
+    min-width: 0;
+}
+
+.voucher-line-head {
+    align-items: center;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.voucher-line .btn {
+    width: 64px;
+}
+
+.voucher-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.voucher-balance {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
 .amount {
     text-align: right;
     font-variant-numeric: tabular-nums;
@@ -936,6 +989,18 @@ textarea:focus {
 
     .budget-line {
         grid-template-columns: 1fr;
+    }
+
+    .voucher-line {
+        grid-template-columns: 1fr;
+    }
+
+    .voucher-line-head {
+        display: none;
+    }
+
+    .voucher-line .btn {
+        width: 100%;
     }
 
     .budget-line .btn {

@@ -1,0 +1,23 @@
+<?php
+
+use App\Modules\Accounting\Controllers\AccountingController;
+use App\Modules\Accounting\Controllers\AccountController;
+use App\Modules\Accounting\Controllers\VoucherController;
+
+$router->get('/accounting', [AccountingController::class, 'index']);
+
+$router->get('/accounting/accounts', [AccountController::class, 'index']);
+$router->get('/accounting/accounts/create', [AccountController::class, 'create']);
+$router->post('/accounting/accounts', [AccountController::class, 'store']);
+$router->get('/accounting/accounts/{id}/edit', [AccountController::class, 'edit']);
+$router->post('/accounting/accounts/{id}', [AccountController::class, 'update']);
+$router->post('/accounting/accounts/{id}/toggle', [AccountController::class, 'toggle']);
+
+$router->get('/accounting/vouchers', [VoucherController::class, 'index']);
+$router->get('/accounting/vouchers/create', [VoucherController::class, 'create']);
+$router->post('/accounting/vouchers', [VoucherController::class, 'store']);
+$router->get('/accounting/vouchers/{id}', [VoucherController::class, 'show']);
+$router->get('/accounting/vouchers/{id}/edit', [VoucherController::class, 'edit']);
+$router->post('/accounting/vouchers/{id}', [VoucherController::class, 'update']);
+$router->post('/accounting/vouchers/{id}/post', [VoucherController::class, 'post']);
+$router->post('/accounting/vouchers/{id}/void', [VoucherController::class, 'void']);
