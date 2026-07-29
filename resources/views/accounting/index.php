@@ -47,6 +47,16 @@ ob_start();
         <strong>試算表</strong>
         <p>彙整期初、本期借貸與期末借貸餘額。</p>
     </a>
+    <a class="module-card" href="/accounting/reports/income-statement">
+        <span>會計報表</span>
+        <strong>收支餘絀表</strong>
+        <p>彙整本期收入、支出與餘絀，支援列印與另存 PDF。</p>
+    </a>
+    <a class="module-card" href="/accounting/reports/balance-sheet">
+        <span>會計報表</span>
+        <strong>資產負債表</strong>
+        <p>依指定日期彙整資產、負債、淨資產與平衡差額。</p>
+    </a>
     <a class="module-card" href="/income-expenses">
         <span>資料來源</span>
         <strong>收支紀錄</strong>

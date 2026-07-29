@@ -9,6 +9,8 @@ $router->get('/accounting', [AccountingController::class, 'index']);
 $router->get('/accounting/reports/general-ledger', [ReportController::class, 'generalLedger']);
 $router->get('/accounting/reports/detail-ledger', [ReportController::class, 'detailLedger']);
 $router->get('/accounting/reports/trial-balance', [ReportController::class, 'trialBalance']);
+$router->get('/accounting/reports/income-statement', [ReportController::class, 'incomeStatement']);
+$router->get('/accounting/reports/balance-sheet', [ReportController::class, 'balanceSheet']);
 
 $router->get('/accounting/accounts', [AccountController::class, 'index']);
 $router->get('/accounting/accounts/create', [AccountController::class, 'create']);

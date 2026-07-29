@@ -159,6 +159,100 @@ final class ReportController extends Controller
         ]);
     }
 
+    public function incomeStatement(): void
+    {
+        $this->requirePermission('accounting.view');
+        [$start, $end] = $this->period();
+
+        $rows = $this->accountBalances($start, $end, ['income', 'expense']);
+        $incomeRows = [];
+        $expenseRows = [];
+
+        foreach ($rows as $row) {
+            $amount = $this->signedAmount((float) $row['debit_total'], (float) $row['credit_total'], (string) $row['normal_balance']);
+            if (round($amount, 2) === 0.0) {
+                continue;
+            }
+
+            $row['amount'] = $amount;
+            if ($row['account_type'] === 'income') {
+                $incomeRows[] = $row;
+            } elseif ($row['account_type'] === 'expense') {
+                $expenseRows[] = $row;
+            }
+        }
+
+        $incomeTotal = array_sum(array_map(static fn (array $row): float => (float) $row['amount'], $incomeRows));
+        $expenseTotal = array_sum(array_map(static fn (array $row): float => (float) $row['amount'], $expenseRows));
+
+        $this->render('accounting.reports.income-statement', [
+            'title' => '收支餘絀表',
+            'section' => '財務會計',
+            'active' => 'accounting',
+            'startDate' => $start,
+            'endDate' => $end,
+            'incomeRows' => $incomeRows,
+            'expenseRows' => $expenseRows,
+            'totals' => [
+                'income' => $incomeTotal,
+                'expense' => $expenseTotal,
+                'surplus' => $incomeTotal - $expenseTotal,
+            ],
+            'profile' => foundation_profile(),
+        ]);
+    }
+
+    public function balanceSheet(): void
+    {
+        $this->requirePermission('accounting.view');
+        $end = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) ($_GET['end_date'] ?? '')) ? (string) $_GET['end_date'] : date('Y-m-t');
+
+        $rows = $this->balancesUntil($end, ['asset', 'liability', 'net_asset']);
+        $assetRows = [];
+        $liabilityRows = [];
+        $netAssetRows = [];
+
+        foreach ($rows as $row) {
+            $amount = $this->signedAmount((float) $row['debit_total'], (float) $row['credit_total'], (string) $row['normal_balance']);
+            if (round($amount, 2) === 0.0) {
+                continue;
+            }
+
+            $row['amount'] = $amount;
+            if ($row['account_type'] === 'asset') {
+                $assetRows[] = $row;
+            } elseif ($row['account_type'] === 'liability') {
+                $liabilityRows[] = $row;
+            } elseif ($row['account_type'] === 'net_asset') {
+                $netAssetRows[] = $row;
+            }
+        }
+
+        $currentSurplus = $this->surplusUntil($end);
+        $assetTotal = array_sum(array_map(static fn (array $row): float => (float) $row['amount'], $assetRows));
+        $liabilityTotal = array_sum(array_map(static fn (array $row): float => (float) $row['amount'], $liabilityRows));
+        $netAssetTotal = array_sum(array_map(static fn (array $row): float => (float) $row['amount'], $netAssetRows)) + $currentSurplus;
+
+        $this->render('accounting.reports.balance-sheet', [
+            'title' => '資產負債表',
+            'section' => '財務會計',
+            'active' => 'accounting',
+            'endDate' => $end,
+            'assetRows' => $assetRows,
+            'liabilityRows' => $liabilityRows,
+            'netAssetRows' => $netAssetRows,
+            'currentSurplus' => $currentSurplus,
+            'totals' => [
+                'assets' => $assetTotal,
+                'liabilities' => $liabilityTotal,
+                'net_assets' => $netAssetTotal,
+                'liability_and_net_assets' => $liabilityTotal + $netAssetTotal,
+                'balance' => $assetTotal - $liabilityTotal - $netAssetTotal,
+            ],
+            'profile' => foundation_profile(),
+        ]);
+    }
+
     private function period(): array
     {
         $start = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) ($_GET['start_date'] ?? '')) ? (string) $_GET['start_date'] : date('Y-m-01');
@@ -178,6 +272,75 @@ final class ReportController extends Controller
              WHERE status = "active"
              ORDER BY sort_order, code'
         )->fetchAll();
+    }
+
+    private function accountBalances(string $start, string $end, array $types): array
+    {
+        $placeholders = implode(',', array_fill(0, count($types), '?'));
+        $stmt = Database::pdo()->prepare(
+            'SELECT accounting_accounts.id,
+                    accounting_accounts.code,
+                    accounting_accounts.name,
+                    accounting_accounts.account_type,
+                    accounting_accounts.normal_balance,
+                    COALESCE(SUM(accounting_voucher_lines.debit), 0) AS debit_total,
+                    COALESCE(SUM(accounting_voucher_lines.credit), 0) AS credit_total
+             FROM accounting_accounts
+             LEFT JOIN accounting_voucher_lines ON accounting_voucher_lines.account_id = accounting_accounts.id
+             LEFT JOIN accounting_vouchers ON accounting_vouchers.id = accounting_voucher_lines.voucher_id
+                AND accounting_vouchers.status = "posted"
+                AND accounting_vouchers.voucher_date BETWEEN ? AND ?
+             WHERE accounting_accounts.status = "active"
+               AND accounting_accounts.account_type IN (' . $placeholders . ')
+             GROUP BY accounting_accounts.id
+             ORDER BY accounting_accounts.sort_order, accounting_accounts.code'
+        );
+        $stmt->execute(array_merge([$start, $end], $types));
+
+        return $stmt->fetchAll();
+    }
+
+    private function balancesUntil(string $end, array $types): array
+    {
+        $placeholders = implode(',', array_fill(0, count($types), '?'));
+        $stmt = Database::pdo()->prepare(
+            'SELECT accounting_accounts.id,
+                    accounting_accounts.code,
+                    accounting_accounts.name,
+                    accounting_accounts.account_type,
+                    accounting_accounts.normal_balance,
+                    COALESCE(SUM(accounting_voucher_lines.debit), 0) AS debit_total,
+                    COALESCE(SUM(accounting_voucher_lines.credit), 0) AS credit_total
+             FROM accounting_accounts
+             LEFT JOIN accounting_voucher_lines ON accounting_voucher_lines.account_id = accounting_accounts.id
+             LEFT JOIN accounting_vouchers ON accounting_vouchers.id = accounting_voucher_lines.voucher_id
+                AND accounting_vouchers.status = "posted"
+                AND accounting_vouchers.voucher_date <= ?
+             WHERE accounting_accounts.status = "active"
+               AND accounting_accounts.account_type IN (' . $placeholders . ')
+             GROUP BY accounting_accounts.id
+             ORDER BY accounting_accounts.sort_order, accounting_accounts.code'
+        );
+        $stmt->execute(array_merge([$end], $types));
+
+        return $stmt->fetchAll();
+    }
+
+    private function surplusUntil(string $end): float
+    {
+        $rows = $this->balancesUntil($end, ['income', 'expense']);
+        $income = 0.0;
+        $expense = 0.0;
+        foreach ($rows as $row) {
+            $amount = $this->signedAmount((float) $row['debit_total'], (float) $row['credit_total'], (string) $row['normal_balance']);
+            if ($row['account_type'] === 'income') {
+                $income += $amount;
+            } elseif ($row['account_type'] === 'expense') {
+                $expense += $amount;
+            }
+        }
+
+        return $income - $expense;
     }
 
     private function selectedAccount(array $accounts, int $accountId): ?array
