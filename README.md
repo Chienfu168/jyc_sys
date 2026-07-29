@@ -18,6 +18,7 @@ PHP + MySQL 的內部管理系統，目標是部署在一般租用主機 / cPane
 - 活動報名、簽到名冊與成果紀錄
 - 活動附件管理：照片、簽到表、核銷附件與成果文件上傳下載
 - 銀行對帳：月份查詢、對帳狀態、對帳日與對帳表列印
+- 會計報表：總帳、明細帳、試算表
 - 主要功能頁支援列印，並可透過瀏覽器列印視窗另存 PDF
 - GitHub Release 線上更新
 - cPanel 安裝程序 `install.php`
@@ -47,7 +48,7 @@ https://你的網域/install.php
 `.env` 主要設定：
 
 ```env
-APP_VERSION=0.4.0
+APP_VERSION=0.4.1
 GITHUB_REPO=Chienfu168/jyc_sys
 GITHUB_TOKEN=
 UPDATE_CHANNEL=stable

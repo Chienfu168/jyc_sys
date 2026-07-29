@@ -2,9 +2,13 @@
 
 use App\Modules\Accounting\Controllers\AccountingController;
 use App\Modules\Accounting\Controllers\AccountController;
+use App\Modules\Accounting\Controllers\ReportController;
 use App\Modules\Accounting\Controllers\VoucherController;
 
 $router->get('/accounting', [AccountingController::class, 'index']);
+$router->get('/accounting/reports/general-ledger', [ReportController::class, 'generalLedger']);
+$router->get('/accounting/reports/detail-ledger', [ReportController::class, 'detailLedger']);
+$router->get('/accounting/reports/trial-balance', [ReportController::class, 'trialBalance']);
 
 $router->get('/accounting/accounts', [AccountController::class, 'index']);
 $router->get('/accounting/accounts/create', [AccountController::class, 'create']);

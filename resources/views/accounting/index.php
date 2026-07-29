@@ -32,6 +32,21 @@ ob_start();
         <strong>會計科目</strong>
         <p>維護非營利組織常用科目、類型、上層科目與借貸方向。</p>
     </a>
+    <a class="module-card" href="/accounting/reports/general-ledger">
+        <span>會計報表</span>
+        <strong>總帳</strong>
+        <p>依期間彙總各科目借方、貸方與本期餘額。</p>
+    </a>
+    <a class="module-card" href="/accounting/reports/detail-ledger">
+        <span>會計報表</span>
+        <strong>明細帳</strong>
+        <p>依科目查詢期初、本期分錄與逐筆餘額。</p>
+    </a>
+    <a class="module-card" href="/accounting/reports/trial-balance">
+        <span>會計報表</span>
+        <strong>試算表</strong>
+        <p>彙整期初、本期借貸與期末借貸餘額。</p>
+    </a>
     <a class="module-card" href="/income-expenses">
         <span>資料來源</span>
         <strong>收支紀錄</strong>
@@ -48,7 +63,7 @@ ob_start();
     <div class="panel-header">
         <div>
             <h2>會計系統建置進度</h2>
-            <p class="muted-text">目前先建立總帳核心資料，下一階段再把零用金、銀行、收支紀錄串成自動傳票。</p>
+            <p class="muted-text">目前已建立科目、傳票與會計報表；後續可再把零用金、銀行、收支紀錄串成自動傳票。</p>
         </div>
     </div>
     <div class="feature-grid">
@@ -63,9 +78,9 @@ ob_start();
             <p>借貸平衡後可過帳。</p>
         </div>
         <div class="feature-card">
-            <span>待串接</span>
-            <strong>自動拋轉</strong>
-            <p>銀行、零用金、收支紀錄自動產生傳票。</p>
+            <span>已完成</span>
+            <strong>會計報表</strong>
+            <p>總帳、明細帳與試算表可查詢、列印與另存 PDF。</p>
         </div>
     </div>
 </section>
