@@ -10,3 +10,4 @@ $router->get('/income-expenses/{id}', [IncomeExpenseController::class, 'show']);
 $router->get('/income-expenses/{id}/edit', [IncomeExpenseController::class, 'edit']);
 $router->post('/income-expenses/{id}', [IncomeExpenseController::class, 'update']);
 $router->post('/income-expenses/{id}/void', [IncomeExpenseController::class, 'void']);
+$router->post('/income-expenses/{id}/voucher', [IncomeExpenseController::class, 'createVoucher']);

@@ -48,6 +48,7 @@ ob_start();
                 <th>付款方式</th>
                 <th>銀行</th>
                 <th>收據</th>
+                <th>傳票</th>
                 <th class="amount">金額</th>
                 <th>狀態</th>
                 <th class="actions">操作</th>
@@ -71,6 +72,13 @@ ob_start();
                         <?php endif; ?>
                     </td>
                     <td><?= e(income_expense_receipt_label($record['receipt_status'])) ?></td>
+                    <td>
+                        <?php if (!empty($record['accounting_voucher_id'])): ?>
+                            <a class="text-link mono" href="/accounting/vouchers/<?= e((string) $record['accounting_voucher_id']) ?>"><?= e($record['voucher_no'] ?: '已建立') ?></a>
+                        <?php else: ?>
+                            -
+                        <?php endif; ?>
+                    </td>
                     <td class="amount"><?= e(income_expense_money($record['amount'])) ?></td>
                     <td><span class="badge <?= $record['status'] === 'confirmed' ? 'ok' : 'muted' ?>"><?= e(income_expense_status_label($record['status'])) ?></span></td>
                     <td class="actions">
@@ -82,7 +90,7 @@ ob_start();
                 </tr>
             <?php endforeach; ?>
             <?php if (!$records): ?>
-                <tr><td colspan="11" class="empty">本月份尚無收支紀錄。</td></tr>
+                <tr><td colspan="12" class="empty">本月份尚無收支紀錄。</td></tr>
             <?php endif; ?>
             </tbody>
         </table>

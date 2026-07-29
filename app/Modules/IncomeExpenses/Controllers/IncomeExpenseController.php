@@ -27,10 +27,16 @@ final class IncomeExpenseController extends Controller
         }
 
         $stmt = Database::pdo()->prepare(
-            'SELECT income_expense_records.*, users.name AS created_by_name, bank_accounts.bank_name, bank_accounts.account_no
+            'SELECT income_expense_records.*,
+                    users.name AS created_by_name,
+                    bank_accounts.bank_name,
+                    bank_accounts.account_no,
+                    accounting_vouchers.voucher_no,
+                    accounting_vouchers.status AS voucher_status
              FROM income_expense_records
              LEFT JOIN users ON users.id = income_expense_records.created_by
              LEFT JOIN bank_accounts ON bank_accounts.id = income_expense_records.bank_account_id
+             LEFT JOIN accounting_vouchers ON accounting_vouchers.id = income_expense_records.accounting_voucher_id
              WHERE ' . implode(' AND ', $where) . '
              ORDER BY income_expense_records.occurred_on DESC, income_expense_records.id DESC'
         );
@@ -228,6 +234,102 @@ final class IncomeExpenseController extends Controller
         redirect('/income-expenses/' . $id);
     }
 
+    public function createVoucher(string $id): void
+    {
+        $this->requirePermission('accounting.manage');
+        $record = $this->findRecord((int) $id);
+
+        if ($record['status'] !== 'confirmed') {
+            flash('error', '只有已確認的收支紀錄可以拋轉會計傳票。');
+            redirect('/income-expenses/' . $id);
+        }
+        if (!empty($record['accounting_voucher_id'])) {
+            flash('error', '此收支紀錄已建立會計傳票。');
+            redirect('/accounting/vouchers/' . $record['accounting_voucher_id']);
+        }
+
+        $cashAccount = $this->accountByCode('1100');
+        $targetAccount = $this->accountByCode($this->accountCodeForRecord($record));
+        if (!$cashAccount || !$targetAccount) {
+            flash('error', '找不到自動拋轉所需會計科目，請先確認 1100 與收支類別對應科目已建立。');
+            redirect('/income-expenses/' . $id);
+        }
+
+        $amount = round((float) $record['amount'], 2);
+        $summary = trim(($record['item_type'] === 'income' ? '收入：' : '支出：') . $record['subject']);
+        $voucherNo = $this->nextVoucherNo((string) $record['occurred_on']);
+        $lines = $record['item_type'] === 'income'
+            ? [
+                ['account_id' => (int) $cashAccount['id'], 'description' => $summary, 'debit' => $amount, 'credit' => 0],
+                ['account_id' => (int) $targetAccount['id'], 'description' => $summary, 'debit' => 0, 'credit' => $amount],
+            ]
+            : [
+                ['account_id' => (int) $targetAccount['id'], 'description' => $summary, 'debit' => $amount, 'credit' => 0],
+                ['account_id' => (int) $cashAccount['id'], 'description' => $summary, 'debit' => 0, 'credit' => $amount],
+            ];
+
+        $pdo = Database::pdo();
+        $pdo->beginTransaction();
+        try {
+            $pdo->prepare(
+                'INSERT INTO accounting_vouchers
+                 (voucher_no, voucher_date, source_type, source_id, summary, status, notes, created_by, created_at, updated_at)
+                 VALUES
+                 (:voucher_no, :voucher_date, "income_expense_records", :source_id, :summary, "draft", :notes, :created_by, :created_at, :updated_at)'
+            )->execute([
+                'voucher_no' => $voucherNo,
+                'voucher_date' => $record['occurred_on'],
+                'source_id' => (int) $record['id'],
+                'summary' => $summary,
+                'notes' => trim('由收支紀錄自動拋轉' . "\n" . ($record['notes'] ?? '')),
+                'created_by' => auth()->user()['id'] ?? null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            $voucherId = (int) $pdo->lastInsertId();
+
+            $stmt = $pdo->prepare(
+                'INSERT INTO accounting_voucher_lines
+                 (voucher_id, account_id, description, debit, credit, sort_order, created_at, updated_at)
+                 VALUES
+                 (:voucher_id, :account_id, :description, :debit, :credit, :sort_order, :created_at, :updated_at)'
+            );
+            foreach ($lines as $index => $line) {
+                $stmt->execute($line + [
+                    'voucher_id' => $voucherId,
+                    'sort_order' => ($index + 1) * 10,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            $pdo->prepare(
+                'UPDATE income_expense_records
+                 SET accounting_voucher_id = :accounting_voucher_id, updated_at = :updated_at
+                 WHERE id = :id'
+            )->execute([
+                'accounting_voucher_id' => $voucherId,
+                'updated_at' => now(),
+                'id' => (int) $record['id'],
+            ]);
+
+            $pdo->commit();
+        } catch (\Throwable $exception) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            flash('error', '會計傳票建立失敗：' . $exception->getMessage());
+            redirect('/income-expenses/' . $id);
+        }
+
+        AuditLog::write('create_voucher', 'income_expenses', 'accounting_vouchers', $voucherId, [
+            'source' => 'income_expense_records',
+            'source_id' => (int) $record['id'],
+        ]);
+        flash('success', '已建立草稿會計傳票，請檢查後過帳。');
+        redirect('/accounting/vouchers/' . $voucherId);
+    }
+
     private function validateRecord(string $path): void
     {
         if ($error = Validator::required($_POST, [
@@ -282,10 +384,16 @@ final class IncomeExpenseController extends Controller
     private function findRecord(int $id): array
     {
         $stmt = Database::pdo()->prepare(
-            'SELECT income_expense_records.*, users.name AS created_by_name, bank_accounts.bank_name, bank_accounts.account_no
+            'SELECT income_expense_records.*,
+                    users.name AS created_by_name,
+                    bank_accounts.bank_name,
+                    bank_accounts.account_no,
+                    accounting_vouchers.voucher_no,
+                    accounting_vouchers.status AS voucher_status
              FROM income_expense_records
              LEFT JOIN users ON users.id = income_expense_records.created_by
              LEFT JOIN bank_accounts ON bank_accounts.id = income_expense_records.bank_account_id
+             LEFT JOIN accounting_vouchers ON accounting_vouchers.id = income_expense_records.accounting_voucher_id
              WHERE income_expense_records.id = :id
              LIMIT 1'
         );
@@ -393,5 +501,58 @@ final class IncomeExpenseController extends Controller
     private function amountValue(): float
     {
         return round((float) ($_POST['amount'] ?? 0), 2);
+    }
+
+    private function accountByCode(string $code): ?array
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT id, code, name
+             FROM accounting_accounts
+             WHERE code = :code AND status = "active"
+             LIMIT 1'
+        );
+        $stmt->execute(['code' => $code]);
+        $account = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $account ?: null;
+    }
+
+    private function accountCodeForRecord(array $record): string
+    {
+        $category = (string) $record['category_name'];
+        if ($record['item_type'] === 'income') {
+            if (str_contains($category, '補助')) {
+                return '4200';
+            }
+            if (str_contains($category, '利息')) {
+                return '4300';
+            }
+            return '4100';
+        }
+
+        if (str_contains($category, '人事')) {
+            return '5100';
+        }
+        if (str_contains($category, '業務')) {
+            return '5200';
+        }
+        if (str_contains($category, '行政')) {
+            return '5300';
+        }
+        if (str_contains($category, '講師')) {
+            return '5400';
+        }
+        if (str_contains($category, '差旅')) {
+            return '5500';
+        }
+        return '5900';
+    }
+
+    private function nextVoucherNo(string $date): string
+    {
+        $prefix = 'V' . str_replace('-', '', $date) . '-';
+        $stmt = Database::pdo()->prepare('SELECT COUNT(*) FROM accounting_vouchers WHERE voucher_no LIKE :prefix');
+        $stmt->execute(['prefix' => $prefix . '%']);
+        return $prefix . str_pad((string) ((int) $stmt->fetchColumn() + 1), 3, '0', STR_PAD_LEFT);
     }
 }
