@@ -21,6 +21,7 @@ PHP + MySQL 的內部管理系統，目標是部署在一般租用主機 / cPane
 - 會計報表：總帳、明細帳、試算表
 - 收支紀錄可一鍵建立草稿會計傳票
 - 薪資紀錄可一鍵建立草稿會計傳票
+- 建構流程工具：環境檢查、PHP lint、發布前檢查
 - 主要功能頁支援列印，並可透過瀏覽器列印視窗另存 PDF
 - GitHub Release 線上更新
 - cPanel 安裝程序 `install.php`
@@ -50,7 +51,7 @@ https://你的網域/install.php
 `.env` 主要設定：
 
 ```env
-APP_VERSION=0.4.3
+APP_VERSION=0.4.4
 GITHUB_REPO=Chienfu168/jyc_sys
 GITHUB_TOKEN=
 UPDATE_CHANNEL=stable
