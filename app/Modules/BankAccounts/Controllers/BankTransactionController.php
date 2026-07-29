@@ -27,9 +27,11 @@ final class BankTransactionController extends Controller
         }
 
         $stmt = Database::pdo()->prepare(
-            'SELECT bank_account_transactions.*, bank_accounts.bank_name, bank_accounts.account_no, bank_accounts.account_name
+            'SELECT bank_account_transactions.*, bank_accounts.bank_name, bank_accounts.account_no, bank_accounts.account_name,
+                    accounting_vouchers.voucher_no, accounting_vouchers.status AS voucher_status
              FROM bank_account_transactions
              INNER JOIN bank_accounts ON bank_accounts.id = bank_account_transactions.bank_account_id
+             LEFT JOIN accounting_vouchers ON accounting_vouchers.id = bank_account_transactions.accounting_voucher_id
              WHERE ' . implode(' AND ', $where) . '
              ORDER BY bank_account_transactions.transacted_on DESC, bank_account_transactions.id DESC'
         );
@@ -225,6 +227,97 @@ final class BankTransactionController extends Controller
         redirect('/bank-transactions/reconciliation?month=' . substr((string) $transaction['transacted_on'], 0, 7) . '&bank_account_id=' . (int) $transaction['bank_account_id']);
     }
 
+    public function createVoucher(string $id): void
+    {
+        $this->requirePermission('accounting.manage');
+        $transaction = $this->findTransaction((int) $id);
+
+        if (!empty($transaction['accounting_voucher_id'])) {
+            flash('error', '此銀行交易已建立會計傳票。');
+            redirect('/accounting/vouchers/' . $transaction['accounting_voucher_id']);
+        }
+
+        $bankAccount = $this->accountByCode('1100');
+        $pettyCashAccount = $this->accountByCode('1110');
+        $counterAccount = $this->bankTransactionCounterAccount($transaction);
+
+        if (!$bankAccount || !$counterAccount || ($transaction['transaction_type'] === 'transfer_to_petty_cash' && !$pettyCashAccount)) {
+            flash('error', '找不到銀行交易拋轉所需會計科目，請先確認 1100、1110 與對應收入/費用科目已建立。');
+            redirect('/bank-transactions?month=' . substr((string) $transaction['transacted_on'], 0, 7));
+        }
+
+        $amount = round((float) $transaction['amount'], 2);
+        if ($amount <= 0) {
+            flash('error', '銀行交易金額需大於 0 才能建立會計傳票。');
+            redirect('/bank-transactions?month=' . substr((string) $transaction['transacted_on'], 0, 7));
+        }
+
+        $summary = sprintf('銀行交易：%s', $transaction['subject']);
+        $voucherId = 0;
+
+        $pdo = Database::pdo();
+        $pdo->beginTransaction();
+        try {
+            $pdo->prepare(
+                'INSERT INTO accounting_vouchers
+                 (voucher_no, voucher_date, source_type, source_id, summary, status, notes, created_by, created_at, updated_at)
+                 VALUES
+                 (:voucher_no, :voucher_date, :source_type, :source_id, :summary, :status, :notes, :created_by, :created_at, :updated_at)'
+            )->execute([
+                'voucher_no' => $this->nextVoucherNo((string) $transaction['transacted_on']),
+                'voucher_date' => (string) $transaction['transacted_on'],
+                'source_type' => 'bank_account_transactions',
+                'source_id' => (int) $transaction['id'],
+                'summary' => $summary,
+                'status' => 'draft',
+                'notes' => trim("由銀行交易自動拋轉\n" . (string) ($transaction['notes'] ?? '')),
+                'created_by' => auth()->user()['id'] ?? null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $voucherId = (int) $pdo->lastInsertId();
+            $lineStmt = $pdo->prepare(
+                'INSERT INTO accounting_voucher_lines
+                 (voucher_id, account_id, description, debit, credit, sort_order, created_at, updated_at)
+                 VALUES
+                 (:voucher_id, :account_id, :description, :debit, :credit, :sort_order, :created_at, :updated_at)'
+            );
+
+            if (in_array($transaction['transaction_type'], ['deposit', 'interest'], true)) {
+                $this->insertVoucherLine($lineStmt, $voucherId, (int) $bankAccount['id'], $summary, $amount, 0, 10);
+                $this->insertVoucherLine($lineStmt, $voucherId, (int) $counterAccount['id'], $summary, 0, $amount, 20);
+            } elseif ($transaction['transaction_type'] === 'transfer_to_petty_cash') {
+                $this->insertVoucherLine($lineStmt, $voucherId, (int) $pettyCashAccount['id'], $summary, $amount, 0, 10);
+                $this->insertVoucherLine($lineStmt, $voucherId, (int) $bankAccount['id'], $summary, 0, $amount, 20);
+            } else {
+                $this->insertVoucherLine($lineStmt, $voucherId, (int) $counterAccount['id'], $summary, $amount, 0, 10);
+                $this->insertVoucherLine($lineStmt, $voucherId, (int) $bankAccount['id'], $summary, 0, $amount, 20);
+            }
+
+            $pdo->prepare(
+                'UPDATE bank_account_transactions
+                 SET accounting_voucher_id = :voucher_id, updated_at = :updated_at
+                 WHERE id = :id'
+            )->execute([
+                'voucher_id' => $voucherId,
+                'updated_at' => now(),
+                'id' => (int) $transaction['id'],
+            ]);
+
+            $pdo->commit();
+        } catch (\Throwable $exception) {
+            $pdo->rollBack();
+            flash('error', '會計傳票建立失敗：' . $exception->getMessage());
+            redirect('/bank-transactions?month=' . substr((string) $transaction['transacted_on'], 0, 7));
+        }
+
+        AuditLog::write('create_voucher', 'bank_accounts', 'bank_account_transactions', (int) $transaction['id']);
+        AuditLog::write('create', 'accounting', 'accounting_vouchers', $voucherId);
+        flash('success', '已建立銀行交易草稿會計傳票，請檢查後過帳。');
+        redirect('/accounting/vouchers/' . $voucherId);
+    }
+
     private function validateTransaction(string $path): void
     {
         if ($error = Validator::required($_POST, [
@@ -322,6 +415,50 @@ final class BankTransactionController extends Controller
         }
 
         return $transaction;
+    }
+
+    private function accountByCode(string $code): ?array
+    {
+        $stmt = Database::pdo()->prepare('SELECT id, code, name FROM accounting_accounts WHERE code = :code AND status = "active" LIMIT 1');
+        $stmt->execute(['code' => $code]);
+        $account = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $account ?: null;
+    }
+
+    private function bankTransactionCounterAccount(array $transaction): ?array
+    {
+        return match ($transaction['transaction_type']) {
+            'interest' => $this->accountByCode('4300'),
+            'deposit' => $this->accountByCode('4100'),
+            'fee' => $this->accountByCode('5300'),
+            'withdrawal' => $this->accountByCode('5300'),
+            'transfer_to_petty_cash' => $this->accountByCode('1110'),
+            default => null,
+        };
+    }
+
+    private function insertVoucherLine(\PDOStatement $stmt, int $voucherId, int $accountId, string $description, float $debit, float $credit, int $sortOrder): void
+    {
+        $stmt->execute([
+            'voucher_id' => $voucherId,
+            'account_id' => $accountId,
+            'description' => $description,
+            'debit' => $debit,
+            'credit' => $credit,
+            'sort_order' => $sortOrder,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    private function nextVoucherNo(string $date): string
+    {
+        $prefix = 'V' . str_replace('-', '', $date) . '-';
+        $stmt = Database::pdo()->prepare('SELECT COUNT(*) FROM accounting_vouchers WHERE voucher_no LIKE :prefix');
+        $stmt->execute(['prefix' => $prefix . '%']);
+
+        return $prefix . str_pad((string) ((int) $stmt->fetchColumn() + 1), 3, '0', STR_PAD_LEFT);
     }
 
     private function pettyCashTransferItem(): ?array

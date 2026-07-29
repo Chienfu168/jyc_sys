@@ -52,6 +52,8 @@ ob_start();
                 <th class="amount">金額</th>
                 <th>對帳</th>
                 <th>零用金</th>
+                <th>傳票</th>
+                <th class="actions">操作</th>
             </tr>
             </thead>
             <tbody>
@@ -75,10 +77,26 @@ ob_start();
                             <span class="badge muted">-</span>
                         <?php endif; ?>
                     </td>
+                    <td>
+                        <?php if (!empty($transaction['accounting_voucher_id'])): ?>
+                            <a class="link" href="/accounting/vouchers/<?= e((string) $transaction['accounting_voucher_id']) ?>"><?= e($transaction['voucher_no'] ?: '查看傳票') ?></a>
+                            <div class="muted-text"><?= e(bank_transaction_voucher_status_label((string) ($transaction['voucher_status'] ?? ''))) ?></div>
+                        <?php else: ?>
+                            <span class="muted-text">未建立</span>
+                        <?php endif; ?>
+                    </td>
+                    <td class="actions">
+                        <?php if (\App\Core\Permission::can('accounting.manage') && empty($transaction['accounting_voucher_id'])): ?>
+                            <form method="post" action="/bank-transactions/<?= e((string) $transaction['id']) ?>/voucher">
+                                <?= csrf_field() ?>
+                                <button class="btn small" type="submit">建傳票</button>
+                            </form>
+                        <?php endif; ?>
+                    </td>
                 </tr>
             <?php endforeach; ?>
             <?php if (!$transactions): ?>
-                <tr><td colspan="9" class="empty">本月份尚無銀行交易。</td></tr>
+                <tr><td colspan="11" class="empty">本月份尚無銀行交易。</td></tr>
             <?php endif; ?>
             </tbody>
         </table>
@@ -102,6 +120,10 @@ function bank_transaction_type_label(string $type): string
 function bank_reconciliation_label(string $status): string
 {
     return ['unreconciled' => '未對帳', 'reconciled' => '已對帳', 'ignored' => '略過'][$status] ?? $status;
+}
+function bank_transaction_voucher_status_label(string $status): string
+{
+    return ['draft' => '草稿', 'posted' => '已過帳', 'voided' => '作廢'][$status] ?? ($status ?: '-');
 }
 $content = ob_get_clean();
 require base_path('resources/views/layouts/main.php');

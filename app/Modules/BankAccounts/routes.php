@@ -14,4 +14,5 @@ $router->get('/bank-transactions', [BankTransactionController::class, 'index']);
 $router->get('/bank-transactions/reconciliation', [BankTransactionController::class, 'reconciliation']);
 $router->get('/bank-transactions/create', [BankTransactionController::class, 'create']);
 $router->post('/bank-transactions', [BankTransactionController::class, 'store']);
+$router->post('/bank-transactions/{id}/voucher', [BankTransactionController::class, 'createVoucher']);
 $router->post('/bank-transactions/{id}/reconciliation', [BankTransactionController::class, 'updateReconciliation']);
