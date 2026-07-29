@@ -136,6 +136,7 @@ final class ActivityController extends Controller
             'calendarEvent' => $this->calendarEvent((int) $id),
             'participants' => $this->participants((int) $id),
             'outcome' => $this->outcome((int) $id),
+            'attachments' => $this->attachments((int) $id),
             'volunteerLogs' => $this->volunteerLogs((int) $id),
             'profile' => foundation_profile(),
         ]);
@@ -315,6 +316,93 @@ final class ActivityController extends Controller
         AuditLog::write('update', 'activities', 'activity_outcomes', (int) $activity['id']);
         flash('success', '活動成果紀錄已更新。');
         redirect('/activities/' . $id);
+    }
+
+    public function storeAttachment(string $id): void
+    {
+        $this->requirePermission('activities.manage');
+        $activity = $this->findActivity((int) $id);
+
+        if (empty($_FILES['attachment']) || !is_array($_FILES['attachment'])) {
+            $this->backWithInput('/activities/' . $id, $_POST, '請選擇要上傳的檔案。');
+        }
+
+        $file = $_FILES['attachment'];
+        if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+            $this->backWithInput('/activities/' . $id, $_POST, $this->uploadError((int) ($file['error'] ?? UPLOAD_ERR_NO_FILE)));
+        }
+
+        $size = (int) ($file['size'] ?? 0);
+        if ($size <= 0 || $size > 10 * 1024 * 1024) {
+            $this->backWithInput('/activities/' . $id, $_POST, '檔案大小需介於 1 byte 到 10MB。');
+        }
+
+        $originalName = basename((string) ($file['name'] ?? ''));
+        $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+        $allowed = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'txt'];
+        if (!in_array($extension, $allowed, true)) {
+            $this->backWithInput('/activities/' . $id, $_POST, '檔案格式不支援，請上傳 PDF、圖片、Office、CSV 或 TXT。');
+        }
+
+        $category = in_array(($_POST['category'] ?? ''), ['photo', 'attendance', 'receipt', 'report', 'other'], true)
+            ? (string) $_POST['category']
+            : 'other';
+        $storedName = date('YmdHis') . '_' . bin2hex(random_bytes(8)) . '.' . $extension;
+        $relativePath = 'private_uploads/activities/' . (int) $activity['id'] . '/' . $storedName;
+        $targetDir = storage_path('private_uploads/activities/' . (int) $activity['id']);
+        $targetPath = storage_path($relativePath);
+
+        if (!is_dir($targetDir) && !mkdir($targetDir, 0775, true) && !is_dir($targetDir)) {
+            $this->backWithInput('/activities/' . $id, $_POST, '無法建立上傳目錄。');
+        }
+
+        if (!move_uploaded_file((string) $file['tmp_name'], $targetPath)) {
+            $this->backWithInput('/activities/' . $id, $_POST, '檔案上傳失敗，請確認 storage 目錄權限。');
+        }
+
+        Database::pdo()->prepare(
+            'INSERT INTO activity_attachments
+             (activity_id, category, title, original_name, stored_path, mime_type, file_size, notes, uploaded_by, created_at)
+             VALUES
+             (:activity_id, :category, :title, :original_name, :stored_path, :mime_type, :file_size, :notes, :uploaded_by, :created_at)'
+        )->execute([
+            'activity_id' => (int) $activity['id'],
+            'category' => $category,
+            'title' => trim((string) ($_POST['title'] ?? '')) ?: $originalName,
+            'original_name' => $originalName,
+            'stored_path' => $relativePath,
+            'mime_type' => (string) ($file['type'] ?? 'application/octet-stream'),
+            'file_size' => $size,
+            'notes' => trim((string) ($_POST['notes'] ?? '')),
+            'uploaded_by' => auth()->user()['id'] ?? null,
+            'created_at' => now(),
+        ]);
+
+        AuditLog::write('upload', 'activities', 'activity_attachments', (int) Database::pdo()->lastInsertId());
+        flash('success', '活動附件已上傳。');
+        redirect('/activities/' . $id);
+    }
+
+    public function downloadAttachment(string $id, string $attachmentId): void
+    {
+        $this->requirePermission('activities.view');
+        $this->findActivity((int) $id);
+        $attachment = $this->findAttachment((int) $id, (int) $attachmentId);
+        $path = storage_path((string) $attachment['stored_path']);
+
+        if (!is_file($path)) {
+            http_response_code(404);
+            view('errors.404', ['title' => '找不到附件檔案']);
+            exit;
+        }
+
+        AuditLog::write('download', 'activities', 'activity_attachments', (int) $attachment['id']);
+        header('Content-Type: ' . ($attachment['mime_type'] ?: 'application/octet-stream'));
+        header('Content-Length: ' . (string) filesize($path));
+        header('Content-Disposition: attachment; filename="' . rawurlencode((string) $attachment['original_name']) . '"');
+        header('X-Content-Type-Options: nosniff');
+        readfile($path);
+        exit;
     }
 
     private function validateActivity(string $path): void
@@ -516,6 +604,42 @@ final class ActivityController extends Controller
         ];
     }
 
+    private function attachments(int $activityId): array
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT activity_attachments.*, users.name AS uploaded_by_name
+             FROM activity_attachments
+             LEFT JOIN users ON users.id = activity_attachments.uploaded_by
+             WHERE activity_attachments.activity_id = :activity_id
+             ORDER BY FIELD(activity_attachments.category, "report", "attendance", "photo", "receipt", "other"), activity_attachments.id DESC'
+        );
+        $stmt->execute(['activity_id' => $activityId]);
+        return $stmt->fetchAll();
+    }
+
+    private function findAttachment(int $activityId, int $attachmentId): array
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT *
+             FROM activity_attachments
+             WHERE activity_id = :activity_id AND id = :id
+             LIMIT 1'
+        );
+        $stmt->execute([
+            'activity_id' => $activityId,
+            'id' => $attachmentId,
+        ]);
+        $attachment = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$attachment) {
+            http_response_code(404);
+            view('errors.404', ['title' => '找不到活動附件']);
+            exit;
+        }
+
+        return $attachment;
+    }
+
     private function summary(array $activities): array
     {
         return [
@@ -529,6 +653,18 @@ final class ActivityController extends Controller
     {
         $value = trim((string) ($_POST[$key] ?? ''));
         return $value !== '' ? $value : null;
+    }
+
+    private function uploadError(int $code): string
+    {
+        return match ($code) {
+            UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => '檔案超過主機允許大小。',
+            UPLOAD_ERR_PARTIAL => '檔案只有部分上傳，請重新上傳。',
+            UPLOAD_ERR_NO_FILE => '請選擇要上傳的檔案。',
+            UPLOAD_ERR_NO_TMP_DIR => '主機缺少暫存目錄。',
+            UPLOAD_ERR_CANT_WRITE => '主機無法寫入上傳檔案。',
+            default => '檔案上傳失敗。',
+        };
     }
 
     private function datetimeValue(string $key): ?string

@@ -165,6 +165,41 @@ ob_start();
                 </form>
             </div>
         </section>
+
+        <section class="no-print">
+            <div class="feature-card">
+                <span>成果附件</span>
+                <strong>上傳照片、簽到表或成果文件</strong>
+                <form class="form grid-form compact-form" method="post" action="/activities/<?= e((string) $activity['id']) ?>/attachments" enctype="multipart/form-data">
+                    <?= csrf_field() ?>
+                    <label>
+                        <span>附件類型</span>
+                        <select name="category">
+                            <option value="report">成果報告</option>
+                            <option value="attendance">簽到表</option>
+                            <option value="photo">活動照片</option>
+                            <option value="receipt">核銷附件</option>
+                            <option value="other">其他</option>
+                        </select>
+                    </label>
+                    <label>
+                        <span>附件標題</span>
+                        <input type="text" name="title" value="<?= e((string) old('title')) ?>" placeholder="未填則使用原始檔名">
+                    </label>
+                    <label class="span-2">
+                        <span>選擇檔案</span>
+                        <input type="file" name="attachment" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.csv,.txt" required>
+                    </label>
+                    <label class="span-2">
+                        <span>備註</span>
+                        <input type="text" name="notes" value="<?= e((string) old('notes')) ?>">
+                    </label>
+                    <div class="form-actions span-2">
+                        <button class="btn primary" type="submit">上傳附件</button>
+                    </div>
+                </form>
+            </div>
+        </section>
     <?php endif; ?>
 
     <div class="table-wrap">
@@ -246,6 +281,45 @@ ob_start();
         <table>
             <thead>
             <tr>
+                <th>附件類型</th>
+                <th>標題</th>
+                <th>檔名</th>
+                <th class="amount">大小</th>
+                <th>上傳人</th>
+                <th>上傳時間</th>
+                <th class="actions no-print">操作</th>
+            </tr>
+            </thead>
+            <tbody>
+            <?php foreach ($attachments as $attachment): ?>
+                <tr>
+                    <td><?= e(activity_attachment_category_label($attachment['category'])) ?></td>
+                    <td>
+                        <strong><?= e($attachment['title']) ?></strong>
+                        <?php if (!empty($attachment['notes'])): ?>
+                            <div class="muted-text"><?= e($attachment['notes']) ?></div>
+                        <?php endif; ?>
+                    </td>
+                    <td><?= e($attachment['original_name']) ?></td>
+                    <td class="amount"><?= e(activity_file_size((int) $attachment['file_size'])) ?></td>
+                    <td><?= e($attachment['uploaded_by_name'] ?: '-') ?></td>
+                    <td><?= e($attachment['created_at'] ?: '-') ?></td>
+                    <td class="actions no-print">
+                        <a class="btn small" href="/activities/<?= e((string) $activity['id']) ?>/attachments/<?= e((string) $attachment['id']) ?>/download">下載</a>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+            <?php if (!$attachments): ?>
+                <tr><td colspan="7" class="empty">尚無活動附件。</td></tr>
+            <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+            <tr>
                 <th>志工</th>
                 <th>服務日期</th>
                 <th>服務內容</th>
@@ -284,6 +358,20 @@ function activity_show_status_label(string $status): string
 function activity_participant_status_label(string $status): string
 {
     return ['registered' => '已報名', 'attended' => '已出席', 'absent' => '未出席', 'cancelled' => '取消'][$status] ?? $status;
+}
+function activity_attachment_category_label(string $category): string
+{
+    return ['photo' => '活動照片', 'attendance' => '簽到表', 'receipt' => '核銷附件', 'report' => '成果報告', 'other' => '其他'][$category] ?? $category;
+}
+function activity_file_size(int $bytes): string
+{
+    if ($bytes >= 1048576) {
+        return number_format($bytes / 1048576, 2) . ' MB';
+    }
+    if ($bytes >= 1024) {
+        return number_format($bytes / 1024, 1) . ' KB';
+    }
+    return number_format($bytes) . ' B';
 }
 function activity_show_datetime(?string $value): string
 {

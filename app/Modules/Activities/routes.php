@@ -12,3 +12,5 @@ $router->post('/activities/{id}/status', [ActivityController::class, 'updateStat
 $router->post('/activities/{id}/participants', [ActivityController::class, 'storeParticipant']);
 $router->post('/activities/{id}/participants/{participantId}/status', [ActivityController::class, 'updateParticipantStatus']);
 $router->post('/activities/{id}/outcome', [ActivityController::class, 'updateOutcome']);
+$router->post('/activities/{id}/attachments', [ActivityController::class, 'storeAttachment']);
+$router->get('/activities/{id}/attachments/{attachmentId}/download', [ActivityController::class, 'downloadAttachment']);

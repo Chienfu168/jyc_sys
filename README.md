@@ -16,6 +16,7 @@ PHP + MySQL 的內部管理系統，目標是部署在一般租用主機 / cPane
 - 人事活動入口：工作計畫、人事管理、人事請假、活動管理、專案管理、講師管理、志工管理、行事曆管理
 - 專案、活動與行事曆串接：活動可歸屬專案，並自動同步行事曆事件
 - 活動報名、簽到名冊與成果紀錄
+- 活動附件管理：照片、簽到表、核銷附件與成果文件上傳下載
 - 主要功能頁支援列印，並可透過瀏覽器列印視窗另存 PDF
 - GitHub Release 線上更新
 - cPanel 安裝程序 `install.php`
@@ -45,7 +46,7 @@ https://你的網域/install.php
 `.env` 主要設定：
 
 ```env
-APP_VERSION=0.3.8
+APP_VERSION=0.3.9
 GITHUB_REPO=Chienfu168/jyc_sys
 GITHUB_TOKEN=
 UPDATE_CHANNEL=stable
