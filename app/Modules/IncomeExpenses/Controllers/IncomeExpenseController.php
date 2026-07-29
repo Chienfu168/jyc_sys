@@ -120,6 +120,7 @@ final class IncomeExpenseController extends Controller
                 'counterparty_tax_id' => '',
                 'payment_method' => '',
                 'bank_account_id' => '',
+                'project_id' => '',
                 'project_name' => '',
                 'receipt_no' => '',
                 'receipt_status' => 'pending',
@@ -128,6 +129,7 @@ final class IncomeExpenseController extends Controller
             ],
             'categories' => $this->categories(),
             'bankAccounts' => $this->bankAccounts(),
+            'projects' => $this->projects(),
             'action' => '/income-expenses',
         ]);
     }
@@ -139,9 +141,9 @@ final class IncomeExpenseController extends Controller
 
         Database::pdo()->prepare(
             'INSERT INTO income_expense_records
-             (occurred_on, item_type, category_id, category_name, subject, amount, counterparty, counterparty_tax_id, payment_method, bank_account_id, project_name, receipt_no, receipt_status, notes, status, created_by, created_at, updated_at)
+             (occurred_on, item_type, category_id, category_name, subject, amount, counterparty, counterparty_tax_id, payment_method, bank_account_id, project_id, project_name, receipt_no, receipt_status, notes, status, created_by, created_at, updated_at)
              VALUES
-             (:occurred_on, :item_type, :category_id, :category_name, :subject, :amount, :counterparty, :counterparty_tax_id, :payment_method, :bank_account_id, :project_name, :receipt_no, :receipt_status, :notes, :status, :created_by, :created_at, :updated_at)'
+             (:occurred_on, :item_type, :category_id, :category_name, :subject, :amount, :counterparty, :counterparty_tax_id, :payment_method, :bank_account_id, :project_id, :project_name, :receipt_no, :receipt_status, :notes, :status, :created_by, :created_at, :updated_at)'
         )->execute($this->payload() + [
             'created_by' => auth()->user()['id'] ?? null,
             'created_at' => now(),
@@ -178,6 +180,7 @@ final class IncomeExpenseController extends Controller
             'record' => $this->findRecord((int) $id),
             'categories' => $this->categories(),
             'bankAccounts' => $this->bankAccounts(),
+            'projects' => $this->projects(),
             'action' => '/income-expenses/' . $id,
         ]);
     }
@@ -200,6 +203,7 @@ final class IncomeExpenseController extends Controller
                  counterparty_tax_id = :counterparty_tax_id,
                  payment_method = :payment_method,
                  bank_account_id = :bank_account_id,
+                 project_id = :project_id,
                  project_name = :project_name,
                  receipt_no = :receipt_no,
                  receipt_status = :receipt_status,
@@ -373,6 +377,7 @@ final class IncomeExpenseController extends Controller
             'counterparty_tax_id' => trim((string) ($_POST['counterparty_tax_id'] ?? '')),
             'payment_method' => trim((string) ($_POST['payment_method'] ?? '')),
             'bank_account_id' => $this->bankAccountId(),
+            'project_id' => $this->projectId(),
             'project_name' => trim((string) ($_POST['project_name'] ?? '')),
             'receipt_no' => trim((string) ($_POST['receipt_no'] ?? '')),
             'receipt_status' => $this->receiptStatusValue(),
@@ -388,11 +393,14 @@ final class IncomeExpenseController extends Controller
                     users.name AS created_by_name,
                     bank_accounts.bank_name,
                     bank_accounts.account_no,
+                    projects.name AS linked_project_name,
+                    projects.project_code,
                     accounting_vouchers.voucher_no,
                     accounting_vouchers.status AS voucher_status
              FROM income_expense_records
              LEFT JOIN users ON users.id = income_expense_records.created_by
              LEFT JOIN bank_accounts ON bank_accounts.id = income_expense_records.bank_account_id
+             LEFT JOIN projects ON projects.id = income_expense_records.project_id
              LEFT JOIN accounting_vouchers ON accounting_vouchers.id = income_expense_records.accounting_voucher_id
              WHERE income_expense_records.id = :id
              LIMIT 1'
@@ -436,6 +444,20 @@ final class IncomeExpenseController extends Controller
     {
         try {
             return Database::pdo()->query('SELECT * FROM bank_accounts WHERE status = "active" ORDER BY bank_name, account_no')->fetchAll();
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
+    private function projects(): array
+    {
+        try {
+            return Database::pdo()->query(
+                'SELECT id, project_code, name
+                 FROM projects
+                 WHERE status IN ("planning", "active")
+                 ORDER BY start_date DESC, project_code, name'
+            )->fetchAll();
         } catch (\Throwable) {
             return [];
         }
@@ -495,6 +517,12 @@ final class IncomeExpenseController extends Controller
     private function bankAccountId(): ?int
     {
         $id = (int) ($_POST['bank_account_id'] ?? 0);
+        return $id > 0 ? $id : null;
+    }
+
+    private function projectId(): ?int
+    {
+        $id = (int) ($_POST['project_id'] ?? 0);
         return $id > 0 ? $id : null;
     }
 

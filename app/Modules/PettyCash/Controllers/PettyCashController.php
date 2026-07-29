@@ -54,6 +54,7 @@ final class PettyCashController extends Controller
                 'occurred_on' => date('Y-m-d'),
                 'item_type' => 'expense',
                 'petty_cash_item_id' => '',
+                'project_id' => '',
                 'item_name' => '',
                 'amount' => '',
                 'payment_to' => '',
@@ -62,6 +63,7 @@ final class PettyCashController extends Controller
                 'created_by_name' => auth()->user()['name'] ?? '',
             ],
             'items' => $this->items(),
+            'projects' => $this->projects(),
             'action' => '/petty-cash',
         ]);
     }
@@ -144,12 +146,13 @@ final class PettyCashController extends Controller
 
         Database::pdo()->prepare(
             'INSERT INTO petty_cash_entries
-             (occurred_on, item_type, petty_cash_item_id, item_name, amount, payment_to, receipt_no, notes, created_by, created_at, updated_at)
-             VALUES (:occurred_on, :item_type, :petty_cash_item_id, :item_name, :amount, :payment_to, :receipt_no, :notes, :created_by, :created_at, :updated_at)'
+             (occurred_on, item_type, petty_cash_item_id, project_id, item_name, amount, payment_to, receipt_no, notes, created_by, created_at, updated_at)
+             VALUES (:occurred_on, :item_type, :petty_cash_item_id, :project_id, :item_name, :amount, :payment_to, :receipt_no, :notes, :created_by, :created_at, :updated_at)'
         )->execute([
             'occurred_on' => $_POST['occurred_on'],
             'item_type' => $item['item_type'] ?? $this->typeValue(),
             'petty_cash_item_id' => $item['id'] ?? null,
+            'project_id' => $this->projectId(),
             'item_name' => $itemName,
             'amount' => $this->amountValue(),
             'payment_to' => trim((string) ($_POST['payment_to'] ?? '')),
@@ -177,6 +180,7 @@ final class PettyCashController extends Controller
             'active' => 'petty-cash',
             'entry' => $entry,
             'items' => $this->items(),
+            'projects' => $this->projects(),
             'action' => '/petty-cash/' . $id,
         ]);
     }
@@ -198,6 +202,7 @@ final class PettyCashController extends Controller
              SET occurred_on = :occurred_on,
                  item_type = :item_type,
                  petty_cash_item_id = :petty_cash_item_id,
+                 project_id = :project_id,
                  item_name = :item_name,
                  amount = :amount,
                  payment_to = :payment_to,
@@ -209,6 +214,7 @@ final class PettyCashController extends Controller
             'occurred_on' => $_POST['occurred_on'],
             'item_type' => $item['item_type'] ?? $this->typeValue(),
             'petty_cash_item_id' => $item['id'] ?? null,
+            'project_id' => $this->projectId(),
             'item_name' => $itemName,
             'amount' => $this->amountValue(),
             'payment_to' => trim((string) ($_POST['payment_to'] ?? '')),
@@ -369,6 +375,20 @@ final class PettyCashController extends Controller
         )->fetchAll();
     }
 
+    private function projects(): array
+    {
+        try {
+            return Database::pdo()->query(
+                'SELECT id, project_code, name
+                 FROM projects
+                 WHERE status IN ("planning", "active")
+                 ORDER BY start_date DESC, project_code, name'
+            )->fetchAll();
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
     private function selectedItem(): ?array
     {
         $id = (int) ($_POST['petty_cash_item_id'] ?? 0);
@@ -475,6 +495,12 @@ final class PettyCashController extends Controller
     private function amountValue(): float
     {
         return round((float) ($_POST['amount'] ?? 0), 2);
+    }
+
+    private function projectId(): ?int
+    {
+        $id = (int) ($_POST['project_id'] ?? 0);
+        return $id > 0 ? $id : null;
     }
 
     private function dateScope(int $year, string $month): array

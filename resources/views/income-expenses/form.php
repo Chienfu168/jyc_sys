@@ -72,7 +72,18 @@
     </label>
     <label>
         <span>專案名稱</span>
-        <input type="text" name="project_name" value="<?= e((string) old('project_name', $record['project_name'] ?? '')) ?>">
+        <?php $selectedProjectId = (string) old('project_id', $record['project_id'] ?? ''); ?>
+        <select name="project_id" id="income-expense-project">
+            <option value="">未指定專案</option>
+            <?php foreach (($projects ?? []) as $project): ?>
+                <option value="<?= e((string) $project['id']) ?>"
+                        data-name="<?= e($project['name']) ?>"
+                        <?= $selectedProjectId === (string) $project['id'] ? 'selected' : '' ?>>
+                    <?= e(($project['project_code'] ? $project['project_code'] . ' / ' : '') . $project['name']) ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+        <input type="text" name="project_name" value="<?= e((string) old('project_name', $record['project_name'] ?? '')) ?>" placeholder="專案名稱備註">
     </label>
     <label>
         <span>收據 / 憑證號碼</span>
@@ -114,5 +125,12 @@ document.getElementById('income-expense-category')?.addEventListener('change', f
     }
     document.getElementById('income-expense-type').value = option.dataset.type || 'expense';
     document.getElementById('income-expense-category-name').value = option.dataset.name || '';
+});
+document.getElementById('income-expense-project')?.addEventListener('change', function () {
+    const option = this.selectedOptions[0];
+    const input = document.querySelector('input[name="project_name"]');
+    if (option && input && !input.value) {
+        input.value = option.dataset.name || '';
+    }
 });
 </script>

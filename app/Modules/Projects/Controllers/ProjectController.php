@@ -97,13 +97,15 @@ final class ProjectController extends Controller
     public function show(string $id): void
     {
         $this->requirePermission('projects.view');
+        $project = $this->findProject((int) $id);
 
         $this->render('projects.show', [
             'title' => '專案資料',
             'section' => '業務與人事',
             'active' => 'projects',
-            'project' => $this->findProject((int) $id),
+            'project' => $project,
             'activities' => $this->projectActivities((int) $id),
+            'costSummary' => $this->costSummary((int) $id, (float) $project['budget_amount']),
             'profile' => foundation_profile(),
         ]);
     }
@@ -291,6 +293,49 @@ final class ProjectController extends Controller
         );
         $stmt->execute(['project_id' => $projectId]);
         return $stmt->fetchAll();
+    }
+
+    private function costSummary(int $projectId, float $budgetAmount): array
+    {
+        $incomeExpense = $this->sourceCost(
+            'income_expense_records',
+            'project_id = :project_id AND item_type = "expense" AND status != "voided"',
+            $projectId
+        );
+        $pettyCash = $this->sourceCost(
+            'petty_cash_entries',
+            'project_id = :project_id AND item_type = "expense"',
+            $projectId
+        );
+
+        $actual = (float) $incomeExpense['amount'] + (float) $pettyCash['amount'];
+
+        return [
+            'budget' => $budgetAmount,
+            'actual' => $actual,
+            'remaining' => $budgetAmount - $actual,
+            'execution_rate' => $budgetAmount > 0 ? round(($actual / $budgetAmount) * 100, 2) : 0,
+            'sources' => [
+                ['label' => '收支紀錄', 'count' => (int) $incomeExpense['count'], 'amount' => (float) $incomeExpense['amount']],
+                ['label' => '零用金', 'count' => (int) $pettyCash['count'], 'amount' => (float) $pettyCash['amount']],
+            ],
+        ];
+    }
+
+    private function sourceCost(string $table, string $where, int $projectId): array
+    {
+        $stmt = Database::pdo()->prepare(
+            "SELECT COUNT(*) AS record_count, COALESCE(SUM(amount), 0) AS amount
+             FROM {$table}
+             WHERE {$where}"
+        );
+        $stmt->execute(['project_id' => $projectId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+
+        return [
+            'count' => (int) ($row['record_count'] ?? 0),
+            'amount' => (float) ($row['amount'] ?? 0),
+        ];
     }
 
     private function blankProject(): array

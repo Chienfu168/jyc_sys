@@ -39,6 +39,18 @@
         <input type="number" step="1" min="1" name="amount" id="petty-cash-amount" value="<?= e((string) old('amount', $entry['amount'] ?? '')) ?>" required>
     </label>
     <label>
+        <span>專案</span>
+        <?php $selectedProjectId = (string) old('project_id', $entry['project_id'] ?? ''); ?>
+        <select name="project_id">
+            <option value="">未指定專案</option>
+            <?php foreach (($projects ?? []) as $project): ?>
+                <option value="<?= e((string) $project['id']) ?>" <?= $selectedProjectId === (string) $project['id'] ? 'selected' : '' ?>>
+                    <?= e(($project['project_code'] ? $project['project_code'] . ' / ' : '') . $project['name']) ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+    </label>
+    <label>
         <span>支付 / 收款對象</span>
         <input type="text" name="payment_to" value="<?= e((string) old('payment_to', $entry['payment_to'] ?? '')) ?>">
     </label>

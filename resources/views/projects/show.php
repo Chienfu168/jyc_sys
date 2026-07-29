@@ -5,6 +5,25 @@ ob_start();
 ?>
 <?php require base_path('resources/views/shared/print-header.php'); ?>
 
+<section class="stats-grid budget-summary no-print">
+    <div class="stat-card">
+        <span>專案預算</span>
+        <strong><?= e(number_format((float) $costSummary['budget'], 0)) ?></strong>
+    </div>
+    <div class="stat-card">
+        <span>實際支出</span>
+        <strong><?= e(number_format((float) $costSummary['actual'], 0)) ?></strong>
+    </div>
+    <div class="stat-card">
+        <span>剩餘預算</span>
+        <strong class="<?= (float) $costSummary['remaining'] < 0 ? 'danger-text' : '' ?>"><?= e(number_format((float) $costSummary['remaining'], 0)) ?></strong>
+    </div>
+    <div class="stat-card">
+        <span>執行率</span>
+        <strong><?= e(number_format((float) $costSummary['execution_rate'], 2)) ?>%</strong>
+    </div>
+</section>
+
 <section class="panel">
     <div class="panel-header no-print">
         <div>
@@ -84,6 +103,34 @@ ob_start();
         </tr>
         </tbody>
     </table>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+            <tr>
+                <th>成本來源</th>
+                <th class="amount">筆數</th>
+                <th class="amount">金額</th>
+            </tr>
+            </thead>
+            <tbody>
+            <?php foreach (($costSummary['sources'] ?? []) as $source): ?>
+                <tr>
+                    <td><?= e($source['label']) ?></td>
+                    <td class="amount"><?= e(number_format((int) $source['count'])) ?></td>
+                    <td class="amount"><?= e(number_format((float) $source['amount'], 0)) ?></td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+            <tfoot>
+            <tr>
+                <th>合計</th>
+                <th></th>
+                <th class="amount"><?= e(number_format((float) $costSummary['actual'], 0)) ?></th>
+            </tr>
+            </tfoot>
+        </table>
+    </div>
 
     <div class="table-wrap">
         <table>
