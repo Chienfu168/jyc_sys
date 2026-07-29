@@ -49,6 +49,7 @@ ob_start();
                 <th class="amount">扣款</th>
                 <th class="amount">實發</th>
                 <th>狀態</th>
+                <th>傳票</th>
                 <th class="actions">操作</th>
             </tr>
             </thead>
@@ -68,6 +69,14 @@ ob_start();
                     <td class="amount"><?= e(payroll_money($record['deduction_total'])) ?></td>
                     <td class="amount"><strong><?= e(payroll_money($record['net_pay'])) ?></strong></td>
                     <td><span class="badge <?= $record['payment_status'] === 'paid' ? 'ok' : 'muted' ?>"><?= e(payroll_status_label($record['payment_status'])) ?></span></td>
+                    <td>
+                        <?php if (!empty($record['accounting_voucher_id'])): ?>
+                            <a class="link" href="/accounting/vouchers/<?= e((string) $record['accounting_voucher_id']) ?>"><?= e($record['voucher_no'] ?: '查看傳票') ?></a>
+                            <div class="muted-text"><?= e(payroll_voucher_status_label((string) ($record['voucher_status'] ?? ''))) ?></div>
+                        <?php else: ?>
+                            <span class="muted-text">未建立</span>
+                        <?php endif; ?>
+                    </td>
                     <td class="actions">
                         <a class="btn small" href="/payroll/<?= e((string) $record['id']) ?>">檢視</a>
                         <?php if (\App\Core\Permission::can('payroll.manage')): ?>
@@ -77,7 +86,7 @@ ob_start();
                 </tr>
             <?php endforeach; ?>
             <?php if (!$records): ?>
-                <tr><td colspan="8" class="empty">尚無薪資紀錄。</td></tr>
+                <tr><td colspan="9" class="empty">尚無薪資紀錄。</td></tr>
             <?php endif; ?>
             </tbody>
         </table>
@@ -91,6 +100,10 @@ function payroll_money($value): string
 function payroll_status_label(string $status): string
 {
     return ['draft' => '草稿', 'confirmed' => '已確認', 'paid' => '已付款', 'voided' => '作廢'][$status] ?? $status;
+}
+function payroll_voucher_status_label(string $status): string
+{
+    return ['draft' => '草稿', 'posted' => '已過帳', 'voided' => '作廢'][$status] ?? ($status ?: '-');
 }
 $content = ob_get_clean();
 require base_path('resources/views/layouts/main.php');

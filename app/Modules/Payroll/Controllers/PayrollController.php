@@ -28,9 +28,11 @@ final class PayrollController extends Controller
 
         $stmt = Database::pdo()->prepare(
             'SELECT payroll_records.*, personnel_employees.name AS employee_name,
-                    personnel_employees.employee_no, personnel_employees.department, personnel_employees.job_title
+                    personnel_employees.employee_no, personnel_employees.department, personnel_employees.job_title,
+                    accounting_vouchers.voucher_no, accounting_vouchers.status AS voucher_status
              FROM payroll_records
              INNER JOIN personnel_employees ON personnel_employees.id = payroll_records.employee_id
+             LEFT JOIN accounting_vouchers ON accounting_vouchers.id = payroll_records.accounting_voucher_id
              WHERE ' . implode(' AND ', $where) . '
              ORDER BY personnel_employees.department, personnel_employees.name, payroll_records.id DESC'
         );
@@ -191,6 +193,149 @@ final class PayrollController extends Controller
         $this->setStatus((int) $id, 'voided', null, '薪資紀錄已作廢。');
     }
 
+    public function createVoucher(string $id): void
+    {
+        $this->requirePermission('accounting.manage');
+        $record = $this->findRecord((int) $id);
+
+        if (!in_array($record['payment_status'], ['confirmed', 'paid'], true)) {
+            flash('error', '只有已確認或已付款的薪資紀錄可以建立會計傳票。');
+            redirect('/payroll/' . $id);
+        }
+
+        if (!empty($record['accounting_voucher_id'])) {
+            flash('error', '此薪資紀錄已建立會計傳票。');
+            redirect('/accounting/vouchers/' . $record['accounting_voucher_id']);
+        }
+
+        $cashAccount = $this->accountByCode('1100');
+        $payableAccount = $this->accountByCode('2100');
+        $salaryAccount = $this->accountByCode('5100');
+
+        if (!$cashAccount || !$payableAccount || !$salaryAccount) {
+            flash('error', '找不到薪資拋轉所需會計科目，請先確認 1100、2100、5100 已建立。');
+            redirect('/payroll/' . $id);
+        }
+
+        $voucherDate = $record['paid_on'] ?: ($record['pay_date'] ?: date('Y-m-d'));
+        $grossPay = round((float) $record['gross_pay'], 2);
+        $deductionTotal = round((float) $record['deduction_total'], 2);
+        $netPay = round((float) $record['net_pay'], 2);
+        $employerPension = round((float) $record['employer_pension'], 2);
+        $debitTotal = round($grossPay + $employerPension, 2);
+        $summary = sprintf('薪資：%s %s', $record['payroll_month'], $record['employee_name']);
+        $voucherId = 0;
+
+        $pdo = Database::pdo();
+        $pdo->beginTransaction();
+        try {
+            $pdo->prepare(
+                'INSERT INTO accounting_vouchers
+                 (voucher_no, voucher_date, source_type, source_id, summary, status, notes, created_by, created_at, updated_at)
+                 VALUES
+                 (:voucher_no, :voucher_date, :source_type, :source_id, :summary, :status, :notes, :created_by, :created_at, :updated_at)'
+            )->execute([
+                'voucher_no' => $this->nextVoucherNo($voucherDate),
+                'voucher_date' => $voucherDate,
+                'source_type' => 'payroll_records',
+                'source_id' => (int) $record['id'],
+                'summary' => $summary,
+                'status' => 'draft',
+                'notes' => trim("由薪資紀錄自動拋轉\n" . (string) ($record['notes'] ?? '')),
+                'created_by' => auth()->user()['id'] ?? null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $voucherId = (int) $pdo->lastInsertId();
+            $lineStmt = $pdo->prepare(
+                'INSERT INTO accounting_voucher_lines
+                 (voucher_id, account_id, description, debit, credit, sort_order, created_at, updated_at)
+                 VALUES
+                 (:voucher_id, :account_id, :description, :debit, :credit, :sort_order, :created_at, :updated_at)'
+            );
+
+            $sortOrder = 10;
+            $lineStmt->execute([
+                'voucher_id' => $voucherId,
+                'account_id' => (int) $salaryAccount['id'],
+                'description' => $summary . ' 應發薪資',
+                'debit' => $grossPay,
+                'credit' => 0,
+                'sort_order' => $sortOrder,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            if ($employerPension > 0) {
+                $sortOrder += 10;
+                $lineStmt->execute([
+                    'voucher_id' => $voucherId,
+                    'account_id' => (int) $salaryAccount['id'],
+                    'description' => $summary . ' 雇主退休金提繳',
+                    'debit' => $employerPension,
+                    'credit' => 0,
+                    'sort_order' => $sortOrder,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            if ($record['payment_status'] === 'paid' && $netPay > 0) {
+                $sortOrder += 10;
+                $lineStmt->execute([
+                    'voucher_id' => $voucherId,
+                    'account_id' => (int) $cashAccount['id'],
+                    'description' => $summary . ' 實發薪資',
+                    'debit' => 0,
+                    'credit' => $netPay,
+                    'sort_order' => $sortOrder,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            $payableAmount = $record['payment_status'] === 'paid'
+                ? round($deductionTotal + $employerPension, 2)
+                : $debitTotal;
+
+            if ($payableAmount > 0) {
+                $sortOrder += 10;
+                $lineStmt->execute([
+                    'voucher_id' => $voucherId,
+                    'account_id' => (int) $payableAccount['id'],
+                    'description' => $record['payment_status'] === 'paid' ? $summary . ' 代扣及應付款' : $summary . ' 應付薪資',
+                    'debit' => 0,
+                    'credit' => $payableAmount,
+                    'sort_order' => $sortOrder,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            $pdo->prepare(
+                'UPDATE payroll_records
+                 SET accounting_voucher_id = :voucher_id, updated_at = :updated_at
+                 WHERE id = :id'
+            )->execute([
+                'voucher_id' => $voucherId,
+                'updated_at' => now(),
+                'id' => (int) $record['id'],
+            ]);
+
+            $pdo->commit();
+        } catch (\Throwable $exception) {
+            $pdo->rollBack();
+            flash('error', '會計傳票建立失敗：' . $exception->getMessage());
+            redirect('/payroll/' . $id);
+        }
+
+        AuditLog::write('create_voucher', 'payroll', 'payroll_records', (int) $record['id']);
+        AuditLog::write('create', 'accounting', 'accounting_vouchers', $voucherId);
+        flash('success', '已建立薪資草稿會計傳票，請檢查後過帳。');
+        redirect('/accounting/vouchers/' . $voucherId);
+    }
+
     private function setStatus(int $id, string $status, ?string $paidOn, string $message): void
     {
         $this->requirePermission('payroll.manage');
@@ -309,11 +454,13 @@ final class PayrollController extends Controller
                     personnel_employees.bank_account_no AS employee_bank_account_no,
                     personnel_employees.bank_account_name AS employee_bank_account_name,
                     creators.name AS created_by_name,
-                    bank_accounts.bank_name, bank_accounts.account_no
+                    bank_accounts.bank_name, bank_accounts.account_no,
+                    accounting_vouchers.voucher_no, accounting_vouchers.status AS voucher_status
              FROM payroll_records
              INNER JOIN personnel_employees ON personnel_employees.id = payroll_records.employee_id
              LEFT JOIN users AS creators ON creators.id = payroll_records.created_by
              LEFT JOIN bank_accounts ON bank_accounts.id = payroll_records.bank_account_id
+             LEFT JOIN accounting_vouchers ON accounting_vouchers.id = payroll_records.accounting_voucher_id
              WHERE payroll_records.id = :id
              LIMIT 1'
         );
@@ -359,6 +506,24 @@ final class PayrollController extends Controller
         } catch (\Throwable) {
             return [];
         }
+    }
+
+    private function accountByCode(string $code): ?array
+    {
+        $stmt = Database::pdo()->prepare('SELECT id, code, name FROM accounting_accounts WHERE code = :code AND status = "active" LIMIT 1');
+        $stmt->execute(['code' => $code]);
+        $account = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $account ?: null;
+    }
+
+    private function nextVoucherNo(string $date): string
+    {
+        $prefix = 'V' . str_replace('-', '', $date) . '-';
+        $stmt = Database::pdo()->prepare('SELECT COUNT(*) FROM accounting_vouchers WHERE voucher_no LIKE :prefix');
+        $stmt->execute(['prefix' => $prefix . '%']);
+
+        return $prefix . str_pad((string) ((int) $stmt->fetchColumn() + 1), 3, '0', STR_PAD_LEFT);
     }
 
     private function totals(array $records): array
