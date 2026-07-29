@@ -20,10 +20,12 @@ final class PettyCashController extends Controller
 
         $stmt = Database::pdo()->prepare(
             'SELECT petty_cash_entries.*, users.name AS created_by_name,
-                    bank_accounts.bank_name, bank_accounts.account_no
+                    bank_accounts.bank_name, bank_accounts.account_no,
+                    accounting_vouchers.voucher_no, accounting_vouchers.status AS voucher_status
              FROM petty_cash_entries
              LEFT JOIN users ON users.id = petty_cash_entries.created_by
              LEFT JOIN bank_accounts ON bank_accounts.id = petty_cash_entries.bank_account_id
+             LEFT JOIN accounting_vouchers ON accounting_vouchers.id = petty_cash_entries.accounting_voucher_id
              WHERE DATE_FORMAT(petty_cash_entries.occurred_on, "%Y-%m") = :month
              ORDER BY petty_cash_entries.occurred_on DESC, petty_cash_entries.id DESC'
         );
@@ -221,6 +223,97 @@ final class PettyCashController extends Controller
         redirect('/petty-cash?month=' . substr((string) $_POST['occurred_on'], 0, 7));
     }
 
+    public function createVoucher(string $id): void
+    {
+        $this->requirePermission('accounting.manage');
+        $entry = $this->findEntry((int) $id);
+
+        if (!empty($entry['accounting_voucher_id'])) {
+            flash('error', '此零用金紀錄已建立會計傳票。');
+            redirect('/accounting/vouchers/' . $entry['accounting_voucher_id']);
+        }
+
+        $pettyCashAccount = $this->accountByCode('1110');
+        $cashAccount = $this->accountByCode('1100');
+        $counterAccount = $entry['item_type'] === 'income'
+            ? $this->pettyCashIncomeAccount($entry)
+            : $this->pettyCashExpenseAccount($entry);
+
+        if (!$pettyCashAccount || !$cashAccount || !$counterAccount) {
+            flash('error', '找不到零用金拋轉所需會計科目，請先確認 1110、1100 與費用科目已建立。');
+            redirect('/petty-cash?month=' . substr((string) $entry['occurred_on'], 0, 7));
+        }
+
+        $amount = round((float) $entry['amount'], 2);
+        if ($amount <= 0) {
+            flash('error', '零用金金額需大於 0 才能建立會計傳票。');
+            redirect('/petty-cash?month=' . substr((string) $entry['occurred_on'], 0, 7));
+        }
+
+        $summary = sprintf('%s：%s', $entry['item_type'] === 'income' ? '零用金收入' : '零用金支出', $entry['item_name']);
+        $voucherId = 0;
+
+        $pdo = Database::pdo();
+        $pdo->beginTransaction();
+        try {
+            $pdo->prepare(
+                'INSERT INTO accounting_vouchers
+                 (voucher_no, voucher_date, source_type, source_id, summary, status, notes, created_by, created_at, updated_at)
+                 VALUES
+                 (:voucher_no, :voucher_date, :source_type, :source_id, :summary, :status, :notes, :created_by, :created_at, :updated_at)'
+            )->execute([
+                'voucher_no' => $this->nextVoucherNo((string) $entry['occurred_on']),
+                'voucher_date' => (string) $entry['occurred_on'],
+                'source_type' => 'petty_cash_entries',
+                'source_id' => (int) $entry['id'],
+                'summary' => $summary,
+                'status' => 'draft',
+                'notes' => trim("由零用金紀錄自動拋轉\n" . (string) ($entry['notes'] ?? '')),
+                'created_by' => auth()->user()['id'] ?? null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $voucherId = (int) $pdo->lastInsertId();
+            $lineStmt = $pdo->prepare(
+                'INSERT INTO accounting_voucher_lines
+                 (voucher_id, account_id, description, debit, credit, sort_order, created_at, updated_at)
+                 VALUES
+                 (:voucher_id, :account_id, :description, :debit, :credit, :sort_order, :created_at, :updated_at)'
+            );
+
+            if ($entry['item_type'] === 'income') {
+                $this->insertVoucherLine($lineStmt, $voucherId, (int) $pettyCashAccount['id'], $summary, $amount, 0, 10);
+                $creditAccount = $this->isPettyCashTransfer($entry) ? $cashAccount : $counterAccount;
+                $this->insertVoucherLine($lineStmt, $voucherId, (int) $creditAccount['id'], $summary, 0, $amount, 20);
+            } else {
+                $this->insertVoucherLine($lineStmt, $voucherId, (int) $counterAccount['id'], $summary, $amount, 0, 10);
+                $this->insertVoucherLine($lineStmt, $voucherId, (int) $pettyCashAccount['id'], $summary, 0, $amount, 20);
+            }
+
+            $pdo->prepare(
+                'UPDATE petty_cash_entries
+                 SET accounting_voucher_id = :voucher_id, updated_at = :updated_at
+                 WHERE id = :id'
+            )->execute([
+                'voucher_id' => $voucherId,
+                'updated_at' => now(),
+                'id' => (int) $entry['id'],
+            ]);
+
+            $pdo->commit();
+        } catch (\Throwable $exception) {
+            $pdo->rollBack();
+            flash('error', '會計傳票建立失敗：' . $exception->getMessage());
+            redirect('/petty-cash?month=' . substr((string) $entry['occurred_on'], 0, 7));
+        }
+
+        AuditLog::write('create_voucher', 'petty_cash', 'petty_cash_entries', (int) $entry['id']);
+        AuditLog::write('create', 'accounting', 'accounting_vouchers', $voucherId);
+        flash('success', '已建立零用金草稿會計傳票，請檢查後過帳。');
+        redirect('/accounting/vouchers/' . $voucherId);
+    }
+
     private function validateEntry(string $path): void
     {
         if ($error = Validator::required($_POST, [
@@ -247,9 +340,11 @@ final class PettyCashController extends Controller
     private function findEntry(int $id): array
     {
         $stmt = Database::pdo()->prepare(
-            'SELECT petty_cash_entries.*, users.name AS created_by_name
+            'SELECT petty_cash_entries.*, users.name AS created_by_name,
+                    accounting_vouchers.voucher_no, accounting_vouchers.status AS voucher_status
              FROM petty_cash_entries
              LEFT JOIN users ON users.id = petty_cash_entries.created_by
+             LEFT JOIN accounting_vouchers ON accounting_vouchers.id = petty_cash_entries.accounting_voucher_id
              WHERE petty_cash_entries.id = :id
              LIMIT 1'
         );
@@ -286,6 +381,70 @@ final class PettyCashController extends Controller
         $item = $stmt->fetch(PDO::FETCH_ASSOC);
 
         return $item ?: null;
+    }
+
+    private function accountByCode(string $code): ?array
+    {
+        $stmt = Database::pdo()->prepare('SELECT id, code, name FROM accounting_accounts WHERE code = :code AND status = "active" LIMIT 1');
+        $stmt->execute(['code' => $code]);
+        $account = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $account ?: null;
+    }
+
+    private function pettyCashExpenseAccount(array $entry): ?array
+    {
+        $name = (string) $entry['item_name'];
+        if (str_contains($name, '交通') || str_contains($name, '差旅')) {
+            return $this->accountByCode('5500');
+        }
+        if (str_contains($name, '講師')) {
+            return $this->accountByCode('5400');
+        }
+        if (str_contains($name, '活動') || str_contains($name, '教材') || str_contains($name, '印刷')) {
+            return $this->accountByCode('5200');
+        }
+
+        return $this->accountByCode('5300');
+    }
+
+    private function pettyCashIncomeAccount(array $entry): ?array
+    {
+        if ($this->isPettyCashTransfer($entry)) {
+            return $this->accountByCode('1100');
+        }
+
+        return $this->accountByCode('4100');
+    }
+
+    private function isPettyCashTransfer(array $entry): bool
+    {
+        $text = (string) ($entry['item_name'] ?? '') . ' ' . (string) ($entry['notes'] ?? '') . ' ' . (string) ($entry['payment_to'] ?? '');
+
+        return str_contains($text, '撥補') || str_contains($text, '銀行');
+    }
+
+    private function insertVoucherLine(\PDOStatement $stmt, int $voucherId, int $accountId, string $description, float $debit, float $credit, int $sortOrder): void
+    {
+        $stmt->execute([
+            'voucher_id' => $voucherId,
+            'account_id' => $accountId,
+            'description' => $description,
+            'debit' => $debit,
+            'credit' => $credit,
+            'sort_order' => $sortOrder,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    private function nextVoucherNo(string $date): string
+    {
+        $prefix = 'V' . str_replace('-', '', $date) . '-';
+        $stmt = Database::pdo()->prepare('SELECT COUNT(*) FROM accounting_vouchers WHERE voucher_no LIKE :prefix');
+        $stmt->execute(['prefix' => $prefix . '%']);
+
+        return $prefix . str_pad((string) ((int) $stmt->fetchColumn() + 1), 3, '0', STR_PAD_LEFT);
     }
 
     private function totals(array $entries): array

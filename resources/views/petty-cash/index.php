@@ -44,6 +44,7 @@ ob_start();
                 <th>單據</th>
                 <th class="amount">金額</th>
                 <th>建立人</th>
+                <th>傳票</th>
                 <th class="actions">操作</th>
             </tr>
             </thead>
@@ -69,15 +70,29 @@ ob_start();
                     <td><?= e($entry['receipt_no'] ?: '-') ?></td>
                     <td class="amount"><?= e(petty_cash_money($entry['amount'])) ?></td>
                     <td><?= e($entry['created_by_name'] ?? '-') ?></td>
+                    <td>
+                        <?php if (!empty($entry['accounting_voucher_id'])): ?>
+                            <a class="link" href="/accounting/vouchers/<?= e((string) $entry['accounting_voucher_id']) ?>"><?= e($entry['voucher_no'] ?: '查看傳票') ?></a>
+                            <div class="muted-text"><?= e(petty_cash_voucher_status_label((string) ($entry['voucher_status'] ?? ''))) ?></div>
+                        <?php else: ?>
+                            <span class="muted-text">未建立</span>
+                        <?php endif; ?>
+                    </td>
                     <td class="actions">
                         <?php if (\App\Core\Permission::can('petty_cash.manage')): ?>
                             <a class="btn small" href="/petty-cash/<?= e((string) $entry['id']) ?>/edit">編輯</a>
+                        <?php endif; ?>
+                        <?php if (\App\Core\Permission::can('accounting.manage') && empty($entry['accounting_voucher_id'])): ?>
+                            <form method="post" action="/petty-cash/<?= e((string) $entry['id']) ?>/voucher">
+                                <?= csrf_field() ?>
+                                <button class="btn small" type="submit">建傳票</button>
+                            </form>
                         <?php endif; ?>
                     </td>
                 </tr>
             <?php endforeach; ?>
             <?php if (!$entries): ?>
-                <tr><td colspan="9" class="empty">本月份尚無零用金紀錄</td></tr>
+                <tr><td colspan="10" class="empty">本月份尚無零用金紀錄</td></tr>
             <?php endif; ?>
             </tbody>
         </table>
@@ -87,6 +102,10 @@ ob_start();
 function petty_cash_money($value): string
 {
     return number_format((float) $value, 0);
+}
+function petty_cash_voucher_status_label(string $status): string
+{
+    return ['draft' => '草稿', 'posted' => '已過帳', 'voided' => '作廢'][$status] ?? ($status ?: '-');
 }
 $content = ob_get_clean();
 require base_path('resources/views/layouts/main.php');
