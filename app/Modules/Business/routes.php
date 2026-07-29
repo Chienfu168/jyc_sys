@@ -7,5 +7,4 @@ $router->get('/operations', [BusinessController::class, 'operations']);
 $router->get('/activities', [BusinessController::class, 'activities']);
 $router->get('/projects', [BusinessController::class, 'projects']);
 $router->get('/calendar', [BusinessController::class, 'calendar']);
-$router->get('/payroll', [BusinessController::class, 'payroll']);
 $router->get('/volunteers', [BusinessController::class, 'volunteers']);
