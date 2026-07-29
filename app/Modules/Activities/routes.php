@@ -9,3 +9,6 @@ $router->get('/activities/{id}', [ActivityController::class, 'show']);
 $router->get('/activities/{id}/edit', [ActivityController::class, 'edit']);
 $router->post('/activities/{id}', [ActivityController::class, 'update']);
 $router->post('/activities/{id}/status', [ActivityController::class, 'updateStatus']);
+$router->post('/activities/{id}/participants', [ActivityController::class, 'storeParticipant']);
+$router->post('/activities/{id}/participants/{participantId}/status', [ActivityController::class, 'updateParticipantStatus']);
+$router->post('/activities/{id}/outcome', [ActivityController::class, 'updateOutcome']);

@@ -55,6 +55,7 @@ ob_start();
                 <th>活動名稱</th>
                 <th>所屬專案</th>
                 <th>地點</th>
+                <th class="amount">報名 / 出席</th>
                 <th class="amount">志工時數</th>
                 <th>狀態</th>
                 <th class="actions">操作</th>
@@ -80,6 +81,7 @@ ob_start();
                         <?php endif; ?>
                     </td>
                     <td><?= e($activity['location'] ?: '-') ?></td>
+                    <td class="amount"><?= e(number_format((int) $activity['registered_count'])) ?> / <?= e(number_format((int) $activity['attended_count'])) ?></td>
                     <td class="amount"><?= e(number_format((float) $activity['volunteer_hours'], 2)) ?></td>
                     <td><span class="badge <?= $activity['status'] === 'published' ? 'ok' : 'muted' ?>"><?= e(activity_status_label($activity['status'])) ?></span></td>
                     <td class="actions">
@@ -91,7 +93,7 @@ ob_start();
                 </tr>
             <?php endforeach; ?>
             <?php if (!$activities): ?>
-                <tr><td colspan="7" class="empty">尚無活動資料。</td></tr>
+                <tr><td colspan="8" class="empty">尚無活動資料。</td></tr>
             <?php endif; ?>
             </tbody>
         </table>

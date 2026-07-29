@@ -41,7 +41,9 @@ final class ActivityController extends Controller
                     projects.name AS project_name,
                     projects.project_code,
                     COALESCE(volunteer_stats.volunteer_hours, 0) AS volunteer_hours,
-                    COALESCE(volunteer_stats.service_log_count, 0) AS service_log_count
+                    COALESCE(volunteer_stats.service_log_count, 0) AS service_log_count,
+                    COALESCE(participant_stats.registered_count, 0) AS registered_count,
+                    COALESCE(participant_stats.attended_count, 0) AS attended_count
              FROM activities
              LEFT JOIN projects ON projects.id = activities.project_id
              LEFT JOIN (
@@ -49,6 +51,13 @@ final class ActivityController extends Controller
                 FROM volunteer_service_logs
                 GROUP BY activity_id
              ) AS volunteer_stats ON volunteer_stats.activity_id = activities.id
+             LEFT JOIN (
+                SELECT activity_id,
+                       COUNT(id) AS registered_count,
+                       SUM(CASE WHEN status = "attended" THEN 1 ELSE 0 END) AS attended_count
+                FROM activity_participants
+                GROUP BY activity_id
+             ) AS participant_stats ON participant_stats.activity_id = activities.id
              WHERE ' . implode(' AND ', $where) . '
              ORDER BY activities.starts_at DESC, activities.id DESC'
         );
@@ -125,6 +134,8 @@ final class ActivityController extends Controller
             'active' => 'activities',
             'activity' => $this->findActivity((int) $id),
             'calendarEvent' => $this->calendarEvent((int) $id),
+            'participants' => $this->participants((int) $id),
+            'outcome' => $this->outcome((int) $id),
             'volunteerLogs' => $this->volunteerLogs((int) $id),
             'profile' => foundation_profile(),
         ]);
@@ -191,6 +202,118 @@ final class ActivityController extends Controller
         $this->syncCalendarEvent($this->findActivity((int) $id));
         AuditLog::write('status', 'activities', 'activities', (int) $id);
         flash('success', '活動狀態已更新。');
+        redirect('/activities/' . $id);
+    }
+
+    public function storeParticipant(string $id): void
+    {
+        $this->requirePermission('activities.manage');
+        $activity = $this->findActivity((int) $id);
+
+        if ($error = Validator::required($_POST, [
+            'name' => '參加者姓名',
+        ])) {
+            $this->backWithInput('/activities/' . $id, $_POST, $error);
+        }
+
+        $email = trim((string) ($_POST['email'] ?? ''));
+        if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $this->backWithInput('/activities/' . $id, $_POST, 'Email 格式不正確。');
+        }
+
+        $status = in_array(($_POST['status'] ?? ''), ['registered', 'attended', 'absent', 'cancelled'], true)
+            ? (string) $_POST['status']
+            : 'registered';
+
+        Database::pdo()->prepare(
+            'INSERT INTO activity_participants
+             (activity_id, name, phone, email, organization, status, checked_in_at, notes, created_by, created_at, updated_at)
+             VALUES
+             (:activity_id, :name, :phone, :email, :organization, :status, :checked_in_at, :notes, :created_by, :created_at, :updated_at)'
+        )->execute([
+            'activity_id' => (int) $activity['id'],
+            'name' => trim((string) $_POST['name']),
+            'phone' => $this->nullablePost('phone'),
+            'email' => $email !== '' ? $email : null,
+            'organization' => $this->nullablePost('organization'),
+            'status' => $status,
+            'checked_in_at' => $status === 'attended' ? now() : null,
+            'notes' => trim((string) ($_POST['notes'] ?? '')),
+            'created_by' => auth()->user()['id'] ?? null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        AuditLog::write('create', 'activities', 'activity_participants', (int) Database::pdo()->lastInsertId());
+        flash('success', '參加者已加入名冊。');
+        redirect('/activities/' . $id);
+    }
+
+    public function updateParticipantStatus(string $id, string $participantId): void
+    {
+        $this->requirePermission('activities.manage');
+        $this->findActivity((int) $id);
+
+        $status = in_array(($_POST['status'] ?? ''), ['registered', 'attended', 'absent', 'cancelled'], true)
+            ? (string) $_POST['status']
+            : 'registered';
+
+        Database::pdo()->prepare(
+            'UPDATE activity_participants
+             SET status = :status,
+                 checked_in_at = CASE WHEN :status_for_checkin = "attended" AND checked_in_at IS NULL THEN :checked_in_at ELSE checked_in_at END,
+                 updated_at = :updated_at
+             WHERE id = :id AND activity_id = :activity_id'
+        )->execute([
+            'status' => $status,
+            'status_for_checkin' => $status,
+            'checked_in_at' => now(),
+            'updated_at' => now(),
+            'id' => (int) $participantId,
+            'activity_id' => (int) $id,
+        ]);
+
+        AuditLog::write('status', 'activities', 'activity_participants', (int) $participantId);
+        flash('success', '參加者出席狀態已更新。');
+        redirect('/activities/' . $id);
+    }
+
+    public function updateOutcome(string $id): void
+    {
+        $this->requirePermission('activities.manage');
+        $activity = $this->findActivity((int) $id);
+
+        $actualParticipants = max(0, (int) ($_POST['actual_participants'] ?? 0));
+        $satisfactionScore = trim((string) ($_POST['satisfaction_score'] ?? ''));
+        if ($satisfactionScore !== '' && ((float) $satisfactionScore < 0 || (float) $satisfactionScore > 5)) {
+            $this->backWithInput('/activities/' . $id, $_POST, '滿意度分數請填 0 到 5。');
+        }
+
+        Database::pdo()->prepare(
+            'INSERT INTO activity_outcomes
+             (activity_id, actual_participants, satisfaction_score, outcome_summary, improvement_notes, updated_by, created_at, updated_at)
+             VALUES
+             (:activity_id, :actual_participants, :satisfaction_score, :outcome_summary, :improvement_notes, :updated_by, :created_at, :updated_at)
+             ON DUPLICATE KEY UPDATE
+               actual_participants = VALUES(actual_participants),
+               satisfaction_score = VALUES(satisfaction_score),
+               outcome_summary = VALUES(outcome_summary),
+               improvement_notes = VALUES(improvement_notes),
+               updated_by = VALUES(updated_by),
+               updated_at = VALUES(updated_at)'
+        )->execute([
+            'activity_id' => (int) $activity['id'],
+            'actual_participants' => $actualParticipants,
+            'satisfaction_score' => $satisfactionScore !== '' ? round((float) $satisfactionScore, 2) : null,
+            'outcome_summary' => trim((string) ($_POST['outcome_summary'] ?? '')),
+            'improvement_notes' => trim((string) ($_POST['improvement_notes'] ?? '')),
+            'updated_by' => auth()->user()['id'] ?? null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        AuditLog::write('update', 'activities', 'activity_outcomes', (int) $activity['id']);
+        flash('success', '活動成果紀錄已更新。');
         redirect('/activities/' . $id);
     }
 
@@ -358,6 +481,41 @@ final class ActivityController extends Controller
         return $stmt->fetchAll();
     }
 
+    private function participants(int $activityId): array
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT activity_participants.*, users.name AS created_by_name
+             FROM activity_participants
+             LEFT JOIN users ON users.id = activity_participants.created_by
+             WHERE activity_participants.activity_id = :activity_id
+             ORDER BY FIELD(activity_participants.status, "attended", "registered", "absent", "cancelled"), activity_participants.id'
+        );
+        $stmt->execute(['activity_id' => $activityId]);
+        return $stmt->fetchAll();
+    }
+
+    private function outcome(int $activityId): array
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT activity_outcomes.*, users.name AS updated_by_name
+             FROM activity_outcomes
+             LEFT JOIN users ON users.id = activity_outcomes.updated_by
+             WHERE activity_outcomes.activity_id = :activity_id
+             LIMIT 1'
+        );
+        $stmt->execute(['activity_id' => $activityId]);
+        $outcome = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $outcome ?: [
+            'actual_participants' => '',
+            'satisfaction_score' => '',
+            'outcome_summary' => '',
+            'improvement_notes' => '',
+            'updated_by_name' => '',
+            'updated_at' => '',
+        ];
+    }
+
     private function summary(array $activities): array
     {
         return [
@@ -365,6 +523,12 @@ final class ActivityController extends Controller
             'published' => count(array_filter($activities, static fn (array $activity): bool => $activity['status'] === 'published')),
             'volunteer_hours' => array_sum(array_map(static fn (array $activity): float => (float) $activity['volunteer_hours'], $activities)),
         ];
+    }
+
+    private function nullablePost(string $key): ?string
+    {
+        $value = trim((string) ($_POST[$key] ?? ''));
+        return $value !== '' ? $value : null;
     }
 
     private function datetimeValue(string $key): ?string

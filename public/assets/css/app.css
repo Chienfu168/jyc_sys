@@ -1000,6 +1000,21 @@ textarea:focus {
     line-height: 1.7;
 }
 
+.activity-workbench {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 14px;
+    margin: 16px 0;
+}
+
+.compact-form {
+    margin-top: 12px;
+}
+
+.compact-form textarea {
+    min-height: 72px;
+}
+
 @media print {
     :root {
         --bg: #ffffff;
@@ -1101,7 +1116,8 @@ textarea:focus {
     .update-summary,
     .budget-summary,
     .grid-form,
-    .module-grid {
+    .module-grid,
+    .activity-workbench {
         grid-template-columns: 1fr;
     }
 
