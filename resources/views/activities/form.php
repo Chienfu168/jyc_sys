@@ -1,0 +1,45 @@
+<form class="form grid-form" method="post" action="<?= e($action) ?>">
+    <?= csrf_field() ?>
+    <label class="span-2">
+        <span>活動名稱</span>
+        <input type="text" name="title" value="<?= e((string) old('title', $activity['title'] ?? '')) ?>" required>
+    </label>
+    <label>
+        <span>開始時間</span>
+        <input type="datetime-local" name="starts_at" value="<?= e(activity_form_datetime((string) old('starts_at', $activity['starts_at'] ?? date('Y-m-d H:i')))) ?>" required>
+    </label>
+    <label>
+        <span>結束時間</span>
+        <input type="datetime-local" name="ends_at" value="<?= e(activity_form_datetime((string) old('ends_at', $activity['ends_at'] ?? ''))) ?>">
+    </label>
+    <label>
+        <span>地點</span>
+        <input type="text" name="location" value="<?= e((string) old('location', $activity['location'] ?? '')) ?>">
+    </label>
+    <label>
+        <span>狀態</span>
+        <?php $status = old('status', $activity['status'] ?? 'draft'); ?>
+        <select name="status">
+            <option value="draft" <?= $status === 'draft' ? 'selected' : '' ?>>草稿</option>
+            <option value="published" <?= $status === 'published' ? 'selected' : '' ?>>已發布</option>
+            <option value="closed" <?= $status === 'closed' ? 'selected' : '' ?>>結案</option>
+            <option value="cancelled" <?= $status === 'cancelled' ? 'selected' : '' ?>>取消</option>
+        </select>
+    </label>
+    <label class="span-2">
+        <span>活動說明</span>
+        <textarea name="description"><?= e((string) old('description', $activity['description'] ?? '')) ?></textarea>
+    </label>
+    <div class="form-actions span-2">
+        <a class="btn" href="/activities">返回</a>
+        <button class="btn primary" type="submit">儲存</button>
+    </div>
+</form>
+<?php
+function activity_form_datetime(string $value): string
+{
+    if ($value === '') {
+        return '';
+    }
+    return str_replace(' ', 'T', substr($value, 0, 16));
+}
