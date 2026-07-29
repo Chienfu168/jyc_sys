@@ -3,6 +3,7 @@
 namespace App\Modules\IncomeExpenses\Controllers;
 
 use App\Core\AuditLog;
+use App\Core\ApprovalFlow;
 use App\Core\Controller;
 use App\Core\Database;
 use App\Core\Validator;
@@ -124,7 +125,8 @@ final class IncomeExpenseController extends Controller
                 'project_name' => '',
                 'receipt_no' => '',
                 'receipt_status' => 'pending',
-                'status' => 'confirmed',
+                'status' => 'draft',
+                'approval_status' => 'draft',
                 'notes' => '',
             ],
             'categories' => $this->categories(),
@@ -141,9 +143,9 @@ final class IncomeExpenseController extends Controller
 
         Database::pdo()->prepare(
             'INSERT INTO income_expense_records
-             (occurred_on, item_type, category_id, category_name, subject, amount, counterparty, counterparty_tax_id, payment_method, bank_account_id, project_id, project_name, receipt_no, receipt_status, notes, status, created_by, created_at, updated_at)
+             (occurred_on, item_type, category_id, category_name, subject, amount, counterparty, counterparty_tax_id, payment_method, bank_account_id, project_id, project_name, receipt_no, receipt_status, notes, status, approval_status, created_by, created_at, updated_at)
              VALUES
-             (:occurred_on, :item_type, :category_id, :category_name, :subject, :amount, :counterparty, :counterparty_tax_id, :payment_method, :bank_account_id, :project_id, :project_name, :receipt_no, :receipt_status, :notes, :status, :created_by, :created_at, :updated_at)'
+             (:occurred_on, :item_type, :category_id, :category_name, :subject, :amount, :counterparty, :counterparty_tax_id, :payment_method, :bank_account_id, :project_id, :project_name, :receipt_no, :receipt_status, :notes, :status, :approval_status, :created_by, :created_at, :updated_at)'
         )->execute($this->payload() + [
             'created_by' => auth()->user()['id'] ?? null,
             'created_at' => now(),
@@ -165,6 +167,7 @@ final class IncomeExpenseController extends Controller
             'section' => '財務會計',
             'active' => 'income-expenses',
             'record' => $this->findRecord((int) $id),
+            'approvalHistory' => ApprovalFlow::history('income_expenses', 'income_expense_records', (int) $id),
             'profile' => foundation_profile(),
         ]);
     }
@@ -209,6 +212,7 @@ final class IncomeExpenseController extends Controller
                  receipt_status = :receipt_status,
                  notes = :notes,
                  status = :status,
+                 approval_status = :approval_status,
                  updated_at = :updated_at
              WHERE id = :id'
         )->execute($this->payload() + [
@@ -219,6 +223,47 @@ final class IncomeExpenseController extends Controller
         AuditLog::write('update', 'income_expenses', 'income_expense_records', (int) $id);
         flash('success', '收支紀錄已更新。');
         redirect('/income-expenses/' . $id);
+    }
+
+    public function submit(string $id): void
+    {
+        $this->requirePermission('income_expenses.manage');
+        $record = $this->findRecord((int) $id);
+
+        if ($record['status'] === 'voided') {
+            flash('error', '作廢紀錄不可送審。');
+            redirect('/income-expenses/' . $id);
+        }
+
+        ApprovalFlow::submit('income_expenses', 'income_expense_records', (int) $record['id'], trim((string) ($_POST['request_notes'] ?? '')));
+        Database::pdo()->prepare(
+            'UPDATE income_expense_records
+             SET status = "draft",
+                 approval_status = "submitted",
+                 submitted_at = :submitted_at,
+                 updated_at = :updated_at
+             WHERE id = :id'
+        )->execute([
+            'submitted_at' => now(),
+            'updated_at' => now(),
+            'id' => (int) $record['id'],
+        ]);
+
+        AuditLog::write('submit', 'income_expenses', 'income_expense_records', (int) $record['id']);
+        flash('success', '收支紀錄已送審。');
+        redirect('/income-expenses/' . $id);
+    }
+
+    public function approve(string $id): void
+    {
+        $this->requirePermission('income_expenses.approve');
+        $this->review((int) $id, 'approved', 'confirmed', '收支紀錄已核准。');
+    }
+
+    public function reject(string $id): void
+    {
+        $this->requirePermission('income_expenses.approve');
+        $this->review((int) $id, 'rejected', 'draft', '收支紀錄已退回。');
     }
 
     public function void(string $id): void
@@ -243,7 +288,7 @@ final class IncomeExpenseController extends Controller
         $this->requirePermission('accounting.manage');
         $record = $this->findRecord((int) $id);
 
-        if ($record['status'] !== 'confirmed') {
+        if ($record['status'] !== 'confirmed' || ($record['approval_status'] ?? '') !== 'approved') {
             flash('error', '只有已確認的收支紀錄可以拋轉會計傳票。');
             redirect('/income-expenses/' . $id);
         }
@@ -365,6 +410,7 @@ final class IncomeExpenseController extends Controller
         if ($category && $categoryName === '') {
             $categoryName = $category['name'];
         }
+        $status = $this->statusValue();
 
         return [
             'occurred_on' => $_POST['occurred_on'],
@@ -382,8 +428,43 @@ final class IncomeExpenseController extends Controller
             'receipt_no' => trim((string) ($_POST['receipt_no'] ?? '')),
             'receipt_status' => $this->receiptStatusValue(),
             'notes' => trim((string) ($_POST['notes'] ?? '')),
-            'status' => $this->statusValue(),
+            'status' => $status,
+            'approval_status' => $status === 'confirmed' ? 'approved' : 'draft',
         ];
+    }
+
+    private function review(int $id, string $approvalStatus, string $recordStatus, string $message): void
+    {
+        $record = $this->findRecord($id);
+        if ($record['status'] === 'voided') {
+            flash('error', '作廢紀錄不可簽核。');
+            redirect('/income-expenses/' . $id);
+        }
+
+        $notes = trim((string) ($_POST['review_notes'] ?? ''));
+        ApprovalFlow::review('income_expenses', 'income_expense_records', $id, $approvalStatus, $notes);
+        Database::pdo()->prepare(
+            'UPDATE income_expense_records
+             SET status = :status,
+                 approval_status = :approval_status,
+                 reviewed_by = :reviewed_by,
+                 reviewed_at = :reviewed_at,
+                 review_notes = :review_notes,
+                 updated_at = :updated_at
+             WHERE id = :id'
+        )->execute([
+            'status' => $recordStatus,
+            'approval_status' => $approvalStatus,
+            'reviewed_by' => auth()->user()['id'] ?? null,
+            'reviewed_at' => now(),
+            'review_notes' => $notes,
+            'updated_at' => now(),
+            'id' => $id,
+        ]);
+
+        AuditLog::write($approvalStatus, 'income_expenses', 'income_expense_records', $id);
+        flash('success', $message);
+        redirect('/income-expenses/' . $id);
     }
 
     private function findRecord(int $id): array
@@ -504,8 +585,12 @@ final class IncomeExpenseController extends Controller
 
     private function statusValue(): string
     {
-        $status = (string) ($_POST['status'] ?? 'confirmed');
-        return in_array($status, ['draft', 'confirmed', 'voided'], true) ? $status : 'confirmed';
+        $status = (string) ($_POST['status'] ?? 'draft');
+        if ($status === 'confirmed') {
+            return \App\Core\Permission::can('income_expenses.approve') ? 'confirmed' : 'draft';
+        }
+
+        return in_array($status, ['draft', 'voided'], true) ? $status : 'draft';
     }
 
     private function receiptStatusValue(): string
