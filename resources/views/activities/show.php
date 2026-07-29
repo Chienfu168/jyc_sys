@@ -48,6 +48,26 @@ ob_start();
             <td><?= e(activity_show_status_label($activity['status'])) ?></td>
         </tr>
         <tr>
+            <th>所屬專案</th>
+            <td>
+                <?php if (!empty($activity['project_id'])): ?>
+                    <a class="text-link" href="/projects/<?= e((string) $activity['project_id']) ?>">
+                        <?= e(($activity['project_code'] ? $activity['project_code'] . ' / ' : '') . $activity['project_name']) ?>
+                    </a>
+                <?php else: ?>
+                    -
+                <?php endif; ?>
+            </td>
+            <th>行事曆連動</th>
+            <td>
+                <?php if ($calendarEvent): ?>
+                    <a class="text-link" href="/calendar/<?= e((string) $calendarEvent['id']) ?>">已建立行事曆事件</a>
+                <?php else: ?>
+                    -
+                <?php endif; ?>
+            </td>
+        </tr>
+        <tr>
             <th>建檔人</th>
             <td><?= e($activity['created_by_name'] ?: '-') ?></td>
             <th>更新時間</th>

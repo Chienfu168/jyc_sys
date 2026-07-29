@@ -17,6 +17,18 @@
         <input type="text" name="location" value="<?= e((string) old('location', $activity['location'] ?? '')) ?>">
     </label>
     <label>
+        <span>所屬專案</span>
+        <?php $selectedProject = (string) old('project_id', $activity['project_id'] ?? ''); ?>
+        <select name="project_id">
+            <option value="">未指定專案</option>
+            <?php foreach ($projects as $project): ?>
+                <option value="<?= e((string) $project['id']) ?>" <?= $selectedProject === (string) $project['id'] ? 'selected' : '' ?>>
+                    <?= e(($project['project_code'] ? $project['project_code'] . ' / ' : '') . $project['name']) ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+    </label>
+    <label>
         <span>狀態</span>
         <?php $status = old('status', $activity['status'] ?? 'draft'); ?>
         <select name="status">

@@ -85,6 +85,34 @@ ob_start();
         </tbody>
     </table>
 
+    <div class="table-wrap">
+        <table>
+            <thead>
+            <tr>
+                <th>活動時間</th>
+                <th>活動名稱</th>
+                <th>地點</th>
+                <th class="amount">志工時數</th>
+                <th>狀態</th>
+            </tr>
+            </thead>
+            <tbody>
+            <?php foreach ($activities as $activity): ?>
+                <tr>
+                    <td><?= e(project_show_activity_datetime($activity['starts_at'])) ?></td>
+                    <td><a class="text-link" href="/activities/<?= e((string) $activity['id']) ?>"><?= e($activity['title']) ?></a></td>
+                    <td><?= e($activity['location'] ?: '-') ?></td>
+                    <td class="amount"><?= e(number_format((float) $activity['volunteer_hours'], 2)) ?></td>
+                    <td><?= e(project_show_activity_status_label($activity['status'])) ?></td>
+                </tr>
+            <?php endforeach; ?>
+            <?php if (!$activities): ?>
+                <tr><td colspan="5" class="empty">尚無連結活動。</td></tr>
+            <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
+
     <?php require base_path('resources/views/shared/signatures.php'); ?>
 </section>
 <?php
@@ -95,6 +123,17 @@ function project_show_status_label(string $status): string
 function project_show_type_label(string $type): string
 {
     return ['program' => '服務方案', 'grant' => '補助計畫', 'administration' => '行政專案', 'event' => '活動專案', 'other' => '其他'][$type] ?? $type;
+}
+function project_show_activity_status_label(string $status): string
+{
+    return ['draft' => '草稿', 'published' => '已發布', 'closed' => '結案', 'cancelled' => '取消'][$status] ?? $status;
+}
+function project_show_activity_datetime(?string $value): string
+{
+    if (!$value) {
+        return '-';
+    }
+    return roc_date(substr($value, 0, 10)) . ' ' . substr($value, 11, 5);
 }
 $content = ob_get_clean();
 require base_path('resources/views/layouts/main.php');

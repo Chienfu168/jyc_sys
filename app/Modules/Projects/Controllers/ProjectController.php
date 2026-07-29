@@ -103,6 +103,7 @@ final class ProjectController extends Controller
             'section' => '業務與人事',
             'active' => 'projects',
             'project' => $this->findProject((int) $id),
+            'activities' => $this->projectActivities((int) $id),
             'profile' => foundation_profile(),
         ]);
     }
@@ -272,6 +273,24 @@ final class ProjectController extends Controller
             'active' => count(array_filter($projects, static fn (array $project): bool => $project['status'] === 'active')),
             'budget_total' => array_sum(array_map(static fn (array $project): float => (float) $project['budget_amount'], $projects)),
         ];
+    }
+
+    private function projectActivities(int $projectId): array
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT activities.*,
+                    COALESCE(volunteer_stats.volunteer_hours, 0) AS volunteer_hours
+             FROM activities
+             LEFT JOIN (
+                SELECT activity_id, SUM(hours) AS volunteer_hours
+                FROM volunteer_service_logs
+                GROUP BY activity_id
+             ) AS volunteer_stats ON volunteer_stats.activity_id = activities.id
+             WHERE activities.project_id = :project_id
+             ORDER BY activities.starts_at DESC, activities.id DESC'
+        );
+        $stmt->execute(['project_id' => $projectId]);
+        return $stmt->fetchAll();
     }
 
     private function blankProject(): array

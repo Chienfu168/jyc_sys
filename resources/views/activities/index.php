@@ -22,6 +22,14 @@ ob_start();
         <form class="search bank-filter" method="get" action="/activities">
             <input type="month" name="month" value="<?= e($month) ?>">
             <input type="search" name="q" value="<?= e($keyword) ?>" placeholder="活動、地點、說明">
+            <select name="project_id">
+                <option value="">全部專案</option>
+                <?php foreach ($projects as $project): ?>
+                    <option value="<?= e((string) $project['id']) ?>" <?= $projectId === (int) $project['id'] ? 'selected' : '' ?>>
+                        <?= e(($project['project_code'] ? $project['project_code'] . ' / ' : '') . $project['name']) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
             <select name="status">
                 <option value="">全部狀態</option>
                 <option value="draft" <?= $status === 'draft' ? 'selected' : '' ?>>草稿</option>
@@ -45,6 +53,7 @@ ob_start();
             <tr>
                 <th>時間</th>
                 <th>活動名稱</th>
+                <th>所屬專案</th>
                 <th>地點</th>
                 <th class="amount">志工時數</th>
                 <th>狀態</th>
@@ -61,6 +70,15 @@ ob_start();
                         <?php endif; ?>
                     </td>
                     <td><strong><?= e($activity['title']) ?></strong></td>
+                    <td>
+                        <?php if (!empty($activity['project_id'])): ?>
+                            <a class="text-link" href="/projects/<?= e((string) $activity['project_id']) ?>">
+                                <?= e(($activity['project_code'] ? $activity['project_code'] . ' / ' : '') . $activity['project_name']) ?>
+                            </a>
+                        <?php else: ?>
+                            -
+                        <?php endif; ?>
+                    </td>
                     <td><?= e($activity['location'] ?: '-') ?></td>
                     <td class="amount"><?= e(number_format((float) $activity['volunteer_hours'], 2)) ?></td>
                     <td><span class="badge <?= $activity['status'] === 'published' ? 'ok' : 'muted' ?>"><?= e(activity_status_label($activity['status'])) ?></span></td>
@@ -73,7 +91,7 @@ ob_start();
                 </tr>
             <?php endforeach; ?>
             <?php if (!$activities): ?>
-                <tr><td colspan="6" class="empty">尚無活動資料。</td></tr>
+                <tr><td colspan="7" class="empty">尚無活動資料。</td></tr>
             <?php endif; ?>
             </tbody>
         </table>
