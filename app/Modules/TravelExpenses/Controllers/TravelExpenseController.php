@@ -27,9 +27,11 @@ final class TravelExpenseController extends Controller
         }
 
         $stmt = Database::pdo()->prepare(
-            'SELECT travel_expenses.*, bank_accounts.bank_name, bank_accounts.account_no
+            'SELECT travel_expenses.*, bank_accounts.bank_name, bank_accounts.account_no,
+                    accounting_vouchers.voucher_no, accounting_vouchers.status AS voucher_status
              FROM travel_expenses
              LEFT JOIN bank_accounts ON bank_accounts.id = travel_expenses.bank_account_id
+             LEFT JOIN accounting_vouchers ON accounting_vouchers.id = travel_expenses.accounting_voucher_id
              WHERE ' . implode(' AND ', $where) . '
              ORDER BY travel_start DESC, id DESC'
         );
@@ -208,6 +210,114 @@ final class TravelExpenseController extends Controller
         redirect('/travel-expenses/' . $id);
     }
 
+    public function createVoucher(string $id): void
+    {
+        $this->requirePermission('accounting.manage');
+        $expense = $this->findExpense((int) $id);
+
+        if ($expense['payment_status'] === 'voided') {
+            flash('error', '作廢的出差費用不可建立會計傳票。');
+            redirect('/travel-expenses/' . $id);
+        }
+
+        if (!empty($expense['accounting_voucher_id'])) {
+            flash('error', '此出差費用已建立會計傳票。');
+            redirect('/accounting/vouchers/' . $expense['accounting_voucher_id']);
+        }
+
+        $cashAccount = $this->accountByCode('1100');
+        $payableAccount = $this->accountByCode('2100');
+        $expenseAccount = $this->accountByCode('5500');
+
+        if (!$cashAccount || !$payableAccount || !$expenseAccount) {
+            flash('error', '找不到出差費用拋轉所需會計科目，請先確認 1100、2100、5500 已建立。');
+            redirect('/travel-expenses/' . $id);
+        }
+
+        $reimbursableAmount = round((float) $expense['reimbursable_amount'], 2);
+        if ($reimbursableAmount <= 0) {
+            flash('error', '應報支金額需大於 0 才能建立會計傳票。');
+            redirect('/travel-expenses/' . $id);
+        }
+
+        $voucherDate = $expense['paid_on'] ?: $expense['travel_end'];
+        $summary = sprintf('出差費用：%s / %s', $expense['traveler_name'], $expense['destination']);
+        $voucherId = 0;
+
+        $pdo = Database::pdo();
+        $pdo->beginTransaction();
+        try {
+            $pdo->prepare(
+                'INSERT INTO accounting_vouchers
+                 (voucher_no, voucher_date, source_type, source_id, summary, status, notes, created_by, created_at, updated_at)
+                 VALUES
+                 (:voucher_no, :voucher_date, :source_type, :source_id, :summary, :status, :notes, :created_by, :created_at, :updated_at)'
+            )->execute([
+                'voucher_no' => $this->nextVoucherNo($voucherDate),
+                'voucher_date' => $voucherDate,
+                'source_type' => 'travel_expenses',
+                'source_id' => (int) $expense['id'],
+                'summary' => $summary,
+                'status' => 'draft',
+                'notes' => trim("由出差費用自動拋轉\n" . (string) ($expense['notes'] ?? '')),
+                'created_by' => auth()->user()['id'] ?? null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $voucherId = (int) $pdo->lastInsertId();
+            $lineStmt = $pdo->prepare(
+                'INSERT INTO accounting_voucher_lines
+                 (voucher_id, account_id, description, debit, credit, sort_order, created_at, updated_at)
+                 VALUES
+                 (:voucher_id, :account_id, :description, :debit, :credit, :sort_order, :created_at, :updated_at)'
+            );
+
+            $lineStmt->execute([
+                'voucher_id' => $voucherId,
+                'account_id' => (int) $expenseAccount['id'],
+                'description' => $summary . ' 應報支金額',
+                'debit' => $reimbursableAmount,
+                'credit' => 0,
+                'sort_order' => 10,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $lineStmt->execute([
+                'voucher_id' => $voucherId,
+                'account_id' => (int) ($expense['payment_status'] === 'paid' ? $cashAccount['id'] : $payableAccount['id']),
+                'description' => $expense['payment_status'] === 'paid' ? $summary . ' 實付金額' : $summary . ' 應付款',
+                'debit' => 0,
+                'credit' => $reimbursableAmount,
+                'sort_order' => 20,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $pdo->prepare(
+                'UPDATE travel_expenses
+                 SET accounting_voucher_id = :voucher_id, updated_at = :updated_at
+                 WHERE id = :id'
+            )->execute([
+                'voucher_id' => $voucherId,
+                'updated_at' => now(),
+                'id' => (int) $expense['id'],
+            ]);
+
+            $pdo->commit();
+        } catch (\Throwable $exception) {
+            $pdo->rollBack();
+            flash('error', '會計傳票建立失敗：' . $exception->getMessage());
+            redirect('/travel-expenses/' . $id);
+        }
+
+        AuditLog::write('create_voucher', 'travel_expenses', 'travel_expenses', (int) $expense['id']);
+        AuditLog::write('create', 'accounting', 'accounting_vouchers', $voucherId);
+        flash('success', '已建立出差費用草稿會計傳票，請檢查後過帳。');
+        redirect('/accounting/vouchers/' . $voucherId);
+    }
+
     private function validateExpense(string $path): void
     {
         if ($error = Validator::required($_POST, [
@@ -277,11 +387,13 @@ final class TravelExpenseController extends Controller
     {
         $stmt = Database::pdo()->prepare(
             'SELECT travel_expenses.*, users.name AS traveler_account_name, creators.name AS created_by_name,
-                    bank_accounts.bank_name, bank_accounts.branch_name, bank_accounts.account_no
+                    bank_accounts.bank_name, bank_accounts.branch_name, bank_accounts.account_no,
+                    accounting_vouchers.voucher_no, accounting_vouchers.status AS voucher_status
              FROM travel_expenses
              LEFT JOIN users ON users.id = travel_expenses.traveler_user_id
              LEFT JOIN users AS creators ON creators.id = travel_expenses.created_by
              LEFT JOIN bank_accounts ON bank_accounts.id = travel_expenses.bank_account_id
+             LEFT JOIN accounting_vouchers ON accounting_vouchers.id = travel_expenses.accounting_voucher_id
              WHERE travel_expenses.id = :id
              LIMIT 1'
         );
@@ -309,6 +421,24 @@ final class TravelExpenseController extends Controller
         } catch (\Throwable) {
             return [];
         }
+    }
+
+    private function accountByCode(string $code): ?array
+    {
+        $stmt = Database::pdo()->prepare('SELECT id, code, name FROM accounting_accounts WHERE code = :code AND status = "active" LIMIT 1');
+        $stmt->execute(['code' => $code]);
+        $account = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $account ?: null;
+    }
+
+    private function nextVoucherNo(string $date): string
+    {
+        $prefix = 'V' . str_replace('-', '', $date) . '-';
+        $stmt = Database::pdo()->prepare('SELECT COUNT(*) FROM accounting_vouchers WHERE voucher_no LIKE :prefix');
+        $stmt->execute(['prefix' => $prefix . '%']);
+
+        return $prefix . str_pad((string) ((int) $stmt->fetchColumn() + 1), 3, '0', STR_PAD_LEFT);
     }
 
     private function totals(array $expenses): array

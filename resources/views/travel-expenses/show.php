@@ -21,6 +21,15 @@ ob_start();
                         <button class="btn primary" type="submit">標記已付款</button>
                     </form>
                 <?php endif; ?>
+                <?php if (\App\Core\Permission::can('accounting.manage') && $expense['payment_status'] !== 'voided' && empty($expense['accounting_voucher_id'])): ?>
+                    <form method="post" action="/travel-expenses/<?= e((string) $expense['id']) ?>/voucher">
+                        <?= csrf_field() ?>
+                        <button class="btn primary" type="submit">建立會計傳票</button>
+                    </form>
+                <?php endif; ?>
+                <?php if (!empty($expense['accounting_voucher_id'])): ?>
+                    <a class="btn" href="/accounting/vouchers/<?= e((string) $expense['accounting_voucher_id']) ?>">查看傳票</a>
+                <?php endif; ?>
                 <?php if ($expense['payment_status'] !== 'voided'): ?>
                     <form method="post" action="/travel-expenses/<?= e((string) $expense['id']) ?>/void">
                         <?= csrf_field() ?>
@@ -54,6 +63,17 @@ ob_start();
             <td><?= e($expense['project_name'] ?: '-') ?></td>
             <th>帳號對應</th>
             <td><?= e($expense['traveler_account_name'] ?: '-') ?></td>
+        </tr>
+        <tr>
+            <th>會計傳票</th>
+            <td colspan="3">
+                <?php if (!empty($expense['accounting_voucher_id'])): ?>
+                    <a class="link" href="/accounting/vouchers/<?= e((string) $expense['accounting_voucher_id']) ?>"><?= e($expense['voucher_no'] ?: '查看傳票') ?></a>
+                    <span class="muted-text">（<?= e(travel_expense_show_voucher_status((string) ($expense['voucher_status'] ?? ''))) ?>）</span>
+                <?php else: ?>
+                    -
+                <?php endif; ?>
+            </td>
         </tr>
         </tbody>
     </table>
@@ -134,6 +154,10 @@ ob_start();
 function travel_expense_show_status(string $status): string
 {
     return ['pending' => '待付款', 'paid' => '已付款', 'voided' => '作廢'][$status] ?? $status;
+}
+function travel_expense_show_voucher_status(string $status): string
+{
+    return ['draft' => '草稿', 'posted' => '已過帳', 'voided' => '作廢'][$status] ?? ($status ?: '-');
 }
 $content = ob_get_clean();
 require base_path('resources/views/layouts/main.php');

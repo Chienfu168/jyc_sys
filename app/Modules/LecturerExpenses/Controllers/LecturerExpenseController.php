@@ -28,10 +28,12 @@ final class LecturerExpenseController extends Controller
 
         $stmt = Database::pdo()->prepare(
             'SELECT lecturer_expenses.*, lecturers.name AS lecturer_name, lecturers.display_name,
-                    bank_accounts.bank_name, bank_accounts.account_no
+                    bank_accounts.bank_name, bank_accounts.account_no,
+                    accounting_vouchers.voucher_no, accounting_vouchers.status AS voucher_status
              FROM lecturer_expenses
              INNER JOIN lecturers ON lecturers.id = lecturer_expenses.lecturer_id
              LEFT JOIN bank_accounts ON bank_accounts.id = lecturer_expenses.bank_account_id
+             LEFT JOIN accounting_vouchers ON accounting_vouchers.id = lecturer_expenses.accounting_voucher_id
              WHERE ' . implode(' AND ', $where) . '
              ORDER BY lecturer_expenses.expense_date DESC, lecturer_expenses.id DESC'
         );
@@ -210,6 +212,132 @@ final class LecturerExpenseController extends Controller
         redirect('/lecturer-expenses/' . $id);
     }
 
+    public function createVoucher(string $id): void
+    {
+        $this->requirePermission('accounting.manage');
+        $expense = $this->findExpense((int) $id);
+
+        if ($expense['payment_status'] === 'voided') {
+            flash('error', '作廢的講師支出不可建立會計傳票。');
+            redirect('/lecturer-expenses/' . $id);
+        }
+
+        if (!empty($expense['accounting_voucher_id'])) {
+            flash('error', '此講師支出已建立會計傳票。');
+            redirect('/accounting/vouchers/' . $expense['accounting_voucher_id']);
+        }
+
+        $cashAccount = $this->accountByCode('1100');
+        $payableAccount = $this->accountByCode('2100');
+        $expenseAccount = $this->accountByCode('5400');
+
+        if (!$cashAccount || !$payableAccount || !$expenseAccount) {
+            flash('error', '找不到講師支出拋轉所需會計科目，請先確認 1100、2100、5400 已建立。');
+            redirect('/lecturer-expenses/' . $id);
+        }
+
+        $grossTotal = round((float) $expense['gross_total'], 2);
+        $netTotal = round((float) $expense['net_total'], 2);
+        $withholdingTax = round((float) $expense['withholding_tax'], 2);
+        if ($grossTotal <= 0) {
+            flash('error', '講師支出金額需大於 0 才能建立會計傳票。');
+            redirect('/lecturer-expenses/' . $id);
+        }
+
+        $voucherDate = $expense['paid_on'] ?: $expense['expense_date'];
+        $summary = sprintf('講師支出：%s', $expense['service_title']);
+        $voucherId = 0;
+
+        $pdo = Database::pdo();
+        $pdo->beginTransaction();
+        try {
+            $pdo->prepare(
+                'INSERT INTO accounting_vouchers
+                 (voucher_no, voucher_date, source_type, source_id, summary, status, notes, created_by, created_at, updated_at)
+                 VALUES
+                 (:voucher_no, :voucher_date, :source_type, :source_id, :summary, :status, :notes, :created_by, :created_at, :updated_at)'
+            )->execute([
+                'voucher_no' => $this->nextVoucherNo($voucherDate),
+                'voucher_date' => $voucherDate,
+                'source_type' => 'lecturer_expenses',
+                'source_id' => (int) $expense['id'],
+                'summary' => $summary,
+                'status' => 'draft',
+                'notes' => trim("由講師支出自動拋轉\n" . (string) ($expense['notes'] ?? '')),
+                'created_by' => auth()->user()['id'] ?? null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $voucherId = (int) $pdo->lastInsertId();
+            $lineStmt = $pdo->prepare(
+                'INSERT INTO accounting_voucher_lines
+                 (voucher_id, account_id, description, debit, credit, sort_order, created_at, updated_at)
+                 VALUES
+                 (:voucher_id, :account_id, :description, :debit, :credit, :sort_order, :created_at, :updated_at)'
+            );
+
+            $lineStmt->execute([
+                'voucher_id' => $voucherId,
+                'account_id' => (int) $expenseAccount['id'],
+                'description' => $summary,
+                'debit' => $grossTotal,
+                'credit' => 0,
+                'sort_order' => 10,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            if ($expense['payment_status'] === 'paid' && $netTotal > 0) {
+                $lineStmt->execute([
+                    'voucher_id' => $voucherId,
+                    'account_id' => (int) $cashAccount['id'],
+                    'description' => $summary . ' 實付金額',
+                    'debit' => 0,
+                    'credit' => $netTotal,
+                    'sort_order' => 20,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            $payableAmount = $expense['payment_status'] === 'paid' ? $withholdingTax : $grossTotal;
+            if ($payableAmount > 0) {
+                $lineStmt->execute([
+                    'voucher_id' => $voucherId,
+                    'account_id' => (int) $payableAccount['id'],
+                    'description' => $expense['payment_status'] === 'paid' ? $summary . ' 扣繳稅額' : $summary . ' 應付款',
+                    'debit' => 0,
+                    'credit' => $payableAmount,
+                    'sort_order' => 30,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            $pdo->prepare(
+                'UPDATE lecturer_expenses
+                 SET accounting_voucher_id = :voucher_id, updated_at = :updated_at
+                 WHERE id = :id'
+            )->execute([
+                'voucher_id' => $voucherId,
+                'updated_at' => now(),
+                'id' => (int) $expense['id'],
+            ]);
+
+            $pdo->commit();
+        } catch (\Throwable $exception) {
+            $pdo->rollBack();
+            flash('error', '會計傳票建立失敗：' . $exception->getMessage());
+            redirect('/lecturer-expenses/' . $id);
+        }
+
+        AuditLog::write('create_voucher', 'lecturer_expenses', 'lecturer_expenses', (int) $expense['id']);
+        AuditLog::write('create', 'accounting', 'accounting_vouchers', $voucherId);
+        flash('success', '已建立講師支出草稿會計傳票，請檢查後過帳。');
+        redirect('/accounting/vouchers/' . $voucherId);
+    }
+
     private function validateExpense(string $path): void
     {
         if ($error = Validator::required($_POST, [
@@ -281,11 +409,13 @@ final class LecturerExpenseController extends Controller
                     lecturers.bank_account_no AS lecturer_bank_account_no,
                     lecturers.bank_account_name AS lecturer_bank_account_name,
                     users.name AS created_by_name,
-                    bank_accounts.bank_name, bank_accounts.branch_name, bank_accounts.account_no
+                    bank_accounts.bank_name, bank_accounts.branch_name, bank_accounts.account_no,
+                    accounting_vouchers.voucher_no, accounting_vouchers.status AS voucher_status
              FROM lecturer_expenses
              INNER JOIN lecturers ON lecturers.id = lecturer_expenses.lecturer_id
              LEFT JOIN users ON users.id = lecturer_expenses.created_by
              LEFT JOIN bank_accounts ON bank_accounts.id = lecturer_expenses.bank_account_id
+             LEFT JOIN accounting_vouchers ON accounting_vouchers.id = lecturer_expenses.accounting_voucher_id
              WHERE lecturer_expenses.id = :id
              LIMIT 1'
         );
@@ -330,6 +460,24 @@ final class LecturerExpenseController extends Controller
         } catch (\Throwable) {
             return [];
         }
+    }
+
+    private function accountByCode(string $code): ?array
+    {
+        $stmt = Database::pdo()->prepare('SELECT id, code, name FROM accounting_accounts WHERE code = :code AND status = "active" LIMIT 1');
+        $stmt->execute(['code' => $code]);
+        $account = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $account ?: null;
+    }
+
+    private function nextVoucherNo(string $date): string
+    {
+        $prefix = 'V' . str_replace('-', '', $date) . '-';
+        $stmt = Database::pdo()->prepare('SELECT COUNT(*) FROM accounting_vouchers WHERE voucher_no LIKE :prefix');
+        $stmt->execute(['prefix' => $prefix . '%']);
+
+        return $prefix . str_pad((string) ((int) $stmt->fetchColumn() + 1), 3, '0', STR_PAD_LEFT);
     }
 
     private function totals(array $expenses): array

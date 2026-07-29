@@ -49,6 +49,7 @@ ob_start();
                 <th class="amount">應付</th>
                 <th class="amount">實付</th>
                 <th>狀態</th>
+                <th>傳票</th>
                 <th class="actions">操作</th>
             </tr>
             </thead>
@@ -73,6 +74,14 @@ ob_start();
                     <td class="amount"><?= e(lecturer_expense_money($expense['gross_total'])) ?></td>
                     <td class="amount"><?= e(lecturer_expense_money($expense['net_total'])) ?></td>
                     <td><span class="badge <?= $expense['payment_status'] === 'paid' ? 'ok' : 'muted' ?>"><?= e(lecturer_expense_status_label($expense['payment_status'])) ?></span></td>
+                    <td>
+                        <?php if (!empty($expense['accounting_voucher_id'])): ?>
+                            <a class="link" href="/accounting/vouchers/<?= e((string) $expense['accounting_voucher_id']) ?>"><?= e($expense['voucher_no'] ?: '查看傳票') ?></a>
+                            <div class="muted-text"><?= e(lecturer_expense_voucher_status_label((string) ($expense['voucher_status'] ?? ''))) ?></div>
+                        <?php else: ?>
+                            <span class="muted-text">未建立</span>
+                        <?php endif; ?>
+                    </td>
                     <td class="actions">
                         <a class="btn small" href="/lecturer-expenses/<?= e((string) $expense['id']) ?>">檢視</a>
                         <?php if (\App\Core\Permission::can('lecturer_expenses.manage')): ?>
@@ -82,7 +91,7 @@ ob_start();
                 </tr>
             <?php endforeach; ?>
             <?php if (!$expenses): ?>
-                <tr><td colspan="9" class="empty">尚無講師費用資料。</td></tr>
+                <tr><td colspan="10" class="empty">尚無講師費用資料。</td></tr>
             <?php endif; ?>
             </tbody>
         </table>
@@ -96,6 +105,10 @@ function lecturer_expense_money($value): string
 function lecturer_expense_status_label(string $status): string
 {
     return ['pending' => '待付款', 'paid' => '已付款', 'voided' => '作廢'][$status] ?? $status;
+}
+function lecturer_expense_voucher_status_label(string $status): string
+{
+    return ['draft' => '草稿', 'posted' => '已過帳', 'voided' => '作廢'][$status] ?? ($status ?: '-');
 }
 $content = ob_get_clean();
 require base_path('resources/views/layouts/main.php');

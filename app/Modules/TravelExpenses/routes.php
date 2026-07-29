@@ -8,5 +8,6 @@ $router->post('/travel-expenses', [TravelExpenseController::class, 'store']);
 $router->get('/travel-expenses/{id}', [TravelExpenseController::class, 'show']);
 $router->get('/travel-expenses/{id}/edit', [TravelExpenseController::class, 'edit']);
 $router->post('/travel-expenses/{id}', [TravelExpenseController::class, 'update']);
+$router->post('/travel-expenses/{id}/voucher', [TravelExpenseController::class, 'createVoucher']);
 $router->post('/travel-expenses/{id}/mark-paid', [TravelExpenseController::class, 'markPaid']);
 $router->post('/travel-expenses/{id}/void', [TravelExpenseController::class, 'void']);
