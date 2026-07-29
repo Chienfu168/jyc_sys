@@ -78,10 +78,12 @@ final class PayrollController extends Controller
                 'payment_status' => 'draft',
                 'paid_on' => '',
                 'bank_account_id' => '',
+                'project_id' => '',
                 'notes' => '',
             ],
             'employees' => $this->employees(),
             'bankAccounts' => $this->bankAccounts(),
+            'projects' => $this->projects(),
             'action' => '/payroll',
         ]);
     }
@@ -93,9 +95,9 @@ final class PayrollController extends Controller
 
         Database::pdo()->prepare(
             'INSERT INTO payroll_records
-             (employee_id, payroll_month, pay_date, base_salary, allowance_total, overtime_pay, bonus, gross_pay, labor_insurance_deduction, health_insurance_deduction, pension_self_deduction, income_tax, leave_deduction, other_deduction, deduction_total, net_pay, employer_pension, payment_method, payment_status, paid_on, bank_account_id, notes, created_by, created_at, updated_at)
+             (employee_id, payroll_month, pay_date, base_salary, allowance_total, overtime_pay, bonus, gross_pay, labor_insurance_deduction, health_insurance_deduction, pension_self_deduction, income_tax, leave_deduction, other_deduction, deduction_total, net_pay, employer_pension, payment_method, payment_status, paid_on, bank_account_id, project_id, notes, created_by, created_at, updated_at)
              VALUES
-             (:employee_id, :payroll_month, :pay_date, :base_salary, :allowance_total, :overtime_pay, :bonus, :gross_pay, :labor_insurance_deduction, :health_insurance_deduction, :pension_self_deduction, :income_tax, :leave_deduction, :other_deduction, :deduction_total, :net_pay, :employer_pension, :payment_method, :payment_status, :paid_on, :bank_account_id, :notes, :created_by, :created_at, :updated_at)'
+             (:employee_id, :payroll_month, :pay_date, :base_salary, :allowance_total, :overtime_pay, :bonus, :gross_pay, :labor_insurance_deduction, :health_insurance_deduction, :pension_self_deduction, :income_tax, :leave_deduction, :other_deduction, :deduction_total, :net_pay, :employer_pension, :payment_method, :payment_status, :paid_on, :bank_account_id, :project_id, :notes, :created_by, :created_at, :updated_at)'
         )->execute($this->payload() + [
             'created_by' => auth()->user()['id'] ?? null,
             'created_at' => now(),
@@ -132,6 +134,7 @@ final class PayrollController extends Controller
             'record' => $this->findRecord((int) $id),
             'employees' => $this->employees(),
             'bankAccounts' => $this->bankAccounts(),
+            'projects' => $this->projects(),
             'action' => '/payroll/' . $id,
         ]);
     }
@@ -165,6 +168,7 @@ final class PayrollController extends Controller
                  payment_status = :payment_status,
                  paid_on = :paid_on,
                  bank_account_id = :bank_account_id,
+                 project_id = :project_id,
                  notes = :notes,
                  updated_at = :updated_at
              WHERE id = :id'
@@ -440,6 +444,7 @@ final class PayrollController extends Controller
             'payment_status' => (string) ($_POST['payment_status'] ?? 'draft'),
             'paid_on' => $paidOn !== '' ? $paidOn : null,
             'bank_account_id' => $bankAccountId > 0 ? $bankAccountId : null,
+            'project_id' => $this->projectId(),
             'notes' => trim((string) ($_POST['notes'] ?? '')),
         ];
     }
@@ -508,6 +513,20 @@ final class PayrollController extends Controller
         }
     }
 
+    private function projects(): array
+    {
+        try {
+            return Database::pdo()->query(
+                'SELECT id, project_code, name
+                 FROM projects
+                 WHERE status IN ("planning", "active")
+                 ORDER BY start_date DESC, project_code, name'
+            )->fetchAll();
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
     private function accountByCode(string $code): ?array
     {
         $stmt = Database::pdo()->prepare('SELECT id, code, name FROM accounting_accounts WHERE code = :code AND status = "active" LIMIT 1');
@@ -556,5 +575,11 @@ final class PayrollController extends Controller
     private function amountValue(string $key): float
     {
         return round((float) ($_POST[$key] ?? 0), 2);
+    }
+
+    private function projectId(): ?int
+    {
+        $id = (int) ($_POST['project_id'] ?? 0);
+        return $id > 0 ? $id : null;
     }
 }

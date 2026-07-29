@@ -65,6 +65,7 @@ final class TravelExpenseController extends Controller
                 'travel_end' => date('Y-m-d'),
                 'destination' => '',
                 'purpose' => '',
+                'project_id' => '',
                 'project_name' => '',
                 'transportation_fee' => 0,
                 'accommodation_fee' => 0,
@@ -80,6 +81,7 @@ final class TravelExpenseController extends Controller
             ],
             'users' => $this->users(),
             'bankAccounts' => $this->bankAccounts(),
+            'projects' => $this->projects(),
             'action' => '/travel-expenses',
         ]);
     }
@@ -91,9 +93,9 @@ final class TravelExpenseController extends Controller
 
         Database::pdo()->prepare(
             'INSERT INTO travel_expenses
-             (traveler_user_id, traveler_name, travel_start, travel_end, destination, purpose, project_name, transportation_fee, accommodation_fee, meal_fee, miscellaneous_fee, advance_amount, total_amount, reimbursable_amount, payment_method, payment_status, paid_on, bank_account_id, receipt_no, notes, created_by, created_at, updated_at)
+             (traveler_user_id, traveler_name, travel_start, travel_end, destination, purpose, project_id, project_name, transportation_fee, accommodation_fee, meal_fee, miscellaneous_fee, advance_amount, total_amount, reimbursable_amount, payment_method, payment_status, paid_on, bank_account_id, receipt_no, notes, created_by, created_at, updated_at)
              VALUES
-             (:traveler_user_id, :traveler_name, :travel_start, :travel_end, :destination, :purpose, :project_name, :transportation_fee, :accommodation_fee, :meal_fee, :miscellaneous_fee, :advance_amount, :total_amount, :reimbursable_amount, :payment_method, :payment_status, :paid_on, :bank_account_id, :receipt_no, :notes, :created_by, :created_at, :updated_at)'
+             (:traveler_user_id, :traveler_name, :travel_start, :travel_end, :destination, :purpose, :project_id, :project_name, :transportation_fee, :accommodation_fee, :meal_fee, :miscellaneous_fee, :advance_amount, :total_amount, :reimbursable_amount, :payment_method, :payment_status, :paid_on, :bank_account_id, :receipt_no, :notes, :created_by, :created_at, :updated_at)'
         )->execute($this->payload() + [
             'created_by' => auth()->user()['id'] ?? null,
             'created_at' => now(),
@@ -130,6 +132,7 @@ final class TravelExpenseController extends Controller
             'expense' => $this->findExpense((int) $id),
             'users' => $this->users(),
             'bankAccounts' => $this->bankAccounts(),
+            'projects' => $this->projects(),
             'action' => '/travel-expenses/' . $id,
         ]);
     }
@@ -148,6 +151,7 @@ final class TravelExpenseController extends Controller
                  travel_end = :travel_end,
                  destination = :destination,
                  purpose = :purpose,
+                 project_id = :project_id,
                  project_name = :project_name,
                  transportation_fee = :transportation_fee,
                  accommodation_fee = :accommodation_fee,
@@ -366,6 +370,7 @@ final class TravelExpenseController extends Controller
             'travel_end' => (string) $_POST['travel_end'],
             'destination' => trim((string) $_POST['destination']),
             'purpose' => trim((string) $_POST['purpose']),
+            'project_id' => $this->projectId(),
             'project_name' => trim((string) ($_POST['project_name'] ?? '')),
             'transportation_fee' => $transportation,
             'accommodation_fee' => $accommodation,
@@ -423,6 +428,20 @@ final class TravelExpenseController extends Controller
         }
     }
 
+    private function projects(): array
+    {
+        try {
+            return Database::pdo()->query(
+                'SELECT id, project_code, name
+                 FROM projects
+                 WHERE status IN ("planning", "active")
+                 ORDER BY start_date DESC, project_code, name'
+            )->fetchAll();
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
     private function accountByCode(string $code): ?array
     {
         $stmt = Database::pdo()->prepare('SELECT id, code, name FROM accounting_accounts WHERE code = :code AND status = "active" LIMIT 1');
@@ -471,5 +490,11 @@ final class TravelExpenseController extends Controller
     private function amountValue(string $key): float
     {
         return round((float) ($_POST[$key] ?? 0), 2);
+    }
+
+    private function projectId(): ?int
+    {
+        $id = (int) ($_POST['project_id'] ?? 0);
+        return $id > 0 ? $id : null;
     }
 }

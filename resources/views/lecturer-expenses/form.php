@@ -28,7 +28,18 @@
     </label>
     <label>
         <span>專案名稱</span>
-        <input type="text" name="project_name" value="<?= e((string) old('project_name', $expense['project_name'] ?? '')) ?>">
+        <?php $selectedProjectId = (string) old('project_id', $expense['project_id'] ?? ''); ?>
+        <select name="project_id" id="lecturer-expense-project">
+            <option value="">未指定專案</option>
+            <?php foreach (($projects ?? []) as $project): ?>
+                <option value="<?= e((string) $project['id']) ?>"
+                        data-name="<?= e($project['name']) ?>"
+                        <?= $selectedProjectId === (string) $project['id'] ? 'selected' : '' ?>>
+                    <?= e(($project['project_code'] ? $project['project_code'] . ' / ' : '') . $project['name']) ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+        <input type="text" name="project_name" value="<?= e((string) old('project_name', $expense['project_name'] ?? '')) ?>" placeholder="專案名稱備註">
     </label>
     <label>
         <span>活動名稱</span>
@@ -143,6 +154,14 @@
             rate.value = selected.dataset.rate;
         }
         calculate();
+    });
+
+    document.getElementById('lecturer-expense-project')?.addEventListener('change', function () {
+        const option = this.selectedOptions[0];
+        const input = document.querySelector('input[name="project_name"]');
+        if (option && input && !input.value) {
+            input.value = option.dataset.name || '';
+        }
     });
 
     fields.forEach((field) => field.addEventListener('input', calculate));

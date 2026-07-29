@@ -66,6 +66,7 @@ final class LecturerExpenseController extends Controller
                 'expense_date' => date('Y-m-d'),
                 'service_title' => '',
                 'service_unit' => '',
+                'project_id' => '',
                 'project_name' => '',
                 'activity_name' => '',
                 'hours' => '',
@@ -82,6 +83,7 @@ final class LecturerExpenseController extends Controller
             ],
             'lecturers' => $this->lecturers(),
             'bankAccounts' => $this->bankAccounts(),
+            'projects' => $this->projects(),
             'action' => '/lecturer-expenses',
         ]);
     }
@@ -93,9 +95,9 @@ final class LecturerExpenseController extends Controller
 
         Database::pdo()->prepare(
             'INSERT INTO lecturer_expenses
-             (lecturer_id, expense_date, service_title, service_unit, project_name, activity_name, hours, hourly_rate, lecture_fee, transportation_fee, other_fee, withholding_tax, gross_total, net_total, payment_method, payment_status, paid_on, bank_account_id, receipt_no, notes, created_by, created_at, updated_at)
+             (lecturer_id, expense_date, service_title, service_unit, project_id, project_name, activity_name, hours, hourly_rate, lecture_fee, transportation_fee, other_fee, withholding_tax, gross_total, net_total, payment_method, payment_status, paid_on, bank_account_id, receipt_no, notes, created_by, created_at, updated_at)
              VALUES
-             (:lecturer_id, :expense_date, :service_title, :service_unit, :project_name, :activity_name, :hours, :hourly_rate, :lecture_fee, :transportation_fee, :other_fee, :withholding_tax, :gross_total, :net_total, :payment_method, :payment_status, :paid_on, :bank_account_id, :receipt_no, :notes, :created_by, :created_at, :updated_at)'
+             (:lecturer_id, :expense_date, :service_title, :service_unit, :project_id, :project_name, :activity_name, :hours, :hourly_rate, :lecture_fee, :transportation_fee, :other_fee, :withholding_tax, :gross_total, :net_total, :payment_method, :payment_status, :paid_on, :bank_account_id, :receipt_no, :notes, :created_by, :created_at, :updated_at)'
         )->execute($this->payload() + [
             'created_by' => auth()->user()['id'] ?? null,
             'created_at' => now(),
@@ -132,6 +134,7 @@ final class LecturerExpenseController extends Controller
             'expense' => $this->findExpense((int) $id),
             'lecturers' => $this->lecturers(),
             'bankAccounts' => $this->bankAccounts(),
+            'projects' => $this->projects(),
             'action' => '/lecturer-expenses/' . $id,
         ]);
     }
@@ -148,6 +151,7 @@ final class LecturerExpenseController extends Controller
                  expense_date = :expense_date,
                  service_title = :service_title,
                  service_unit = :service_unit,
+                 project_id = :project_id,
                  project_name = :project_name,
                  activity_name = :activity_name,
                  hours = :hours,
@@ -381,6 +385,7 @@ final class LecturerExpenseController extends Controller
             'expense_date' => (string) $_POST['expense_date'],
             'service_title' => trim((string) $_POST['service_title']),
             'service_unit' => trim((string) ($_POST['service_unit'] ?? '')),
+            'project_id' => $this->projectId(),
             'project_name' => trim((string) ($_POST['project_name'] ?? '')),
             'activity_name' => trim((string) ($_POST['activity_name'] ?? '')),
             'hours' => $hours,
@@ -462,6 +467,20 @@ final class LecturerExpenseController extends Controller
         }
     }
 
+    private function projects(): array
+    {
+        try {
+            return Database::pdo()->query(
+                'SELECT id, project_code, name
+                 FROM projects
+                 WHERE status IN ("planning", "active")
+                 ORDER BY start_date DESC, project_code, name'
+            )->fetchAll();
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
     private function accountByCode(string $code): ?array
     {
         $stmt = Database::pdo()->prepare('SELECT id, code, name FROM accounting_accounts WHERE code = :code AND status = "active" LIMIT 1');
@@ -510,5 +529,11 @@ final class LecturerExpenseController extends Controller
     private function amountValue(string $key): float
     {
         return round((float) ($_POST[$key] ?? 0), 2);
+    }
+
+    private function projectId(): ?int
+    {
+        $id = (int) ($_POST['project_id'] ?? 0);
+        return $id > 0 ? $id : null;
     }
 }

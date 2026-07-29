@@ -299,16 +299,40 @@ final class ProjectController extends Controller
     {
         $incomeExpense = $this->sourceCost(
             'income_expense_records',
+            'amount',
             'project_id = :project_id AND item_type = "expense" AND status != "voided"',
             $projectId
         );
         $pettyCash = $this->sourceCost(
             'petty_cash_entries',
+            'amount',
             'project_id = :project_id AND item_type = "expense"',
             $projectId
         );
+        $lecturerExpense = $this->sourceCost(
+            'lecturer_expenses',
+            'gross_total',
+            'project_id = :project_id AND payment_status != "voided"',
+            $projectId
+        );
+        $travelExpense = $this->sourceCost(
+            'travel_expenses',
+            'reimbursable_amount',
+            'project_id = :project_id AND payment_status != "voided"',
+            $projectId
+        );
+        $payroll = $this->sourceCost(
+            'payroll_records',
+            'gross_pay + employer_pension',
+            'project_id = :project_id AND payment_status != "voided"',
+            $projectId
+        );
 
-        $actual = (float) $incomeExpense['amount'] + (float) $pettyCash['amount'];
+        $actual = (float) $incomeExpense['amount']
+            + (float) $pettyCash['amount']
+            + (float) $lecturerExpense['amount']
+            + (float) $travelExpense['amount']
+            + (float) $payroll['amount'];
 
         return [
             'budget' => $budgetAmount,
@@ -318,14 +342,17 @@ final class ProjectController extends Controller
             'sources' => [
                 ['label' => '收支紀錄', 'count' => (int) $incomeExpense['count'], 'amount' => (float) $incomeExpense['amount']],
                 ['label' => '零用金', 'count' => (int) $pettyCash['count'], 'amount' => (float) $pettyCash['amount']],
+                ['label' => '講師費', 'count' => (int) $lecturerExpense['count'], 'amount' => (float) $lecturerExpense['amount']],
+                ['label' => '差旅費', 'count' => (int) $travelExpense['count'], 'amount' => (float) $travelExpense['amount']],
+                ['label' => '薪資', 'count' => (int) $payroll['count'], 'amount' => (float) $payroll['amount']],
             ],
         ];
     }
 
-    private function sourceCost(string $table, string $where, int $projectId): array
+    private function sourceCost(string $table, string $amountExpression, string $where, int $projectId): array
     {
         $stmt = Database::pdo()->prepare(
-            "SELECT COUNT(*) AS record_count, COALESCE(SUM(amount), 0) AS amount
+            "SELECT COUNT(*) AS record_count, COALESCE(SUM({$amountExpression}), 0) AS amount
              FROM {$table}
              WHERE {$where}"
         );

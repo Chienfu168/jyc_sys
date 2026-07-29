@@ -104,6 +104,18 @@
     </label>
     <label class="span-2">
         <span>試算</span>
+        <?php $selectedProjectId = (string) old('project_id', $record['project_id'] ?? ''); ?>
+        <select name="project_id">
+            <option value="">未指定專案</option>
+            <?php foreach (($projects ?? []) as $project): ?>
+                <option value="<?= e((string) $project['id']) ?>" <?= $selectedProjectId === (string) $project['id'] ? 'selected' : '' ?>>
+                    <?= e(($project['project_code'] ? $project['project_code'] . ' / ' : '') . $project['name']) ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+    </label>
+    <label class="span-2">
+        <span>試算</span>
         <div class="calc-summary">
             <span>應發 <strong id="payroll-gross">0</strong></span>
             <span>扣款 <strong id="payroll-deduction">0</strong></span>
