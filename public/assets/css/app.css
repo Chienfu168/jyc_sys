@@ -565,6 +565,11 @@ textarea:focus {
     background: #eef2ef;
 }
 
+.badge.warning {
+    color: #946200;
+    background: #fff7db;
+}
+
 .badge.danger {
     color: var(--danger);
     background: var(--danger-bg);

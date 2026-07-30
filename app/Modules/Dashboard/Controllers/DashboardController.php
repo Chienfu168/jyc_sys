@@ -22,6 +22,7 @@ final class DashboardController extends Controller
             'active_users' => (int) Database::pdo()->query('SELECT COUNT(*) FROM users WHERE status = "active"')->fetchColumn(),
             'logs' => (int) Database::pdo()->query('SELECT COUNT(*) FROM audit_logs')->fetchColumn(),
             'pending_approvals' => count($pendingApprovals),
+            'overdue_approvals' => count(array_filter($pendingApprovals, static fn (array $row): bool => self::pendingDays($row) >= 3)),
         ];
 
         $stmt = Database::pdo()->query(
@@ -113,5 +114,18 @@ final class DashboardController extends Controller
 
             return $row;
         }, $stmt->fetchAll());
+    }
+
+    private static function pendingDays(array $row): int
+    {
+        $date = substr((string) ($row['requested_at'] ?: ($row['created_at'] ?? '')), 0, 10);
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+            return 0;
+        }
+
+        $requested = new \DateTimeImmutable($date);
+        $today = new \DateTimeImmutable(date('Y-m-d'));
+
+        return max(0, (int) $requested->diff($today)->days);
     }
 }

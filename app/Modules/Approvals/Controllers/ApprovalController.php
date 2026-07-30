@@ -20,6 +20,7 @@ final class ApprovalController extends Controller
 
         $rows = $this->approvalRows($sources, $module, $status, $scope);
         $stats = $this->approvalStats($sources, $module, $scope);
+        $stats['overdue'] = count(array_filter($rows, static fn (array $row): bool => $row['status'] === 'pending' && self::pendingDays($row) >= 3));
 
         $this->render('approvals.index', [
             'title' => '簽核中心',
@@ -179,5 +180,18 @@ final class ApprovalController extends Controller
         }
 
         return false;
+    }
+
+    private static function pendingDays(array $row): int
+    {
+        $date = substr((string) ($row['requested_at'] ?: ($row['created_at'] ?? '')), 0, 10);
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+            return 0;
+        }
+
+        $requested = new \DateTimeImmutable($date);
+        $today = new \DateTimeImmutable(date('Y-m-d'));
+
+        return max(0, (int) $requested->diff($today)->days);
     }
 }

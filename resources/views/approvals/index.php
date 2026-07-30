@@ -4,9 +4,9 @@ ob_start();
 ?>
 <section class="stats-grid budget-summary">
     <div class="stat-card"><span>待審</span><strong><?= e(number_format((int) $stats['pending'])) ?></strong></div>
+    <div class="stat-card"><span>逾期待審</span><strong><?= e(number_format((int) ($stats['overdue'] ?? 0))) ?></strong></div>
     <div class="stat-card"><span>已核准</span><strong><?= e(number_format((int) $stats['approved'])) ?></strong></div>
     <div class="stat-card"><span>已退回</span><strong><?= e(number_format((int) $stats['rejected'])) ?></strong></div>
-    <div class="stat-card"><span>總筆數</span><strong><?= e(number_format((int) $stats['total'])) ?></strong></div>
 </section>
 
 <section class="panel">
@@ -41,13 +41,14 @@ ob_start();
             <tr>
                 <th>狀態</th>
                 <th>來源</th>
+                <th>送審時間</th>
+                <th>待處理</th>
                 <th>日期</th>
                 <th>類型</th>
                 <th>分類</th>
                 <th>主旨</th>
                 <th class="amount">金額/時數</th>
                 <th>送審人</th>
-                <th>送審時間</th>
                 <th>核決人</th>
                 <th>核決時間</th>
                 <th class="no-print">操作</th>
@@ -55,18 +56,24 @@ ob_start();
             </thead>
             <tbody>
             <?php foreach ($rows as $row): ?>
+                <?php $days = approval_pending_days($row); ?>
                 <tr>
-                    <td><span class="badge <?= $row['status'] === 'approved' ? 'ok' : 'muted' ?>"><?= e(approval_status_label($row['status'])) ?></span></td>
+                    <td><span class="badge <?= $row['status'] === 'approved' ? 'ok' : ($row['status'] === 'rejected' ? 'danger' : 'muted') ?>"><?= e(approval_status_label($row['status'])) ?></span></td>
                     <td><?= e($row['source_label']) ?></td>
+                    <td><?= e(approval_datetime($row['requested_at'] ?? $row['created_at'] ?? '')) ?></td>
+                    <td>
+                        <?php if ($row['status'] === 'pending'): ?>
+                            <span class="badge <?= $days >= 3 ? 'danger' : ($days >= 1 ? 'warning' : 'muted') ?>"><?= e($days === 0 ? '今日' : $days . ' 天') ?></span>
+                        <?php else: ?>
+                            -
+                        <?php endif; ?>
+                    </td>
                     <td><?= e(roc_date($row['occurred_on'] ?? '')) ?></td>
                     <td><?= e(approval_type_label($row)) ?></td>
                     <td><?= e($row['category_name'] ?: '-') ?></td>
-                    <td>
-                        <a class="text-link" href="<?= e($row['show_url']) ?>"><?= e($row['subject']) ?></a>
-                    </td>
+                    <td><a class="text-link" href="<?= e($row['show_url']) ?>"><?= e($row['subject']) ?></a></td>
                     <td class="amount"><?= e(approval_amount_label($row)) ?></td>
                     <td><?= e($row['requested_by_name'] ?? '-') ?></td>
-                    <td><?= e(approval_datetime($row['requested_at'] ?? $row['created_at'] ?? '')) ?></td>
                     <td><?= e($row['reviewed_by_name'] ?? '-') ?></td>
                     <td><?= e(approval_datetime($row['reviewed_at'] ?? '')) ?></td>
                     <td class="table-actions no-print">
@@ -85,7 +92,7 @@ ob_start();
                 </tr>
             <?php endforeach; ?>
             <?php if (!$rows): ?>
-                <tr><td colspan="12" class="empty-state">沒有符合條件的簽核紀錄</td></tr>
+                <tr><td colspan="13" class="empty-state">沒有符合條件的簽核紀錄</td></tr>
             <?php endif; ?>
             </tbody>
         </table>
@@ -120,6 +127,19 @@ function approval_amount_label(array $row): string
     }
 
     return number_format((float) $row['amount'], 0);
+}
+
+function approval_pending_days(array $row): int
+{
+    $date = substr((string) ($row['requested_at'] ?: ($row['created_at'] ?? '')), 0, 10);
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+        return 0;
+    }
+
+    $requested = new DateTimeImmutable($date);
+    $today = new DateTimeImmutable(date('Y-m-d'));
+
+    return max(0, (int) $requested->diff($today)->days);
 }
 
 function approval_datetime(?string $datetime): string
