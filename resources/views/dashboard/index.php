@@ -41,7 +41,7 @@ ob_start();
                 <th>類型</th>
                 <th>分類</th>
                 <th>主旨</th>
-                <th>金額</th>
+                <th>金額/時數</th>
                 <th>送審人</th>
                 <th class="no-print">操作</th>
             </tr>
@@ -52,7 +52,7 @@ ob_start();
                     <td><?= e($approval['source_label'] ?? '-') ?></td>
                     <td><?= e(dashboard_datetime($approval['requested_at'] ?? $approval['created_at'] ?? '')) ?></td>
                     <td><?= e(roc_date($approval['occurred_on'] ?? '')) ?></td>
-                    <td><?= e(($approval['item_type'] ?? '') === 'income' ? '收入' : '支出') ?></td>
+                    <td><?= e(($approval['source_label'] ?? '') === '人事請假' ? '請假' : (($approval['item_type'] ?? '') === 'income' ? '收入' : '支出')) ?></td>
                     <td><?= e($approval['category_name'] ?: '-') ?></td>
                     <td>
                         <a class="text-link" href="<?= e($approval['show_url']) ?>">

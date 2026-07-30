@@ -4,7 +4,7 @@
         <span>請假人</span>
         <?php $selectedEmployee = (string) old('employee_id', $request['employee_id'] ?? ''); ?>
         <select name="employee_id" required>
-            <option value="">選擇人員</option>
+            <option value="">請選擇人員</option>
             <?php foreach ($employees as $employee): ?>
                 <option value="<?= e((string) $employee['id']) ?>" <?= $selectedEmployee === (string) $employee['id'] ? 'selected' : '' ?>>
                     <?= e($employee['name'] . ' / ' . ($employee['department'] ?: '-') . ' / ' . ($employee['job_title'] ?: '-')) ?>
@@ -16,7 +16,7 @@
         <span>假別</span>
         <?php $selectedType = (string) old('leave_type_id', $request['leave_type_id'] ?? ''); ?>
         <select name="leave_type_id" required>
-            <option value="">選擇假別</option>
+            <option value="">請選擇假別</option>
             <?php foreach ($leaveTypes as $type): ?>
                 <option value="<?= e((string) $type['id']) ?>" <?= $selectedType === (string) $type['id'] ? 'selected' : '' ?>>
                     <?= e($type['name'] . ' / ' . leave_paid_label($type['paid'])) ?>
@@ -25,7 +25,7 @@
         </select>
     </label>
     <label>
-        <span>起始日期</span>
+        <span>開始日期</span>
         <input data-calc type="date" name="start_date" value="<?= e((string) old('start_date', $request['start_date'] ?? date('Y-m-d'))) ?>" required>
     </label>
     <label>
@@ -33,7 +33,7 @@
         <input data-calc type="date" name="end_date" value="<?= e((string) old('end_date', $request['end_date'] ?? date('Y-m-d'))) ?>" required>
     </label>
     <label>
-        <span>起始時間</span>
+        <span>開始時間</span>
         <input data-calc type="time" name="start_time" value="<?= e(substr((string) old('start_time', $request['start_time'] ?? '09:00'), 0, 5)) ?>">
     </label>
     <label>
@@ -49,10 +49,12 @@
         <?php $status = old('status', $request['status'] ?? 'submitted'); ?>
         <select name="status">
             <option value="draft" <?= $status === 'draft' ? 'selected' : '' ?>>草稿</option>
-            <option value="submitted" <?= $status === 'submitted' ? 'selected' : '' ?>>待審</option>
-            <option value="approved" <?= $status === 'approved' ? 'selected' : '' ?>>已核准</option>
-            <option value="rejected" <?= $status === 'rejected' ? 'selected' : '' ?>>退回</option>
-            <option value="cancelled" <?= $status === 'cancelled' ? 'selected' : '' ?>>取消</option>
+            <option value="submitted" <?= $status === 'submitted' ? 'selected' : '' ?>>送審中</option>
+            <?php if (\App\Core\Permission::can('leave_requests.approve')): ?>
+                <option value="approved" <?= $status === 'approved' ? 'selected' : '' ?>>已核准</option>
+                <option value="rejected" <?= $status === 'rejected' ? 'selected' : '' ?>>已退回</option>
+            <?php endif; ?>
+            <option value="cancelled" <?= $status === 'cancelled' ? 'selected' : '' ?>>已取消</option>
         </select>
     </label>
     <label class="span-2">
@@ -60,7 +62,7 @@
         <input type="text" name="reason" value="<?= e((string) old('reason', $request['reason'] ?? '')) ?>" required>
     </label>
     <label>
-        <span>職務代理人</span>
+        <span>代理人</span>
         <input type="text" name="handover_person" value="<?= e((string) old('handover_person', $request['handover_person'] ?? '')) ?>">
     </label>
     <label>
@@ -113,5 +115,5 @@
 <?php
 function leave_paid_label(string $paid): string
 {
-    return ['yes' => '給薪', 'no' => '不給薪', 'partial' => '部分給薪'][$paid] ?? $paid;
+    return ['yes' => '有薪', 'no' => '無薪', 'partial' => '部分有薪'][$paid] ?? $paid;
 }

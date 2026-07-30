@@ -8,6 +8,7 @@ $router->post('/leave-requests', [LeaveRequestController::class, 'store']);
 $router->get('/leave-requests/{id}', [LeaveRequestController::class, 'show']);
 $router->get('/leave-requests/{id}/edit', [LeaveRequestController::class, 'edit']);
 $router->post('/leave-requests/{id}', [LeaveRequestController::class, 'update']);
+$router->post('/leave-requests/{id}/submit', [LeaveRequestController::class, 'submit']);
 $router->post('/leave-requests/{id}/approve', [LeaveRequestController::class, 'approve']);
 $router->post('/leave-requests/{id}/reject', [LeaveRequestController::class, 'reject']);
 $router->post('/leave-requests/{id}/cancel', [LeaveRequestController::class, 'cancel']);

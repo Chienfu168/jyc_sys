@@ -3,8 +3,10 @@
 namespace App\Modules\LeaveRequests\Controllers;
 
 use App\Core\AuditLog;
+use App\Core\ApprovalFlow;
 use App\Core\Controller;
 use App\Core\Database;
+use App\Core\Permission;
 use App\Core\Validator;
 use DateTimeImmutable;
 use PDO;
@@ -83,19 +85,23 @@ final class LeaveRequestController extends Controller
     {
         $this->requirePermission('leave_requests.manage');
         $this->validateRequest('/leave-requests/create');
+        $payload = $this->payload();
 
         Database::pdo()->prepare(
             'INSERT INTO leave_requests
              (employee_id, leave_type_id, start_date, end_date, start_time, end_time, total_hours, reason, handover_person, status, notes, created_by, created_at, updated_at)
              VALUES
              (:employee_id, :leave_type_id, :start_date, :end_date, :start_time, :end_time, :total_hours, :reason, :handover_person, :status, :notes, :created_by, :created_at, :updated_at)'
-        )->execute($this->payload() + [
+        )->execute($payload + [
             'created_by' => auth()->user()['id'] ?? null,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
         $id = (int) Database::pdo()->lastInsertId();
+        if ($payload['status'] === 'submitted') {
+            ApprovalFlow::submit('leave_requests', 'leave_requests', $id, trim((string) ($_POST['notes'] ?? '')));
+        }
         AuditLog::write('create', 'leave_requests', 'leave_requests', $id);
         flash('success', '請假申請已建立。');
         redirect('/leave-requests/' . $id);
@@ -110,6 +116,7 @@ final class LeaveRequestController extends Controller
             'section' => '業務與人事',
             'active' => 'leave-requests',
             'request' => $this->findRequest((int) $id),
+            'approvalHistory' => ApprovalFlow::history('leave_requests', 'leave_requests', (int) $id),
             'profile' => foundation_profile(),
         ]);
     }
@@ -132,8 +139,9 @@ final class LeaveRequestController extends Controller
     public function update(string $id): void
     {
         $this->requirePermission('leave_requests.manage');
-        $this->findRequest((int) $id);
+        $existing = $this->findRequest((int) $id);
         $this->validateRequest('/leave-requests/' . $id . '/edit');
+        $payload = $this->payload();
 
         Database::pdo()->prepare(
             'UPDATE leave_requests
@@ -150,13 +158,42 @@ final class LeaveRequestController extends Controller
                  notes = :notes,
                  updated_at = :updated_at
              WHERE id = :id'
-        )->execute($this->payload() + [
+        )->execute($payload + [
             'updated_at' => now(),
             'id' => (int) $id,
         ]);
 
+        if ($payload['status'] === 'submitted' && $existing['status'] !== 'submitted') {
+            ApprovalFlow::submit('leave_requests', 'leave_requests', (int) $id, trim((string) ($_POST['notes'] ?? '')));
+        }
         AuditLog::write('update', 'leave_requests', 'leave_requests', (int) $id);
         flash('success', '請假申請已更新。');
+        redirect('/leave-requests/' . $id);
+    }
+
+    public function submit(string $id): void
+    {
+        $this->requirePermission('leave_requests.manage');
+        $request = $this->findRequest((int) $id);
+
+        if (in_array($request['status'], ['approved', 'cancelled'], true)) {
+            flash('error', '已核准或已取消的請假單不可重新送審。');
+            redirect('/leave-requests/' . $id);
+        }
+
+        ApprovalFlow::submit('leave_requests', 'leave_requests', (int) $request['id'], trim((string) ($_POST['request_notes'] ?? '')));
+        Database::pdo()->prepare(
+            'UPDATE leave_requests
+             SET status = "submitted",
+                 updated_at = :updated_at
+             WHERE id = :id'
+        )->execute([
+            'updated_at' => now(),
+            'id' => (int) $request['id'],
+        ]);
+
+        AuditLog::write('submit', 'leave_requests', 'leave_requests', (int) $request['id']);
+        flash('success', '請假單已送審。');
         redirect('/leave-requests/' . $id);
     }
 
@@ -192,9 +229,16 @@ final class LeaveRequestController extends Controller
 
     private function review(int $id, string $status, string $message): void
     {
-        $this->requirePermission('leave_requests.manage');
-        $this->findRequest($id);
+        $this->requirePermission('leave_requests.approve');
+        $request = $this->findRequest($id);
 
+        if ($request['status'] === 'cancelled') {
+            flash('error', '已取消的請假單不可簽核。');
+            redirect('/leave-requests/' . $id);
+        }
+
+        $notes = trim((string) ($_POST['review_notes'] ?? ''));
+        ApprovalFlow::review('leave_requests', 'leave_requests', $id, $status, $notes);
         Database::pdo()->prepare(
             'UPDATE leave_requests
              SET status = :status,
@@ -207,7 +251,7 @@ final class LeaveRequestController extends Controller
             'status' => $status,
             'reviewed_by' => auth()->user()['id'] ?? null,
             'reviewed_at' => now(),
-            'review_notes' => trim((string) ($_POST['review_notes'] ?? '')),
+            'review_notes' => $notes,
             'updated_at' => now(),
             'id' => $id,
         ]);
@@ -257,6 +301,8 @@ final class LeaveRequestController extends Controller
 
     private function payload(): array
     {
+        $status = $this->statusValue();
+
         return [
             'employee_id' => (int) $_POST['employee_id'],
             'leave_type_id' => (int) $_POST['leave_type_id'],
@@ -267,9 +313,19 @@ final class LeaveRequestController extends Controller
             'total_hours' => $this->hoursValue() > 0 ? $this->hoursValue() : $this->estimatedHours(),
             'reason' => trim((string) $_POST['reason']),
             'handover_person' => trim((string) ($_POST['handover_person'] ?? '')),
-            'status' => (string) ($_POST['status'] ?? 'submitted'),
+            'status' => $status,
             'notes' => trim((string) ($_POST['notes'] ?? '')),
         ];
+    }
+
+    private function statusValue(): string
+    {
+        $status = (string) ($_POST['status'] ?? 'submitted');
+        if (in_array($status, ['approved', 'rejected'], true)) {
+            return Permission::can('leave_requests.approve') ? $status : 'submitted';
+        }
+
+        return in_array($status, ['draft', 'submitted', 'cancelled'], true) ? $status : 'submitted';
     }
 
     private function findRequest(int $id): array

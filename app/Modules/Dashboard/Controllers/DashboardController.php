@@ -75,6 +75,21 @@ final class DashboardController extends Controller
                 'approve_path' => '/petty-cash/%d/approve',
                 'reject_path' => '/petty-cash/%d/reject',
             ],
+            [
+                'module' => 'leave_requests',
+                'target_type' => 'leave_requests',
+                'label' => '人事請假',
+                'permission' => 'leave_requests.approve',
+                'table' => 'leave_requests',
+                'subject_column' => 'reason',
+                'category_column' => 'reason',
+                'date_column' => 'start_date',
+                'amount_column' => 'total_hours',
+                'type_column' => 'status',
+                'show_path' => '/leave-requests/',
+                'approve_path' => '/leave-requests/%d/approve',
+                'reject_path' => '/leave-requests/%d/reject',
+            ],
         ];
     }
 
