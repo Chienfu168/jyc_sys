@@ -8,4 +8,6 @@ $router->post('/work-plans', [WorkPlanController::class, 'store']);
 $router->get('/work-plans/{id}', [WorkPlanController::class, 'show']);
 $router->get('/work-plans/{id}/edit', [WorkPlanController::class, 'edit']);
 $router->post('/work-plans/{id}', [WorkPlanController::class, 'update']);
+$router->post('/work-plans/{id}/submit', [WorkPlanController::class, 'submit']);
 $router->post('/work-plans/{id}/approve', [WorkPlanController::class, 'approve']);
+$router->post('/work-plans/{id}/reject', [WorkPlanController::class, 'reject']);

@@ -3,6 +3,7 @@
 namespace App\Modules\AnnualBudgets\Controllers;
 
 use App\Core\AuditLog;
+use App\Core\ApprovalFlow;
 use App\Core\Controller;
 use App\Core\Database;
 use App\Core\Permission;
@@ -107,6 +108,9 @@ final class AnnualBudgetController extends Controller
             $this->backWithInput('/annual-budgets/create', $_POST, '年度預算儲存失敗，請確認年度沒有重複。');
         }
 
+        if ($this->statusValue() === 'submitted') {
+            ApprovalFlow::submit('annual_budgets', 'annual_budgets', $id, trim((string) ($_POST['notes'] ?? '')));
+        }
         AuditLog::write('create', 'annual_budgets', 'annual_budgets', $id);
         flash('success', '年度預算已建立');
         redirect('/annual-budgets/' . $id);
@@ -125,6 +129,7 @@ final class AnnualBudgetController extends Controller
             'budget' => $budget,
             'items' => $items,
             'totals' => $this->totals($items),
+            'approvalHistory' => ApprovalFlow::history('annual_budgets', 'annual_budgets', (int) $id),
             'profile' => foundation_profile(),
         ]);
     }
@@ -182,6 +187,7 @@ final class AnnualBudgetController extends Controller
         }
 
         $this->validateBudget('/annual-budgets/' . $id . '/edit');
+        $status = $this->statusValue();
 
         try {
             Database::pdo()->beginTransaction();
@@ -206,7 +212,7 @@ final class AnnualBudgetController extends Controller
                 'title' => trim((string) $_POST['title']),
                 'period_start' => $this->dateOrNull('period_start'),
                 'period_end' => $this->dateOrNull('period_end'),
-                'status' => $this->statusValue(),
+                'status' => $status,
                 'notes' => trim((string) ($_POST['notes'] ?? '')),
                 'purpose' => trim((string) ($_POST['purpose'] ?? '')),
                 'legal_basis' => trim((string) ($_POST['legal_basis'] ?? '')),
@@ -225,14 +231,43 @@ final class AnnualBudgetController extends Controller
             $this->backWithInput('/annual-budgets/' . $id . '/edit', $_POST, '年度預算更新失敗，請確認年度沒有重複。');
         }
 
+        if ($status === 'submitted' && $budget['status'] !== 'submitted') {
+            ApprovalFlow::submit('annual_budgets', 'annual_budgets', (int) $id, trim((string) ($_POST['notes'] ?? '')));
+        }
         AuditLog::write('update', 'annual_budgets', 'annual_budgets', (int) $id);
         flash('success', '年度預算已更新');
+        redirect('/annual-budgets/' . $id);
+    }
+
+    public function submit(string $id): void
+    {
+        $this->requirePermission('annual_budgets.manage');
+        $budget = $this->findBudget((int) $id);
+
+        if ($budget['status'] === 'approved') {
+            flash('error', '已核准的年度預算不可重新送審。');
+            redirect('/annual-budgets/' . $id);
+        }
+
+        ApprovalFlow::submit('annual_budgets', 'annual_budgets', (int) $budget['id'], trim((string) ($_POST['request_notes'] ?? '')));
+        Database::pdo()->prepare(
+            'UPDATE annual_budgets
+             SET status = "submitted", updated_at = :updated_at
+             WHERE id = :id'
+        )->execute([
+            'updated_at' => now(),
+            'id' => (int) $budget['id'],
+        ]);
+
+        AuditLog::write('submit', 'annual_budgets', 'annual_budgets', (int) $budget['id']);
+        flash('success', '年度預算已送審。');
         redirect('/annual-budgets/' . $id);
     }
 
     public function approve(string $id): void
     {
         $this->requirePermission('annual_budgets.approve');
+        ApprovalFlow::review('annual_budgets', 'annual_budgets', (int) $id, 'approved', trim((string) ($_POST['review_notes'] ?? '')));
 
         Database::pdo()->prepare(
             'UPDATE annual_budgets
@@ -247,6 +282,25 @@ final class AnnualBudgetController extends Controller
 
         AuditLog::write('approve', 'annual_budgets', 'annual_budgets', (int) $id);
         flash('success', '年度預算已核定');
+        redirect('/annual-budgets/' . $id);
+    }
+
+    public function reject(string $id): void
+    {
+        $this->requirePermission('annual_budgets.approve');
+        ApprovalFlow::review('annual_budgets', 'annual_budgets', (int) $id, 'rejected', trim((string) ($_POST['review_notes'] ?? '')));
+
+        Database::pdo()->prepare(
+            'UPDATE annual_budgets
+             SET status = "draft", approved_by = NULL, approved_at = NULL, updated_at = :updated_at
+             WHERE id = :id'
+        )->execute([
+            'updated_at' => now(),
+            'id' => (int) $id,
+        ]);
+
+        AuditLog::write('reject', 'annual_budgets', 'annual_budgets', (int) $id);
+        flash('success', '年度預算已退回。');
         redirect('/annual-budgets/' . $id);
     }
 

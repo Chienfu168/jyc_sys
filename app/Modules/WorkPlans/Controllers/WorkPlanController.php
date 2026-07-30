@@ -3,6 +3,7 @@
 namespace App\Modules\WorkPlans\Controllers;
 
 use App\Core\AuditLog;
+use App\Core\ApprovalFlow;
 use App\Core\Controller;
 use App\Core\Database;
 use App\Core\Permission;
@@ -102,6 +103,9 @@ final class WorkPlanController extends Controller
             $this->backWithInput('/work-plans/create', $_POST, '工作計畫儲存失敗：' . $e->getMessage());
         }
 
+        if (($this->payload()['status'] ?? '') === 'submitted') {
+            ApprovalFlow::submit('work_plans', 'work_plans', $id, trim((string) ($_POST['notes'] ?? '')));
+        }
         AuditLog::write('create', 'work_plans', 'work_plans', $id);
         flash('success', '工作計畫已建立。');
         redirect('/work-plans/' . $id);
@@ -120,6 +124,7 @@ final class WorkPlanController extends Controller
             'plan' => $plan,
             'items' => $items,
             'budgetTotal' => $this->budgetTotal($items),
+            'approvalHistory' => ApprovalFlow::history('work_plans', 'work_plans', (int) $id),
             'profile' => foundation_profile(),
         ]);
     }
@@ -155,6 +160,7 @@ final class WorkPlanController extends Controller
         }
 
         $this->validatePlan('/work-plans/' . $id . '/edit');
+        $payload = $this->payload();
 
         try {
             Database::pdo()->beginTransaction();
@@ -176,7 +182,7 @@ final class WorkPlanController extends Controller
                      notes = :notes,
                      updated_at = :updated_at
                  WHERE id = :id'
-            )->execute($this->payload() + [
+            )->execute($payload + [
                 'updated_at' => now(),
                 'id' => (int) $id,
             ]);
@@ -190,14 +196,43 @@ final class WorkPlanController extends Controller
             $this->backWithInput('/work-plans/' . $id . '/edit', $_POST, '工作計畫更新失敗：' . $e->getMessage());
         }
 
+        if ($payload['status'] === 'submitted' && $plan['status'] !== 'submitted') {
+            ApprovalFlow::submit('work_plans', 'work_plans', (int) $id, trim((string) ($_POST['notes'] ?? '')));
+        }
         AuditLog::write('update', 'work_plans', 'work_plans', (int) $id);
         flash('success', '工作計畫已更新。');
+        redirect('/work-plans/' . $id);
+    }
+
+    public function submit(string $id): void
+    {
+        $this->requirePermission('work_plans.manage');
+        $plan = $this->findPlan((int) $id);
+
+        if ($plan['status'] === 'approved') {
+            flash('error', '已核准的工作計畫不可重新送審。');
+            redirect('/work-plans/' . $id);
+        }
+
+        ApprovalFlow::submit('work_plans', 'work_plans', (int) $plan['id'], trim((string) ($_POST['request_notes'] ?? '')));
+        Database::pdo()->prepare(
+            'UPDATE work_plans
+             SET status = "submitted", updated_at = :updated_at
+             WHERE id = :id'
+        )->execute([
+            'updated_at' => now(),
+            'id' => (int) $plan['id'],
+        ]);
+
+        AuditLog::write('submit', 'work_plans', 'work_plans', (int) $plan['id']);
+        flash('success', '工作計畫已送審。');
         redirect('/work-plans/' . $id);
     }
 
     public function approve(string $id): void
     {
         $this->requirePermission('work_plans.approve');
+        ApprovalFlow::review('work_plans', 'work_plans', (int) $id, 'approved', trim((string) ($_POST['review_notes'] ?? '')));
 
         Database::pdo()->prepare(
             'UPDATE work_plans
@@ -212,6 +247,25 @@ final class WorkPlanController extends Controller
 
         AuditLog::write('approve', 'work_plans', 'work_plans', (int) $id);
         flash('success', '工作計畫已核定。');
+        redirect('/work-plans/' . $id);
+    }
+
+    public function reject(string $id): void
+    {
+        $this->requirePermission('work_plans.approve');
+        ApprovalFlow::review('work_plans', 'work_plans', (int) $id, 'rejected', trim((string) ($_POST['review_notes'] ?? '')));
+
+        Database::pdo()->prepare(
+            'UPDATE work_plans
+             SET status = "draft", approved_by = NULL, approved_at = NULL, updated_at = :updated_at
+             WHERE id = :id'
+        )->execute([
+            'updated_at' => now(),
+            'id' => (int) $id,
+        ]);
+
+        AuditLog::write('reject', 'work_plans', 'work_plans', (int) $id);
+        flash('success', '工作計畫已退回。');
         redirect('/work-plans/' . $id);
     }
 

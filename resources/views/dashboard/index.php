@@ -52,7 +52,7 @@ ob_start();
                     <td><?= e($approval['source_label'] ?? '-') ?></td>
                     <td><?= e(dashboard_datetime($approval['requested_at'] ?? $approval['created_at'] ?? '')) ?></td>
                     <td><?= e(roc_date($approval['occurred_on'] ?? '')) ?></td>
-                    <td><?= e(($approval['source_label'] ?? '') === '人事請假' ? '請假' : (($approval['item_type'] ?? '') === 'income' ? '收入' : '支出')) ?></td>
+                    <td><?= e(dashboard_approval_type_label($approval)) ?></td>
                     <td><?= e($approval['category_name'] ?: '-') ?></td>
                     <td>
                         <a class="text-link" href="<?= e($approval['show_url']) ?>">
@@ -127,6 +127,19 @@ function dashboard_datetime(?string $datetime): string
     $time = substr($datetime, 11, 5);
 
     return roc_date($date) . ($time ? ' ' . $time : '');
+}
+
+function dashboard_approval_type_label(array $approval): string
+{
+    $source = (string) ($approval['source_label'] ?? '');
+    if ($source === '人事請假') {
+        return '請假';
+    }
+    if (in_array($source, ['年度預算', '工作計畫'], true)) {
+        return '文件';
+    }
+
+    return ($approval['item_type'] ?? '') === 'income' ? '收入' : '支出';
 }
 
 $content = ob_get_clean();
