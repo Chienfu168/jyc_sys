@@ -2,11 +2,51 @@
 $active = 'auth';
 ob_start();
 ?>
-<section class="auth-panel">
-    <div class="auth-card">
-        <div class="auth-heading">
+<section class="login-shell">
+    <div class="login-intro">
+        <div class="login-brand">
             <div class="brand-mark">基</div>
-            <h1><?= e(config('app.name')) ?></h1>
+            <div>
+                <p class="eyebrow">私網管理系統</p>
+                <h1><?= e(config('app.name')) ?></h1>
+            </div>
+        </div>
+
+        <div class="login-copy">
+            <h2>非營利組織內部營運管理平台</h2>
+            <p>
+                本系統供組織內部人員使用，協助基金會處理財務、零用金、銀行帳戶、年度預算、工作計畫、人事請假、活動、專案與簽核流程。
+            </p>
+        </div>
+
+        <div class="login-feature-grid">
+            <div>
+                <strong>財務與會計</strong>
+                <span>收支紀錄、零用金、銀行帳戶、會計傳票與預算執行。</span>
+            </div>
+            <div>
+                <strong>治理文件</strong>
+                <span>年度預算、工作計畫、列印輸出與簽署欄位。</span>
+            </div>
+            <div>
+                <strong>人事與活動</strong>
+                <span>人員資料、請假、志工、講師、活動與行事曆管理。</span>
+            </div>
+            <div>
+                <strong>簽核中心</strong>
+                <span>集中處理待審、核准、退回與歷史紀錄。</span>
+            </div>
+        </div>
+
+        <p class="login-built-by">由游榮吉教育基金會建構</p>
+    </div>
+
+    <div class="auth-card login-card">
+        <div class="auth-heading">
+            <div>
+                <p class="eyebrow">內部人員登入</p>
+                <h2>登入系統</h2>
+            </div>
         </div>
         <form method="post" action="/login" class="form">
             <?= csrf_field() ?>
@@ -28,6 +68,7 @@ ob_start();
             <button class="btn primary full" type="submit">登入</button>
             <a class="text-link" href="/forgot-password">忘記密碼</a>
         </form>
+        <p class="login-security-note">本系統屬私網管理用途，僅限授權帳號使用。</p>
     </div>
 </section>
 <?php
