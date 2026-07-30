@@ -1149,7 +1149,7 @@ textarea:focus {
 
 .signature-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(160px, 1fr));
+    grid-template-columns: repeat(4, minmax(140px, 1fr));
     gap: 18px;
     margin-top: 34px;
 }
@@ -1173,6 +1173,62 @@ textarea:focus {
 
 .print-notes {
     line-height: 1.7;
+}
+
+.print-only {
+    display: none;
+}
+
+.checkbox-label {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+}
+
+.checkbox-label input {
+    width: auto;
+}
+
+.budget-statement {
+    max-width: 100%;
+}
+
+.statement-title {
+    text-align: center;
+    margin-bottom: 14px;
+}
+
+.statement-title h2,
+.statement-title h3,
+.statement-title p {
+    margin: 0 0 6px;
+}
+
+.statement-table {
+    min-width: 1180px;
+    border-collapse: collapse;
+}
+
+.statement-table th,
+.statement-table td {
+    border: 1px solid var(--line);
+    vertical-align: top;
+}
+
+.statement-table th {
+    text-align: center;
+}
+
+.statement-table .statement-section td,
+.statement-table .statement-group td,
+.statement-table .statement-total td {
+    font-weight: 700;
+    background: #f6f8f7;
+}
+
+.statement-table .statement-subtotal td {
+    font-weight: 700;
 }
 
 .activity-workbench {
@@ -1269,7 +1325,28 @@ textarea:focus {
         display: block;
     }
 
+    .print-only {
+        display: block;
+    }
+
+    .budget-statement {
+        border: 0;
+        padding: 0;
+    }
+
+    .statement-table {
+        min-width: 0;
+        width: 100%;
+        font-size: 10px;
+    }
+
+    .statement-table th,
+    .statement-table td {
+        padding: 5px 4px;
+    }
+
     .signature-grid {
+        grid-template-columns: repeat(4, minmax(120px, 1fr));
         break-inside: avoid;
     }
 }

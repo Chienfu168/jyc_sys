@@ -253,9 +253,16 @@ CREATE TABLE documents (
 CREATE TABLE annual_budgets (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   fiscal_year SMALLINT UNSIGNED NOT NULL,
+  budget_type ENUM('annual', 'project', 'grant') NOT NULL DEFAULT 'annual',
   title VARCHAR(160) NOT NULL,
+  period_start DATE NULL,
+  period_end DATE NULL,
   status ENUM('draft', 'submitted', 'approved') NOT NULL DEFAULT 'draft',
   notes TEXT NULL,
+  purpose TEXT NULL,
+  legal_basis TEXT NULL,
+  expected_benefit TEXT NULL,
+  board_meeting_no VARCHAR(120) NULL,
   created_by BIGINT UNSIGNED NULL,
   approved_by BIGINT UNSIGNED NULL,
   approved_at DATETIME NULL,
@@ -267,7 +274,7 @@ CREATE TABLE annual_budgets (
   CONSTRAINT fk_annual_budgets_approved_by
     FOREIGN KEY (approved_by) REFERENCES users(id)
     ON DELETE SET NULL,
-  UNIQUE KEY uk_annual_budgets_fiscal_year (fiscal_year),
+  INDEX idx_annual_budgets_year_type (fiscal_year, budget_type),
   INDEX idx_annual_budgets_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -275,9 +282,23 @@ CREATE TABLE annual_budget_items (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   annual_budget_id BIGINT UNSIGNED NOT NULL,
   item_type ENUM('income', 'expense') NOT NULL,
+  account_id BIGINT UNSIGNED NULL,
+  gov_level1 VARCHAR(20) NULL,
+  gov_level2 VARCHAR(20) NULL,
+  gov_level3 VARCHAR(20) NULL,
+  gov_level4 VARCHAR(20) NULL,
+  gov_level5 VARCHAR(20) NULL,
   category VARCHAR(120) NOT NULL,
   item_name VARCHAR(160) NOT NULL,
-  amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+  description TEXT NULL,
+  unit VARCHAR(40) NULL,
+  quantity DECIMAL(12,2) NOT NULL DEFAULT 1,
+  unit_price DECIMAL(12,2) NOT NULL DEFAULT 0,
+  amount DECIMAL(14,2) NOT NULL DEFAULT 0,
+  previous_amount DECIMAL(14,2) NOT NULL DEFAULT 0,
+  comparison_note VARCHAR(255) NULL,
+  is_subtotal TINYINT(1) NOT NULL DEFAULT 0,
+  funding_source VARCHAR(120) NULL,
   sort_order INT UNSIGNED NOT NULL DEFAULT 0,
   notes TEXT NULL,
   created_at DATETIME NOT NULL,
@@ -286,5 +307,7 @@ CREATE TABLE annual_budget_items (
     FOREIGN KEY (annual_budget_id) REFERENCES annual_budgets(id)
     ON DELETE CASCADE,
   INDEX idx_annual_budget_items_type (item_type),
-  INDEX idx_annual_budget_items_budget_sort (annual_budget_id, sort_order)
+  INDEX idx_annual_budget_items_account (account_id),
+  INDEX idx_annual_budget_items_budget_sort (annual_budget_id, sort_order),
+  INDEX idx_annual_budget_items_statement (annual_budget_id, item_type, gov_level1, gov_level2, gov_level3, gov_level4, gov_level5)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

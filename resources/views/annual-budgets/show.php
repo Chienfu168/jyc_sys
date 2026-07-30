@@ -8,27 +8,29 @@ ob_start();
 <?php require base_path('resources/views/shared/print-header.php'); ?>
 
 <section class="stats-grid budget-summary no-print">
-    <div class="stat-card"><span>收入總計</span><strong><?= e(number_format((float) $totals['income'], 0)) ?></strong></div>
-    <div class="stat-card"><span>支出總計</span><strong><?= e(number_format((float) $totals['expense'], 0)) ?></strong></div>
-    <div class="stat-card"><span>收支餘絀</span><strong><?= e(number_format((float) $totals['balance'], 0)) ?></strong></div>
+    <div class="stat-card"><span>收益合計</span><strong><?= e(number_format((float) $totals['income'], 0)) ?></strong></div>
+    <div class="stat-card"><span>費損合計</span><strong><?= e(number_format((float) $totals['expense'], 0)) ?></strong></div>
+    <div class="stat-card"><span>賸餘 / 短絀</span><strong><?= e(number_format((float) $totals['balance'], 0)) ?></strong></div>
+    <div class="stat-card"><span>上年度賸餘比較</span><strong><?= e(number_format((float) $totals['previous_balance'], 0)) ?></strong></div>
 </section>
 
 <section class="panel">
     <div class="panel-header no-print">
         <div>
-            <p class="eyebrow">治理文件</p>
+            <p class="eyebrow">年度預算</p>
             <h2><?= e($budget['title']) ?></h2>
             <p class="muted-text"><?= e(roc_year_label($budget['fiscal_year'])) ?> / <?= e(annual_budget_status_label($budget['status'])) ?></p>
         </div>
         <div class="actions">
             <a class="btn" href="/annual-budgets">返回列表</a>
-            <a class="btn primary" href="/annual-budgets/<?= e((string) $budget['id']) ?>/execution">執行報表</a>
+            <a class="btn primary" href="/annual-budgets/<?= e((string) $budget['id']) ?>/statement">經費預算表</a>
+            <a class="btn" href="/annual-budgets/<?= e((string) $budget['id']) ?>/execution">執行報表</a>
             <?php if ($canManage): ?>
                 <a class="btn" href="/annual-budgets/<?= e((string) $budget['id']) ?>/edit">編輯</a>
                 <?php if ($budget['status'] === 'draft'): ?>
                     <form method="post" action="/annual-budgets/<?= e((string) $budget['id']) ?>/submit">
                         <?= csrf_field() ?>
-                        <button class="btn primary" type="submit">送審</button>
+                        <button class="btn primary" type="submit">送出簽核</button>
                     </form>
                 <?php endif; ?>
             <?php endif; ?>
@@ -51,40 +53,51 @@ ob_start();
             <thead>
             <tr>
                 <th>類型</th>
+                <th>款項目次節</th>
                 <th>分類</th>
-                <th>項目</th>
+                <th>項目名稱</th>
                 <th>說明</th>
-                <th>單位</th>
-                <th class="amount">數量</th>
-                <th class="amount">單價</th>
-                <th class="amount">金額</th>
-                <th>經費來源</th>
+                <th>會計科目</th>
+                <th class="amount">本年度</th>
+                <th class="amount">上年度</th>
+                <th class="amount">增減</th>
                 <th>備註</th>
             </tr>
             </thead>
             <tbody>
             <?php foreach ($items as $item): ?>
+                <?php
+                $code = implode('-', array_filter([
+                    $item['gov_level1'] ?? '',
+                    $item['gov_level2'] ?? '',
+                    $item['gov_level3'] ?? '',
+                    $item['gov_level4'] ?? '',
+                    $item['gov_level5'] ?? '',
+                ], static fn ($value) => trim((string) $value) !== ''));
+                $accountLabel = trim((string) (($item['account_code'] ?? '') . ' ' . ($item['account_name'] ?? '')));
+                $variance = (float) $item['amount'] - (float) ($item['previous_amount'] ?? 0);
+                ?>
                 <tr>
-                    <td><?= e($item['item_type'] === 'income' ? '收入' : '支出') ?></td>
+                    <td><?= e($item['item_type'] === 'income' ? '收益' : '費損') ?></td>
+                    <td><?= e($code ?: '-') ?></td>
                     <td><?= e($item['category']) ?></td>
                     <td><?= e($item['item_name']) ?></td>
                     <td><?= e($item['description'] ?? '') ?></td>
-                    <td><?= e($item['unit'] ?? '') ?></td>
-                    <td class="amount"><?= e(number_format((float) ($item['quantity'] ?? 0), 2)) ?></td>
-                    <td class="amount"><?= e(number_format((float) ($item['unit_price'] ?? 0), 0)) ?></td>
+                    <td><?= e($accountLabel !== '' ? $accountLabel : '未對應') ?></td>
                     <td class="amount"><?= e(number_format((float) $item['amount'], 0)) ?></td>
-                    <td><?= e($item['funding_source'] ?? '') ?></td>
-                    <td><?= e($item['notes'] ?? '') ?></td>
+                    <td class="amount"><?= e(number_format((float) ($item['previous_amount'] ?? 0), 0)) ?></td>
+                    <td class="amount"><?= e(number_format($variance, 0)) ?></td>
+                    <td><?= e((string) (($item['comparison_note'] ?? '') ?: ($item['notes'] ?? ''))) ?></td>
                 </tr>
             <?php endforeach; ?>
             <?php if (!$items): ?>
-                <tr><td colspan="10" class="empty-state">尚無預算項目</td></tr>
+                <tr><td colspan="10" class="empty-state">尚無預算項目。</td></tr>
             <?php endif; ?>
             </tbody>
             <tfoot>
-            <tr><th colspan="7">收入總計</th><th class="amount"><?= e(number_format((float) $totals['income'], 0)) ?></th><th colspan="2"></th></tr>
-            <tr><th colspan="7">支出總計</th><th class="amount"><?= e(number_format((float) $totals['expense'], 0)) ?></th><th colspan="2"></th></tr>
-            <tr><th colspan="7">收支餘絀</th><th class="amount"><?= e(number_format((float) $totals['balance'], 0)) ?></th><th colspan="2"></th></tr>
+            <tr><th colspan="6">收益合計</th><th class="amount"><?= e(number_format((float) $totals['income'], 0)) ?></th><th class="amount"><?= e(number_format((float) $totals['previous_income'], 0)) ?></th><th class="amount"><?= e(number_format((float) $totals['income'] - (float) $totals['previous_income'], 0)) ?></th><th></th></tr>
+            <tr><th colspan="6">費損合計</th><th class="amount"><?= e(number_format((float) $totals['expense'], 0)) ?></th><th class="amount"><?= e(number_format((float) $totals['previous_expense'], 0)) ?></th><th class="amount"><?= e(number_format((float) $totals['expense'] - (float) $totals['previous_expense'], 0)) ?></th><th></th></tr>
+            <tr><th colspan="6">賸餘 / 短絀</th><th class="amount"><?= e(number_format((float) $totals['balance'], 0)) ?></th><th class="amount"><?= e(number_format((float) $totals['previous_balance'], 0)) ?></th><th class="amount"><?= e(number_format((float) $totals['balance'] - (float) $totals['previous_balance'], 0)) ?></th><th></th></tr>
             </tfoot>
         </table>
     </div>
@@ -106,7 +119,7 @@ ob_start();
 <?php
 function annual_budget_status_label(string $status): string
 {
-    return ['draft' => '草稿', 'submitted' => '送審中', 'approved' => '已核准'][$status] ?? $status;
+    return ['draft' => '草稿', 'submitted' => '送審', 'approved' => '核定'][$status] ?? $status;
 }
 function annual_budget_type_label(string $type): string
 {

@@ -5,6 +5,10 @@
         <strong><?= e($profile['undertaker'] ?? '') ?></strong>
     </div>
     <div class="signature-box">
+        <span>會計人員</span>
+        <strong></strong>
+    </div>
+    <div class="signature-box">
         <span>執行長</span>
         <strong><?= e($profile['executive_director'] ?? '') ?></strong>
     </div>

@@ -1,3 +1,30 @@
+<?php
+$commonItems = [
+    '捐贈收入',
+    '利息收入',
+    '業務活動費用',
+    '業務推廣費',
+    '會議費',
+    '捐贈支出',
+    '人事薪資',
+    '保險費',
+    '勞保費用',
+    '健保費用',
+    '團保意外險',
+    '勞退金',
+    '年終獎金',
+    '辦公室租金',
+    '文具印刷費',
+    '交通費',
+    '差旅費',
+    '郵電費',
+    '水電費',
+    '專業服務費',
+    '雜項支出',
+    '預備金',
+];
+$commonCategories = ['收益', '業務費', '人事費用', '辦公行政費', '預備金'];
+?>
 <form class="form" method="post" action="<?= e($action) ?>">
     <?= csrf_field() ?>
     <div class="grid-form">
@@ -15,11 +42,11 @@
             </select>
         </label>
         <label>
-            <span>起始日期</span>
+            <span>期間起日</span>
             <input type="date" name="period_start" value="<?= e((string) old('period_start', $budget['period_start'] ?? '')) ?>">
         </label>
         <label>
-            <span>結束日期</span>
+            <span>期間迄日</span>
             <input type="date" name="period_end" value="<?= e((string) old('period_end', $budget['period_end'] ?? '')) ?>">
         </label>
         <label>
@@ -34,7 +61,7 @@
             </select>
         </label>
         <label>
-            <span>核定會議 / 文號</span>
+            <span>董事會 / 會議紀錄</span>
             <input type="text" name="board_meeting_no" value="<?= e((string) old('board_meeting_no', $budget['board_meeting_no'] ?? '')) ?>">
         </label>
         <label class="span-2">
@@ -46,7 +73,7 @@
             <textarea name="purpose"><?= e((string) old('purpose', $budget['purpose'] ?? '')) ?></textarea>
         </label>
         <label class="span-2">
-            <span>辦理依據</span>
+            <span>法規依據</span>
             <textarea name="legal_basis"><?= e((string) old('legal_basis', $budget['legal_basis'] ?? '')) ?></textarea>
         </label>
         <label class="span-2">
@@ -60,69 +87,28 @@
     </div>
 
     <div class="panel-header">
-        <h2>預算經費明細</h2>
+        <div>
+            <h2>經費明細</h2>
+            <p class="muted-text">依主管機關格式建立款、項、目、次、節與本年度/上年度預算比較。</p>
+        </div>
         <button class="btn small" type="button" onclick="addBudgetLine()">新增明細</button>
     </div>
+
+    <datalist id="annual-budget-common-items">
+        <?php foreach ($commonItems as $itemName): ?>
+            <option value="<?= e($itemName) ?>"></option>
+        <?php endforeach; ?>
+    </datalist>
+    <datalist id="annual-budget-common-categories">
+        <?php foreach ($commonCategories as $categoryName): ?>
+            <option value="<?= e($categoryName) ?>"></option>
+        <?php endforeach; ?>
+    </datalist>
 
     <div class="budget-lines nonprofit-lines" id="budget-lines">
         <?php foreach (($items ?? []) as $index => $item): ?>
             <div class="budget-line nonprofit-line">
-                <label>
-                    <span>類型</span>
-                    <select name="items[<?= e((string) $index) ?>][item_type]">
-                        <option value="income" <?= ($item['item_type'] ?? '') === 'income' ? 'selected' : '' ?>>收入</option>
-                        <option value="expense" <?= ($item['item_type'] ?? '') === 'expense' ? 'selected' : '' ?>>支出</option>
-                    </select>
-                </label>
-                <label>
-                    <span>科目</span>
-                    <input type="text" name="items[<?= e((string) $index) ?>][category]" value="<?= e((string) ($item['category'] ?? '')) ?>">
-                </label>
-                <label>
-                    <span>項目</span>
-                    <input type="text" name="items[<?= e((string) $index) ?>][item_name]" value="<?= e((string) ($item['item_name'] ?? '')) ?>">
-                </label>
-                <label>
-                    <span>會計科目</span>
-                    <?php $selectedAccountId = (int) ($item['account_id'] ?? 0); ?>
-                    <select name="items[<?= e((string) $index) ?>][account_id]">
-                        <option value="">未對應</option>
-                        <?php foreach (($accounts ?? []) as $account): ?>
-                            <option value="<?= e((string) $account['id']) ?>" <?= $selectedAccountId === (int) $account['id'] ? 'selected' : '' ?>>
-                                <?= e($account['code'] . ' ' . $account['name']) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </label>
-                <label>
-                    <span>單位</span>
-                    <input type="text" name="items[<?= e((string) $index) ?>][unit]" value="<?= e((string) ($item['unit'] ?? '')) ?>">
-                </label>
-                <label>
-                    <span>數量</span>
-                    <input type="number" step="0.01" min="0" name="items[<?= e((string) $index) ?>][quantity]" value="<?= e((string) ($item['quantity'] ?? '1')) ?>">
-                </label>
-                <label>
-                    <span>單價</span>
-                    <input type="number" step="1" min="0" name="items[<?= e((string) $index) ?>][unit_price]" value="<?= e((string) ($item['unit_price'] ?? '')) ?>">
-                </label>
-                <label>
-                    <span>金額</span>
-                    <input type="number" step="1" min="0" name="items[<?= e((string) $index) ?>][amount]" value="<?= e((string) ($item['amount'] ?? '')) ?>">
-                </label>
-                <label>
-                    <span>經費來源</span>
-                    <input type="text" name="items[<?= e((string) $index) ?>][funding_source]" value="<?= e((string) ($item['funding_source'] ?? '')) ?>">
-                </label>
-                <label class="span-wide">
-                    <span>用途說明</span>
-                    <input type="text" name="items[<?= e((string) $index) ?>][description]" value="<?= e((string) ($item['description'] ?? '')) ?>">
-                </label>
-                <label class="span-wide">
-                    <span>備註</span>
-                    <input type="text" name="items[<?= e((string) $index) ?>][notes]" value="<?= e((string) ($item['notes'] ?? '')) ?>">
-                </label>
-                <button class="btn" type="button" onclick="this.closest('.budget-line').remove()">刪除</button>
+                <?php require __DIR__ . '/line-fields.php'; ?>
             </div>
         <?php endforeach; ?>
     </div>
@@ -135,23 +121,7 @@
 
 <template id="budget-line-template">
     <div class="budget-line nonprofit-line">
-        <label>
-            <span>類型</span>
-            <select data-name="item_type">
-                <option value="income">收入</option>
-                <option value="expense">支出</option>
-            </select>
-        </label>
-        <label><span>科目</span><input type="text" data-name="category"></label>
-        <label><span>項目</span><input type="text" data-name="item_name"></label>
-        <label><span>單位</span><input type="text" data-name="unit"></label>
-        <label><span>數量</span><input type="number" step="0.01" min="0" data-name="quantity" value="1"></label>
-        <label><span>單價</span><input type="number" step="1" min="0" data-name="unit_price"></label>
-        <label><span>金額</span><input type="number" step="1" min="0" data-name="amount"></label>
-        <label><span>經費來源</span><input type="text" data-name="funding_source"></label>
-        <label class="span-wide"><span>用途說明</span><input type="text" data-name="description"></label>
-        <label class="span-wide"><span>備註</span><input type="text" data-name="notes"></label>
-        <button class="btn" type="button" onclick="this.closest('.budget-line').remove()">刪除</button>
+        <?php $index = '__INDEX__'; $item = []; require __DIR__ . '/line-fields.php'; ?>
     </div>
 </template>
 
@@ -160,14 +130,8 @@ let budgetLineIndex = <?= count($items ?? []) ?>;
 function addBudgetLine() {
     const template = document.getElementById('budget-line-template');
     const line = template.content.firstElementChild.cloneNode(true);
-    const itemName = line.querySelector('[data-name="item_name"]');
-    if (itemName && !line.querySelector('[data-name="account_id"]')) {
-        const accountLabel = document.createElement('label');
-        accountLabel.innerHTML = `<?= str_replace('`', '\\`', '<span>會計科目</span><select data-name="account_id"><option value="">未對應</option>' . implode('', array_map(static fn (array $account): string => '<option value="' . e((string) $account['id']) . '">' . e($account['code'] . ' ' . $account['name']) . '</option>', $accounts ?? [])) . '</select>') ?>`;
-        itemName.closest('label').after(accountLabel);
-    }
-    line.querySelectorAll('[data-name]').forEach((field) => {
-        field.name = `items[${budgetLineIndex}][${field.dataset.name}]`;
+    line.querySelectorAll('[name]').forEach((field) => {
+        field.name = field.name.replace('__INDEX__', budgetLineIndex);
     });
     budgetLineIndex += 1;
     document.getElementById('budget-lines').appendChild(line);

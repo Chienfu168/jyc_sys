@@ -5,8 +5,8 @@ ob_start();
 <section class="panel">
     <div class="panel-header">
         <div>
-            <h2>預算經費表</h2>
-            <p class="muted-text">非營利組織年度預算、專案預算與補助計畫經費表。</p>
+            <h2>年度預算管理</h2>
+            <p class="muted-text">建立非營利組織年度經費預算，支援主管機關格式報表、預算比較與執行追蹤。</p>
         </div>
         <?php if (\App\Core\Permission::can('annual_budgets.manage')): ?>
             <a class="btn primary" href="/annual-budgets/create">新增預算</a>
@@ -19,9 +19,9 @@ ob_start();
                 <th>年度</th>
                 <th>名稱</th>
                 <th>狀態</th>
-                <th class="amount">收入合計</th>
-                <th class="amount">支出合計</th>
-                <th class="amount">餘絀</th>
+                <th class="amount">收益合計</th>
+                <th class="amount">費損合計</th>
+                <th class="amount">賸餘 / 短絀</th>
                 <th>建立人</th>
                 <th class="actions">操作</th>
             </tr>
@@ -39,6 +39,7 @@ ob_start();
                     <td><?= e($budget['created_by_name'] ?? '-') ?></td>
                     <td class="actions">
                         <a class="btn small" href="/annual-budgets/<?= e((string) $budget['id']) ?>">檢視</a>
+                        <a class="btn small" href="/annual-budgets/<?= e((string) $budget['id']) ?>/statement">經費表</a>
                         <?php if (\App\Core\Permission::can('annual_budgets.manage')): ?>
                             <a class="btn small" href="/annual-budgets/<?= e((string) $budget['id']) ?>/edit">編輯</a>
                         <?php endif; ?>
@@ -46,7 +47,7 @@ ob_start();
                 </tr>
             <?php endforeach; ?>
             <?php if (!$budgets): ?>
-                <tr><td colspan="8" class="empty">尚未建立預算經費表。</td></tr>
+                <tr><td colspan="8" class="empty">尚無年度預算資料。</td></tr>
             <?php endif; ?>
             </tbody>
         </table>
