@@ -1,6 +1,7 @@
 <?php
 $currentUser = auth()->user();
 $activeKey = $active ?? '';
+$approvalsActive = $activeKey === 'approvals';
 $financeActive = in_array($activeKey, [
     'finance',
     'annual-budgets',
@@ -81,6 +82,10 @@ $canOperations = $currentUser && (
                     <a class="<?= $activeKey === 'dashboard' ? 'active' : '' ?>" href="/">
                         <span class="nav-icon">總</span>
                         <span>總儀表板</span>
+                    </a>
+                    <a class="<?= $approvalsActive ? 'active' : '' ?>" href="/approvals">
+                        <span class="nav-icon">核</span>
+                        <span>簽核中心</span>
                     </a>
                     <?php if ($canFinance): ?>
                         <a class="<?= $financeActive ? 'active' : '' ?>" href="/finance">
