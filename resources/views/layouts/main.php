@@ -61,6 +61,8 @@ $canOperations = $currentUser && (
         .app-shell { max-width: 100vw !important; overflow-x: clip !important; }
         .main { min-width: 0 !important; max-width: 100% !important; overflow-x: hidden !important; }
         .content-area { min-width: 0 !important; max-width: 1280px !important; }
+        .guest-shell .main { width: 100vw !important; max-width: 100vw !important; padding: 0 !important; }
+        .guest-shell .content-area { width: 100vw !important; max-width: none !important; display: block !important; }
         .panel, .stat-card, .release-box { min-width: 0 !important; }
     </style>
 </head>

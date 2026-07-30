@@ -53,11 +53,13 @@ a {
 }
 
 .guest-shell .main {
+    width: 100vw;
     max-width: none;
     padding: 0;
 }
 
 .guest-shell .content-area {
+    width: 100vw;
     max-width: none;
 }
 
@@ -603,11 +605,16 @@ textarea:focus {
     grid-template-columns: minmax(0, 1.15fr) minmax(360px, .85fr);
     gap: 28px;
     align-items: center;
+    width: 100vw;
     min-height: 100vh;
     padding: 48px;
     background:
         linear-gradient(135deg, rgba(19, 33, 26, .96), rgba(31, 122, 91, .88)),
         #13211a;
+}
+
+.login-shell > * {
+    min-width: 0;
 }
 
 .login-intro {
