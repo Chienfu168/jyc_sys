@@ -4,8 +4,8 @@ ob_start();
 ?>
 <section class="stats-grid">
     <div class="stat-card">
-        <span><?= e($canApproveIncomeExpenses ? '待我簽核' : '我的送審') ?></span>
-        <strong><?= e((string) $stats['pending_income_expenses']) ?></strong>
+        <span><?= e($canApproveAny ? '待我簽核' : '我的送審') ?></span>
+        <strong><?= e((string) $stats['pending_approvals']) ?></strong>
     </div>
     <div class="stat-card">
         <span>使用者</span>
@@ -24,8 +24,8 @@ ob_start();
 <section class="panel">
     <div class="panel-header">
         <div>
-            <h2><?= e($canApproveIncomeExpenses ? '待簽核項目' : '我的送審項目') ?></h2>
-            <p class="muted-text">目前先整合收支紀錄，後續零用金、請假、預算與專案會逐步接入同一個簽核入口。</p>
+            <h2><?= e($canApproveAny ? '待簽核項目' : '我的送審項目') ?></h2>
+            <p class="muted-text">目前整合收支紀錄與零用金，後續請假、預算與專案會逐步接入同一個簽核入口。</p>
         </div>
         <div class="actions">
             <a class="btn" href="/income-expenses">收支紀錄</a>
@@ -35,6 +35,7 @@ ob_start();
         <table class="data-table">
             <thead>
             <tr>
+                <th>來源</th>
                 <th>送審時間</th>
                 <th>日期</th>
                 <th>類型</th>
@@ -48,34 +49,35 @@ ob_start();
             <tbody>
             <?php foreach ($pendingApprovals as $approval): ?>
                 <tr>
+                    <td><?= e($approval['source_label'] ?? '-') ?></td>
                     <td><?= e(dashboard_datetime($approval['requested_at'] ?? $approval['created_at'] ?? '')) ?></td>
                     <td><?= e(roc_date($approval['occurred_on'] ?? '')) ?></td>
                     <td><?= e(($approval['item_type'] ?? '') === 'income' ? '收入' : '支出') ?></td>
                     <td><?= e($approval['category_name'] ?: '-') ?></td>
                     <td>
-                        <a class="text-link" href="/income-expenses/<?= e((string) $approval['target_id']) ?>">
+                        <a class="text-link" href="<?= e($approval['show_url']) ?>">
                             <?= e($approval['subject']) ?>
                         </a>
                     </td>
                     <td><?= e(number_format((float) $approval['amount'], 0)) ?></td>
                     <td><?= e($approval['requested_by_name'] ?? '-') ?></td>
                     <td class="table-actions no-print">
-                        <a class="btn" href="/income-expenses/<?= e((string) $approval['target_id']) ?>">查看</a>
-                        <?php if ($canApproveIncomeExpenses): ?>
-                            <form method="post" action="/income-expenses/<?= e((string) $approval['target_id']) ?>/approve">
+                        <a class="btn" href="<?= e($approval['show_url']) ?>">&#26597;&#30475;</a>
+                        <?php if (!empty($approval['can_approve'])): ?>
+                            <form method="post" action="<?= e($approval['approve_url']) ?>">
                                 <?= csrf_field() ?>
-                                <button class="btn primary" type="submit">核准</button>
+                                <button class="btn primary" type="submit">&#26680;&#20934;</button>
                             </form>
-                            <form method="post" action="/income-expenses/<?= e((string) $approval['target_id']) ?>/reject">
+                            <form method="post" action="<?= e($approval['reject_url']) ?>">
                                 <?= csrf_field() ?>
-                                <button class="btn" type="submit">退回</button>
+                                <button class="btn" type="submit">&#36864;&#22238;</button>
                             </form>
                         <?php endif; ?>
                     </td>
                 </tr>
             <?php endforeach; ?>
             <?php if (!$pendingApprovals): ?>
-                <tr><td colspan="8" class="empty-state">目前沒有待處理的簽核項目</td></tr>
+                <tr><td colspan="9" class="empty-state">目前沒有待處理的簽核項目</td></tr>
             <?php endif; ?>
             </tbody>
         </table>

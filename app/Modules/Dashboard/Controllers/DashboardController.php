@@ -12,14 +12,15 @@ final class DashboardController extends Controller
     {
         $this->requireAuth();
 
-        $canApproveIncomeExpenses = Permission::can('income_expenses.approve');
+        $sources = $this->approvalSources();
+        $pendingApprovals = $this->pendingApprovals($sources);
 
         $stats = [
             'users' => (int) Database::pdo()->query('SELECT COUNT(*) FROM users')->fetchColumn(),
             'roles' => (int) Database::pdo()->query('SELECT COUNT(*) FROM roles')->fetchColumn(),
             'active_users' => (int) Database::pdo()->query('SELECT COUNT(*) FROM users WHERE status = "active"')->fetchColumn(),
             'logs' => (int) Database::pdo()->query('SELECT COUNT(*) FROM audit_logs')->fetchColumn(),
-            'pending_income_expenses' => $this->pendingIncomeExpenseCount($canApproveIncomeExpenses),
+            'pending_approvals' => count($pendingApprovals),
         ];
 
         $stmt = Database::pdo()->query(
@@ -36,67 +37,116 @@ final class DashboardController extends Controller
             'active' => 'dashboard',
             'stats' => $stats,
             'logs' => $stmt->fetchAll(),
-            'pendingApprovals' => $this->pendingIncomeExpenseApprovals($canApproveIncomeExpenses),
-            'canApproveIncomeExpenses' => $canApproveIncomeExpenses,
+            'pendingApprovals' => $pendingApprovals,
+            'canApproveAny' => $this->canApproveAny($sources),
         ]);
     }
 
-    private function pendingIncomeExpenseCount(bool $canApprove): int
+    private function approvalSources(): array
     {
-        $stmt = Database::pdo()->prepare(
-            'SELECT COUNT(*)
-             FROM approval_requests
-             INNER JOIN income_expense_records ON income_expense_records.id = approval_requests.target_id
-             WHERE ' . implode(' AND ', $this->pendingApprovalWhere($canApprove))
-        );
-        $stmt->execute($this->pendingApprovalParams($canApprove));
-
-        return (int) $stmt->fetchColumn();
+        return [
+            [
+                'module' => 'income_expenses',
+                'target_type' => 'income_expense_records',
+                'label' => '收支紀錄',
+                'permission' => 'income_expenses.approve',
+                'table' => 'income_expense_records',
+                'subject_column' => 'subject',
+                'category_column' => 'category_name',
+                'date_column' => 'occurred_on',
+                'amount_column' => 'amount',
+                'type_column' => 'item_type',
+                'show_path' => '/income-expenses/',
+                'approve_path' => '/income-expenses/%d/approve',
+                'reject_path' => '/income-expenses/%d/reject',
+            ],
+            [
+                'module' => 'petty_cash',
+                'target_type' => 'petty_cash_entries',
+                'label' => '零用金',
+                'permission' => 'petty_cash.approve',
+                'table' => 'petty_cash_entries',
+                'subject_column' => 'item_name',
+                'category_column' => 'item_name',
+                'date_column' => 'occurred_on',
+                'amount_column' => 'amount',
+                'type_column' => 'item_type',
+                'show_path' => '/petty-cash/',
+                'approve_path' => '/petty-cash/%d/approve',
+                'reject_path' => '/petty-cash/%d/reject',
+            ],
+        ];
     }
 
-    private function pendingIncomeExpenseApprovals(bool $canApprove): array
+    private function pendingApprovals(array $sources): array
     {
+        $rows = [];
+        foreach ($sources as $source) {
+            $source['can_approve'] = Permission::can($source['permission']);
+            array_push($rows, ...$this->pendingApprovalsForSource($source));
+        }
+
+        usort($rows, static function (array $a, array $b): int {
+            return strcmp((string) ($b['requested_at'] ?? ''), (string) ($a['requested_at'] ?? ''));
+        });
+
+        return array_slice($rows, 0, 12);
+    }
+
+    private function canApproveAny(array $sources): bool
+    {
+        foreach ($sources as $source) {
+            if (Permission::can($source['permission'])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function pendingApprovalsForSource(array $source): array
+    {
+        $where = [
+            'approval_requests.module = :module',
+            'approval_requests.target_type = :target_type',
+            'approval_requests.status = "pending"',
+        ];
+        $params = [
+            'module' => $source['module'],
+            'target_type' => $source['target_type'],
+        ];
+
+        if (!$source['can_approve']) {
+            $where[] = 'approval_requests.requested_by = :user_id';
+            $params['user_id'] = auth()->user()['id'] ?? 0;
+        }
+
         $stmt = Database::pdo()->prepare(
             'SELECT approval_requests.*,
                     requesters.name AS requested_by_name,
-                    income_expense_records.subject,
-                    income_expense_records.item_type,
-                    income_expense_records.amount,
-                    income_expense_records.occurred_on,
-                    income_expense_records.category_name
+                    target.' . $source['subject_column'] . ' AS subject,
+                    target.' . $source['category_column'] . ' AS category_name,
+                    target.' . $source['date_column'] . ' AS occurred_on,
+                    target.' . $source['amount_column'] . ' AS amount,
+                    target.' . $source['type_column'] . ' AS item_type
              FROM approval_requests
-             INNER JOIN income_expense_records ON income_expense_records.id = approval_requests.target_id
+             INNER JOIN ' . $source['table'] . ' AS target ON target.id = approval_requests.target_id
              LEFT JOIN users AS requesters ON requesters.id = approval_requests.requested_by
-             WHERE ' . implode(' AND ', $this->pendingApprovalWhere($canApprove)) . '
+             WHERE ' . implode(' AND ', $where) . '
              ORDER BY approval_requests.requested_at DESC, approval_requests.id DESC
-             LIMIT 10'
+             LIMIT 12'
         );
-        $stmt->execute($this->pendingApprovalParams($canApprove));
+        $stmt->execute($params);
 
-        return $stmt->fetchAll();
-    }
+        return array_map(static function (array $row) use ($source): array {
+            $targetId = (int) $row['target_id'];
+            $row['source_label'] = $source['label'];
+            $row['can_approve'] = $source['can_approve'];
+            $row['show_url'] = $source['show_path'] . $targetId;
+            $row['approve_url'] = sprintf($source['approve_path'], $targetId);
+            $row['reject_url'] = sprintf($source['reject_path'], $targetId);
 
-    private function pendingApprovalWhere(bool $canApprove): array
-    {
-        $where = [
-            'approval_requests.module = "income_expenses"',
-            'approval_requests.target_type = "income_expense_records"',
-            'approval_requests.status = "pending"',
-        ];
-
-        if (!$canApprove) {
-            $where[] = 'approval_requests.requested_by = :user_id';
-        }
-
-        return $where;
-    }
-
-    private function pendingApprovalParams(bool $canApprove): array
-    {
-        if ($canApprove) {
-            return [];
-        }
-
-        return ['user_id' => auth()->user()['id'] ?? 0];
+            return $row;
+        }, $stmt->fetchAll());
     }
 }

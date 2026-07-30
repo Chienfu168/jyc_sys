@@ -3,6 +3,7 @@
 namespace App\Modules\PettyCash\Controllers;
 
 use App\Core\AuditLog;
+use App\Core\ApprovalFlow;
 use App\Core\Controller;
 use App\Core\Database;
 use App\Core\Validator;
@@ -59,6 +60,7 @@ final class PettyCashController extends Controller
                 'amount' => '',
                 'payment_to' => '',
                 'receipt_no' => '',
+                'approval_status' => 'draft',
                 'notes' => '',
                 'created_by_name' => auth()->user()['name'] ?? '',
             ],
@@ -146,8 +148,8 @@ final class PettyCashController extends Controller
 
         Database::pdo()->prepare(
             'INSERT INTO petty_cash_entries
-             (occurred_on, item_type, petty_cash_item_id, project_id, item_name, amount, payment_to, receipt_no, notes, created_by, created_at, updated_at)
-             VALUES (:occurred_on, :item_type, :petty_cash_item_id, :project_id, :item_name, :amount, :payment_to, :receipt_no, :notes, :created_by, :created_at, :updated_at)'
+             (occurred_on, item_type, petty_cash_item_id, project_id, item_name, amount, payment_to, receipt_no, notes, approval_status, created_by, created_at, updated_at)
+             VALUES (:occurred_on, :item_type, :petty_cash_item_id, :project_id, :item_name, :amount, :payment_to, :receipt_no, :notes, "draft", :created_by, :created_at, :updated_at)'
         )->execute([
             'occurred_on' => $_POST['occurred_on'],
             'item_type' => $item['item_type'] ?? $this->typeValue(),
@@ -167,6 +169,20 @@ final class PettyCashController extends Controller
         AuditLog::write('create', 'petty_cash', 'petty_cash_entries', $id);
         flash('success', '零用金紀錄已建立');
         redirect('/petty-cash?month=' . substr((string) $_POST['occurred_on'], 0, 7));
+    }
+
+    public function show(string $id): void
+    {
+        $this->requirePermission('petty_cash.view');
+
+        $this->render('petty-cash.show', [
+            'title' => '零用金明細',
+            'section' => '財務會計',
+            'active' => 'petty-cash',
+            'entry' => $this->findEntry((int) $id),
+            'approvalHistory' => ApprovalFlow::history('petty_cash', 'petty_cash_entries', (int) $id),
+            'profile' => foundation_profile(),
+        ]);
     }
 
     public function edit(string $id): void
@@ -229,6 +245,46 @@ final class PettyCashController extends Controller
         redirect('/petty-cash?month=' . substr((string) $_POST['occurred_on'], 0, 7));
     }
 
+    public function submit(string $id): void
+    {
+        $this->requirePermission('petty_cash.manage');
+        $entry = $this->findEntry((int) $id);
+
+        if (!empty($entry['accounting_voucher_id'])) {
+            flash('error', '已建立會計傳票的零用金紀錄不可重新送審。');
+            redirect('/petty-cash/' . $id);
+        }
+
+        ApprovalFlow::submit('petty_cash', 'petty_cash_entries', (int) $entry['id'], trim((string) ($_POST['request_notes'] ?? '')));
+        Database::pdo()->prepare(
+            'UPDATE petty_cash_entries
+             SET approval_status = "submitted",
+                 submitted_at = :submitted_at,
+                 updated_at = :updated_at
+             WHERE id = :id'
+        )->execute([
+            'submitted_at' => now(),
+            'updated_at' => now(),
+            'id' => (int) $entry['id'],
+        ]);
+
+        AuditLog::write('submit', 'petty_cash', 'petty_cash_entries', (int) $entry['id']);
+        flash('success', '零用金紀錄已送審。');
+        redirect('/petty-cash/' . $id);
+    }
+
+    public function approve(string $id): void
+    {
+        $this->requirePermission('petty_cash.approve');
+        $this->review((int) $id, 'approved', '零用金紀錄已核准。');
+    }
+
+    public function reject(string $id): void
+    {
+        $this->requirePermission('petty_cash.approve');
+        $this->review((int) $id, 'rejected', '零用金紀錄已退回。');
+    }
+
     public function createVoucher(string $id): void
     {
         $this->requirePermission('accounting.manage');
@@ -237,6 +293,11 @@ final class PettyCashController extends Controller
         if (!empty($entry['accounting_voucher_id'])) {
             flash('error', '此零用金紀錄已建立會計傳票。');
             redirect('/accounting/vouchers/' . $entry['accounting_voucher_id']);
+        }
+
+        if (($entry['approval_status'] ?? '') !== 'approved') {
+            flash('error', '只有已核准的零用金紀錄可以拋轉會計傳票。');
+            redirect('/petty-cash/' . $id);
         }
 
         $pettyCashAccount = $this->accountByCode('1110');
@@ -320,6 +381,38 @@ final class PettyCashController extends Controller
         redirect('/accounting/vouchers/' . $voucherId);
     }
 
+    private function review(int $id, string $approvalStatus, string $message): void
+    {
+        $entry = $this->findEntry($id);
+        if (!empty($entry['accounting_voucher_id'])) {
+            flash('error', '已建立會計傳票的零用金紀錄不可變更簽核狀態。');
+            redirect('/petty-cash/' . $id);
+        }
+
+        $notes = trim((string) ($_POST['review_notes'] ?? ''));
+        ApprovalFlow::review('petty_cash', 'petty_cash_entries', $id, $approvalStatus, $notes);
+        Database::pdo()->prepare(
+            'UPDATE petty_cash_entries
+             SET approval_status = :approval_status,
+                 reviewed_by = :reviewed_by,
+                 reviewed_at = :reviewed_at,
+                 review_notes = :review_notes,
+                 updated_at = :updated_at
+             WHERE id = :id'
+        )->execute([
+            'approval_status' => $approvalStatus,
+            'reviewed_by' => auth()->user()['id'] ?? null,
+            'reviewed_at' => now(),
+            'review_notes' => $notes,
+            'updated_at' => now(),
+            'id' => $id,
+        ]);
+
+        AuditLog::write($approvalStatus, 'petty_cash', 'petty_cash_entries', $id);
+        flash('success', $message);
+        redirect('/petty-cash/' . $id);
+    }
+
     private function validateEntry(string $path): void
     {
         if ($error = Validator::required($_POST, [
@@ -347,9 +440,17 @@ final class PettyCashController extends Controller
     {
         $stmt = Database::pdo()->prepare(
             'SELECT petty_cash_entries.*, users.name AS created_by_name,
+                    reviewers.name AS reviewed_by_name,
+                    bank_accounts.bank_name,
+                    bank_accounts.account_no,
+                    projects.name AS project_name,
+                    projects.project_code,
                     accounting_vouchers.voucher_no, accounting_vouchers.status AS voucher_status
              FROM petty_cash_entries
              LEFT JOIN users ON users.id = petty_cash_entries.created_by
+             LEFT JOIN users AS reviewers ON reviewers.id = petty_cash_entries.reviewed_by
+             LEFT JOIN bank_accounts ON bank_accounts.id = petty_cash_entries.bank_account_id
+             LEFT JOIN projects ON projects.id = petty_cash_entries.project_id
              LEFT JOIN accounting_vouchers ON accounting_vouchers.id = petty_cash_entries.accounting_voucher_id
              WHERE petty_cash_entries.id = :id
              LIMIT 1'
