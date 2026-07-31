@@ -360,7 +360,21 @@ final class AnnualBudgetController extends Controller
                 $amount = $quantity * $unitPrice;
             }
 
-            if ($name === '' && $category === '' && $amount == 0.0) {
+            $isSubtotal = !empty($item['is_subtotal']);
+            $hasHierarchy = trim(implode('', [
+                (string) ($item['gov_level1'] ?? ''),
+                (string) ($item['gov_level2'] ?? ''),
+                (string) ($item['gov_level3'] ?? ''),
+                (string) ($item['gov_level4'] ?? ''),
+                (string) ($item['gov_level5'] ?? ''),
+            ])) !== '';
+            $hasText = $name !== ''
+                || $category !== ''
+                || trim((string) ($item['description'] ?? '')) !== ''
+                || trim((string) ($item['notes'] ?? '')) !== ''
+                || trim((string) ($item['comparison_note'] ?? '')) !== '';
+
+            if (!$hasHierarchy && !$hasText && $amount == 0.0 && !$isSubtotal) {
                 continue;
             }
 
@@ -373,8 +387,8 @@ final class AnnualBudgetController extends Controller
                 'gov_level3' => $this->shortText($item['gov_level3'] ?? ''),
                 'gov_level4' => $this->shortText($item['gov_level4'] ?? ''),
                 'gov_level5' => $this->shortText($item['gov_level5'] ?? ''),
-                'category' => $category ?: '未分類',
-                'item_name' => $name ?: '未命名項目',
+                'category' => $category ?: ($isSubtotal ? '小計' : '未分類'),
+                'item_name' => $name ?: ($isSubtotal ? '小計' : '未命名項目'),
                 'description' => trim((string) ($item['description'] ?? '')),
                 'unit' => trim((string) ($item['unit'] ?? '')),
                 'quantity' => $quantity ?: 1,
@@ -382,7 +396,7 @@ final class AnnualBudgetController extends Controller
                 'amount' => max(0, $amount),
                 'previous_amount' => max(0, round((float) ($item['previous_amount'] ?? 0), 2)),
                 'comparison_note' => trim((string) ($item['comparison_note'] ?? '')),
-                'is_subtotal' => !empty($item['is_subtotal']) ? 1 : 0,
+                'is_subtotal' => $isSubtotal ? 1 : 0,
                 'funding_source' => trim((string) ($item['funding_source'] ?? '')),
                 'sort_order' => $sort++,
                 'notes' => trim((string) ($item['notes'] ?? '')),
@@ -423,7 +437,7 @@ final class AnnualBudgetController extends Controller
              FROM annual_budget_items
              LEFT JOIN accounting_accounts ON accounting_accounts.id = annual_budget_items.account_id
              WHERE annual_budget_id = :annual_budget_id
-             ORDER BY annual_budget_items.item_type, annual_budget_items.sort_order, annual_budget_items.id'
+             ORDER BY annual_budget_items.sort_order, annual_budget_items.id'
         );
         $stmt->execute(['annual_budget_id' => $budgetId]);
 
@@ -452,7 +466,7 @@ final class AnnualBudgetController extends Controller
                 GROUP BY accounting_voucher_lines.account_id
              ) AS actuals ON actuals.account_id = annual_budget_items.account_id
              WHERE annual_budget_items.annual_budget_id = :annual_budget_id
-             ORDER BY annual_budget_items.item_type, annual_budget_items.sort_order, annual_budget_items.id'
+             ORDER BY annual_budget_items.sort_order, annual_budget_items.id'
         );
         $stmt->execute([
             'start_date' => $start,
@@ -608,14 +622,12 @@ final class AnnualBudgetController extends Controller
     private function defaultItems(): array
     {
         return [
-            ['item_type' => 'income', 'gov_level1' => '1', 'gov_level2' => '1', 'category' => '收益', 'item_name' => '捐贈收入', 'amount' => '', 'previous_amount' => '', 'funding_source' => '民間捐贈', 'notes' => ''],
-            ['item_type' => 'income', 'gov_level1' => '1', 'gov_level2' => '4', 'category' => '收益', 'item_name' => '利息收入', 'amount' => '', 'previous_amount' => '', 'funding_source' => '銀行帳戶', 'notes' => ''],
-            ['item_type' => 'expense', 'gov_level1' => '2', 'gov_level2' => '1', 'category' => '業務費', 'item_name' => '業務活動費用', 'unit' => '式', 'quantity' => 1, 'unit_price' => '', 'amount' => '', 'previous_amount' => '', 'comparison_note' => '詳見年度工作計畫', 'notes' => ''],
-            ['item_type' => 'expense', 'gov_level1' => '2', 'gov_level2' => '2', 'category' => '人事費用', 'item_name' => '人事薪資', 'unit' => '年', 'quantity' => 1, 'unit_price' => '', 'amount' => '', 'previous_amount' => '', 'notes' => ''],
-            ['item_type' => 'expense', 'gov_level1' => '2', 'gov_level2' => '2', 'category' => '人事費用', 'item_name' => '保險費', 'unit' => '年', 'quantity' => 1, 'unit_price' => '', 'amount' => '', 'previous_amount' => '', 'notes' => ''],
-            ['item_type' => 'expense', 'gov_level1' => '2', 'gov_level2' => '3', 'category' => '辦公行政費', 'item_name' => '辦公室租金', 'unit' => '年', 'quantity' => 1, 'unit_price' => '', 'amount' => '', 'previous_amount' => '', 'notes' => ''],
-            ['item_type' => 'expense', 'gov_level1' => '2', 'gov_level2' => '3', 'category' => '辦公行政費', 'item_name' => '文具印刷費', 'unit' => '年', 'quantity' => 1, 'unit_price' => '', 'amount' => '', 'previous_amount' => '', 'notes' => ''],
-            ['item_type' => 'expense', 'gov_level1' => '2', 'gov_level2' => '5', 'category' => '預備金', 'item_name' => '預備金', 'unit' => '年', 'quantity' => 1, 'unit_price' => '', 'amount' => '', 'previous_amount' => '', 'notes' => ''],
+            ['item_type' => 'income', 'gov_level1' => '1', 'category' => '收益', 'item_name' => '捐贈收入', 'quantity' => 1, 'amount' => '', 'previous_amount' => '', 'funding_source' => '民間捐贈', 'notes' => ''],
+            ['item_type' => 'income', 'gov_level1' => '1', 'category' => '收益', 'item_name' => '利息收入', 'quantity' => 1, 'amount' => '', 'previous_amount' => '', 'funding_source' => '銀行帳戶', 'notes' => ''],
+            ['item_type' => 'expense', 'gov_level1' => '2', 'category' => '業務費', 'item_name' => '業務活動費用', 'unit' => '式', 'quantity' => 1, 'amount' => '', 'previous_amount' => '', 'comparison_note' => '詳見年度工作計畫', 'notes' => ''],
+            ['item_type' => 'expense', 'gov_level1' => '2', 'category' => '人事費用', 'item_name' => '人事薪資', 'unit' => '年', 'quantity' => 1, 'amount' => '', 'previous_amount' => '', 'notes' => ''],
+            ['item_type' => 'expense', 'gov_level1' => '2', 'category' => '辦公行政費', 'item_name' => '辦公室租金', 'unit' => '年', 'quantity' => 1, 'amount' => '', 'previous_amount' => '', 'notes' => ''],
+            ['item_type' => 'expense', 'gov_level1' => '2', 'category' => '預備金', 'item_name' => '預備金', 'unit' => '年', 'quantity' => 1, 'amount' => '', 'previous_amount' => '', 'notes' => ''],
         ];
     }
 

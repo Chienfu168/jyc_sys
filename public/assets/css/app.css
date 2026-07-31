@@ -844,7 +844,12 @@ textarea:focus {
 }
 
 .nonprofit-line {
-    grid-template-columns: 120px 150px 180px 90px 100px 120px 130px 150px minmax(220px, 1fr) minmax(180px, 1fr) 64px;
+    grid-template-columns: repeat(6, minmax(120px, 1fr));
+    align-items: start;
+    padding: 14px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #ffffff;
 }
 
 .work-plan-line {
@@ -862,7 +867,44 @@ textarea:focus {
 
 .nonprofit-line .btn,
 .work-plan-line .btn {
-    width: 64px;
+    width: auto;
+}
+
+.budget-editor-header {
+    align-items: flex-end;
+}
+
+.flexible-budget-lines {
+    gap: 16px;
+}
+
+.budget-line-toolbar {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 4px;
+}
+
+.budget-line-toolbar .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.budget-line-toolbar .btn {
+    min-height: 34px;
+    padding: 0 10px;
+}
+
+.budget-line .danger {
+    border-color: #f3c7c7;
+    color: #b42318;
+}
+
+.hidden {
+    display: none !important;
 }
 
 .voucher-lines {

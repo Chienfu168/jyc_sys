@@ -1,37 +1,47 @@
+<div class="budget-line-toolbar">
+    <strong>經費項目</strong>
+    <div class="actions">
+        <button class="btn small" type="button" onclick="moveBudgetLine(this, -1)">上移</button>
+        <button class="btn small" type="button" onclick="moveBudgetLine(this, 1)">下移</button>
+        <button class="btn small" type="button" onclick="duplicateBudgetLine(this)">複製</button>
+        <button class="btn small danger" type="button" onclick="removeBudgetLine(this)">刪除</button>
+    </div>
+</div>
+
 <label>
     <span>類型</span>
-    <select name="items[<?= e((string) $index) ?>][item_type]">
+    <select data-budget-field="item_type" name="items[<?= e((string) $index) ?>][item_type]">
         <option value="income" <?= ($item['item_type'] ?? '') === 'income' ? 'selected' : '' ?>>收益</option>
         <option value="expense" <?= ($item['item_type'] ?? '') === 'expense' ? 'selected' : '' ?>>費損</option>
     </select>
 </label>
 <label>
-    <span>款</span>
+    <span>款（選填）</span>
     <input type="text" name="items[<?= e((string) $index) ?>][gov_level1]" value="<?= e((string) ($item['gov_level1'] ?? '')) ?>">
 </label>
 <label>
-    <span>項</span>
+    <span>項（選填）</span>
     <input type="text" name="items[<?= e((string) $index) ?>][gov_level2]" value="<?= e((string) ($item['gov_level2'] ?? '')) ?>">
 </label>
 <label>
-    <span>目</span>
+    <span>目（選填）</span>
     <input type="text" name="items[<?= e((string) $index) ?>][gov_level3]" value="<?= e((string) ($item['gov_level3'] ?? '')) ?>">
 </label>
 <label>
-    <span>次</span>
+    <span>次（選填）</span>
     <input type="text" name="items[<?= e((string) $index) ?>][gov_level4]" value="<?= e((string) ($item['gov_level4'] ?? '')) ?>">
 </label>
 <label>
-    <span>節</span>
+    <span>節（選填）</span>
     <input type="text" name="items[<?= e((string) $index) ?>][gov_level5]" value="<?= e((string) ($item['gov_level5'] ?? '')) ?>">
 </label>
 <label>
     <span>分類</span>
-    <input type="text" list="annual-budget-common-categories" name="items[<?= e((string) $index) ?>][category]" value="<?= e((string) ($item['category'] ?? '')) ?>">
+    <input data-budget-field="category" type="text" list="annual-budget-common-categories" name="items[<?= e((string) $index) ?>][category]" value="<?= e((string) ($item['category'] ?? '')) ?>">
 </label>
 <label>
     <span>項目名稱</span>
-    <input type="text" list="annual-budget-common-items" name="items[<?= e((string) $index) ?>][item_name]" value="<?= e((string) ($item['item_name'] ?? '')) ?>">
+    <input data-budget-field="item_name" type="text" list="annual-budget-common-items" name="items[<?= e((string) $index) ?>][item_name]" value="<?= e((string) ($item['item_name'] ?? '')) ?>">
 </label>
 <label>
     <span>會計科目</span>
@@ -51,15 +61,15 @@
 </label>
 <label>
     <span>數量</span>
-    <input type="number" step="0.01" min="0" name="items[<?= e((string) $index) ?>][quantity]" value="<?= e((string) ($item['quantity'] ?? '1')) ?>">
+    <input data-budget-field="quantity" data-auto-amount type="number" step="0.01" min="0" name="items[<?= e((string) $index) ?>][quantity]" value="<?= e((string) ($item['quantity'] ?? '1')) ?>">
 </label>
 <label>
     <span>單價</span>
-    <input type="number" step="1" min="0" name="items[<?= e((string) $index) ?>][unit_price]" value="<?= e((string) ($item['unit_price'] ?? '')) ?>">
+    <input data-budget-field="unit_price" data-auto-amount type="number" step="1" min="0" name="items[<?= e((string) $index) ?>][unit_price]" value="<?= e((string) ($item['unit_price'] ?? '')) ?>">
 </label>
 <label>
     <span>本年度預算</span>
-    <input type="number" step="1" min="0" name="items[<?= e((string) $index) ?>][amount]" value="<?= e((string) ($item['amount'] ?? '')) ?>">
+    <input data-budget-field="amount" type="number" step="1" min="0" name="items[<?= e((string) $index) ?>][amount]" value="<?= e((string) ($item['amount'] ?? '')) ?>">
 </label>
 <label>
     <span>上年度預算</span>
@@ -82,7 +92,6 @@
     <input type="text" name="items[<?= e((string) $index) ?>][notes]" value="<?= e((string) ($item['notes'] ?? '')) ?>">
 </label>
 <label class="checkbox-label">
-    <input type="checkbox" name="items[<?= e((string) $index) ?>][is_subtotal]" value="1" <?= !empty($item['is_subtotal']) ? 'checked' : '' ?>>
+    <input data-budget-field="is_subtotal" type="checkbox" name="items[<?= e((string) $index) ?>][is_subtotal]" value="1" <?= !empty($item['is_subtotal']) ? 'checked' : '' ?>>
     <span>小計 / 合計列</span>
 </label>
-<button class="btn" type="button" onclick="this.closest('.budget-line').remove()">刪除</button>
