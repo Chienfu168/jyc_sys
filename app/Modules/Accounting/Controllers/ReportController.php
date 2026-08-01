@@ -253,6 +253,82 @@ final class ReportController extends Controller
         ]);
     }
 
+    public function netAssetsStatement(): void
+    {
+        $this->requirePermission('accounting.view');
+        [$start, $end] = $this->period();
+        $previousStart = date('Y-m-d', strtotime($start . ' -1 year'));
+        $previousEnd = date('Y-m-d', strtotime($end . ' -1 year'));
+
+        $currentNetAssets = $this->balancesUntil($end, ['net_asset']);
+        $previousNetAssets = $this->balancesUntil($previousEnd, ['net_asset']);
+        $currentSurplus = $this->surplusBetween($start, $end);
+        $previousSurplus = $this->surplusBetween($previousStart, $previousEnd);
+
+        $rows = [
+            $this->statementCompareRow('期初淨值', $this->sumSignedRows($previousNetAssets), 0),
+            $this->statementCompareRow('本年度稅後賸餘(短絀)', $currentSurplus, $previousSurplus),
+            $this->statementCompareRow('其他綜合餘絀', 0, 0),
+            $this->statementCompareRow('期末淨值', $this->sumSignedRows($currentNetAssets) + $currentSurplus, $this->sumSignedRows($previousNetAssets) + $previousSurplus),
+        ];
+
+        $this->render('accounting.reports.net-assets', [
+            'title' => '淨值變動表',
+            'section' => '財務會計',
+            'active' => 'accounting',
+            'startDate' => $start,
+            'endDate' => $end,
+            'previousStartDate' => $previousStart,
+            'previousEndDate' => $previousEnd,
+            'rows' => $rows,
+            'profile' => foundation_profile(),
+        ]);
+    }
+
+    public function cashFlowStatement(): void
+    {
+        $this->requirePermission('accounting.view');
+        [$start, $end] = $this->period();
+        $previousStart = date('Y-m-d', strtotime($start . ' -1 year'));
+        $previousEnd = date('Y-m-d', strtotime($end . ' -1 year'));
+
+        $currentSurplus = $this->surplusBetween($start, $end);
+        $previousSurplus = $this->surplusBetween($previousStart, $previousEnd);
+        $currentOperating = $this->cashFlowRows($start, $end);
+        $previousOperating = $this->cashFlowRows($previousStart, $previousEnd);
+
+        $rows = [
+            ['section' => '業務活動之現金流量', 'items' => [
+                $this->statementCompareRow('本期稅前賸餘(短絀)', $currentSurplus, $previousSurplus),
+                $this->statementCompareRow('折舊及攤銷費用', $currentOperating['depreciation'], $previousOperating['depreciation']),
+                $this->statementCompareRow('利息收入', -$currentOperating['interest_income'], -$previousOperating['interest_income']),
+                $this->statementCompareRow('與業務活動相關之資產淨變動', -$currentOperating['operating_asset_change'], -$previousOperating['operating_asset_change']),
+                $this->statementCompareRow('與業務活動相關之負債淨變動', $currentOperating['operating_liability_change'], $previousOperating['operating_liability_change']),
+                $this->statementCompareRow('業務活動之淨現金流入(流出)', $currentOperating['operating_cash'], $previousOperating['operating_cash']),
+            ]],
+            ['section' => '投資活動之現金流量', 'items' => [
+                $this->statementCompareRow('基金、投資及固定資產變動', -$currentOperating['investing_asset_change'], -$previousOperating['investing_asset_change']),
+            ]],
+            ['section' => '現金及約當現金', 'items' => [
+                $this->statementCompareRow('本期現金及約當現金增減數', $currentOperating['cash_change'], $previousOperating['cash_change']),
+                $this->statementCompareRow('期初現金及約當現金餘額', $currentOperating['cash_begin'], $previousOperating['cash_begin']),
+                $this->statementCompareRow('期末現金及約當現金餘額', $currentOperating['cash_end'], $previousOperating['cash_end']),
+            ]],
+        ];
+
+        $this->render('accounting.reports.cash-flow', [
+            'title' => '現金流量表',
+            'section' => '財務會計',
+            'active' => 'accounting',
+            'startDate' => $start,
+            'endDate' => $end,
+            'previousStartDate' => $previousStart,
+            'previousEndDate' => $previousEnd,
+            'rows' => $rows,
+            'profile' => foundation_profile(),
+        ]);
+    }
+
     private function period(): array
     {
         $start = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) ($_GET['start_date'] ?? '')) ? (string) $_GET['start_date'] : date('Y-m-01');
@@ -341,6 +417,120 @@ final class ReportController extends Controller
         }
 
         return $income - $expense;
+    }
+
+    private function surplusBetween(string $start, string $end): float
+    {
+        $rows = $this->accountBalances($start, $end, ['income', 'expense']);
+        $income = 0.0;
+        $expense = 0.0;
+        foreach ($rows as $row) {
+            $amount = $this->signedAmount((float) $row['debit_total'], (float) $row['credit_total'], (string) $row['normal_balance']);
+            if ($row['account_type'] === 'income') {
+                $income += $amount;
+            } elseif ($row['account_type'] === 'expense') {
+                $expense += $amount;
+            }
+        }
+
+        return $income - $expense;
+    }
+
+    private function statementCompareRow(string $name, float $current, float $previous): array
+    {
+        $variance = $current - $previous;
+
+        return [
+            'name' => $name,
+            'current' => $current,
+            'previous' => $previous,
+            'variance' => $variance,
+            'rate' => abs($previous) > 0.005 ? round(($variance / $previous) * 100, 2) : null,
+        ];
+    }
+
+    private function sumSignedRows(array $rows): float
+    {
+        $total = 0.0;
+        foreach ($rows as $row) {
+            $total += $this->signedAmount((float) $row['debit_total'], (float) $row['credit_total'], (string) $row['normal_balance']);
+        }
+
+        return $total;
+    }
+
+    private function cashFlowRows(string $start, string $end): array
+    {
+        $begin = date('Y-m-d', strtotime($start . ' -1 day'));
+        $cashBegin = $this->sumMatchingBalances($begin, ['現金', '銀行', '存款'], ['基金存款', '定期']);
+        $cashEnd = $this->sumMatchingBalances($end, ['現金', '銀行', '存款'], ['基金存款', '定期']);
+        $operatingAssetsBegin = $this->sumMatchingBalances($begin, ['應收', '預付', '其他流動資產'], []);
+        $operatingAssetsEnd = $this->sumMatchingBalances($end, ['應收', '預付', '其他流動資產'], []);
+        $operatingLiabilitiesBegin = $this->sumMatchingBalances($begin, ['應付', '代收', '其他流動負債'], []);
+        $operatingLiabilitiesEnd = $this->sumMatchingBalances($end, ['應付', '代收', '其他流動負債'], []);
+        $investingBegin = $this->sumMatchingBalances($begin, ['基金存款', '定期', '設備', '保證金', '固定資產'], []);
+        $investingEnd = $this->sumMatchingBalances($end, ['基金存款', '定期', '設備', '保證金', '固定資產'], []);
+        $depreciation = $this->sumPeriodByName($start, $end, ['折舊', '攤銷'], ['expense']);
+        $interestIncome = $this->sumPeriodByName($start, $end, ['利息', '財務收入'], ['income']);
+        $surplus = $this->surplusBetween($start, $end);
+        $operatingAssetChange = $operatingAssetsEnd - $operatingAssetsBegin;
+        $operatingLiabilityChange = $operatingLiabilitiesEnd - $operatingLiabilitiesBegin;
+        $investingAssetChange = $investingEnd - $investingBegin;
+
+        return [
+            'cash_begin' => $cashBegin,
+            'cash_end' => $cashEnd,
+            'cash_change' => $cashEnd - $cashBegin,
+            'depreciation' => $depreciation,
+            'interest_income' => $interestIncome,
+            'operating_asset_change' => $operatingAssetChange,
+            'operating_liability_change' => $operatingLiabilityChange,
+            'investing_asset_change' => $investingAssetChange,
+            'operating_cash' => $surplus + $depreciation - $interestIncome - $operatingAssetChange + $operatingLiabilityChange,
+        ];
+    }
+
+    private function sumMatchingBalances(string $end, array $includeKeywords, array $excludeKeywords): float
+    {
+        $rows = $this->balancesUntil($end, ['asset', 'liability']);
+        $total = 0.0;
+        foreach ($rows as $row) {
+            $name = (string) $row['name'];
+            $included = false;
+            foreach ($includeKeywords as $keyword) {
+                if (mb_strpos($name, $keyword) !== false) {
+                    $included = true;
+                    break;
+                }
+            }
+            foreach ($excludeKeywords as $keyword) {
+                if (mb_strpos($name, $keyword) !== false) {
+                    $included = false;
+                    break;
+                }
+            }
+            if ($included) {
+                $total += $this->signedAmount((float) $row['debit_total'], (float) $row['credit_total'], (string) $row['normal_balance']);
+            }
+        }
+
+        return $total;
+    }
+
+    private function sumPeriodByName(string $start, string $end, array $keywords, array $types): float
+    {
+        $rows = $this->accountBalances($start, $end, $types);
+        $total = 0.0;
+        foreach ($rows as $row) {
+            foreach ($keywords as $keyword) {
+                if (mb_strpos((string) $row['name'], $keyword) !== false) {
+                    $total += $this->signedAmount((float) $row['debit_total'], (float) $row['credit_total'], (string) $row['normal_balance']);
+                    break;
+                }
+            }
+        }
+
+        return $total;
     }
 
     private function selectedAccount(array $accounts, int $accountId): ?array

@@ -1273,6 +1273,12 @@ textarea:focus {
     font-weight: 700;
 }
 
+.financial-statement-table .statement-section td,
+.financial-statement-table .statement-section {
+    background: #f6f8f7;
+    font-weight: 700;
+}
+
 .activity-workbench {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);

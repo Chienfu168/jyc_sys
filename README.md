@@ -54,7 +54,7 @@ https://你的網域/install.php
 `.env` 主要設定：
 
 ```env
-APP_VERSION=0.6.2
+APP_VERSION=0.6.3
 GITHUB_REPO=Chienfu168/jyc_sys
 GITHUB_TOKEN=
 UPDATE_CHANNEL=stable

@@ -8,7 +8,7 @@ ob_start();
         <strong><?= e(number_format((int) $summary['account_count'])) ?></strong>
     </div>
     <div class="stat-card">
-        <span>本月傳票</span>
+        <span>傳票總數</span>
         <strong><?= e(number_format((int) $summary['voucher_count'])) ?></strong>
     </div>
     <div class="stat-card">
@@ -16,81 +16,91 @@ ob_start();
         <strong><?= e(number_format((int) $summary['posted_count'])) ?></strong>
     </div>
     <div class="stat-card">
-        <span>本月借貸差額</span>
+        <span>借貸差額</span>
         <strong><?= e(accounting_money($summary['debit_total'] - $summary['credit_total'])) ?></strong>
     </div>
 </section>
 
 <section class="module-grid accounting-actions">
     <a class="module-card" href="/accounting/vouchers">
-        <span>會計作業</span>
+        <span>日常作業</span>
         <strong>會計傳票</strong>
-        <p>建立借貸分錄、草稿保存、過帳、作廢與列印。</p>
+        <p>建立收入、支出、轉帳與調整分錄，作為各項財務報表的資料來源。</p>
     </a>
     <a class="module-card" href="/accounting/accounts">
-        <span>基本設定</span>
+        <span>基礎設定</span>
         <strong>會計科目</strong>
-        <p>維護非營利組織常用科目、類型、上層科目與借貸方向。</p>
+        <p>維護資產、負債、淨資產、收入與費用科目，支援報表彙總。</p>
     </a>
     <a class="module-card" href="/accounting/reports/general-ledger">
-        <span>會計報表</span>
+        <span>帳冊</span>
         <strong>總帳</strong>
-        <p>依期間彙總各科目借方、貸方與本期餘額。</p>
+        <p>依科目彙總期間借貸發生額，檢視科目整體變動。</p>
     </a>
     <a class="module-card" href="/accounting/reports/detail-ledger">
-        <span>會計報表</span>
+        <span>帳冊</span>
         <strong>明細帳</strong>
-        <p>依科目查詢期初、本期分錄與逐筆餘額。</p>
+        <p>依單一科目查詢期初、期間明細與期末餘額。</p>
     </a>
     <a class="module-card" href="/accounting/reports/trial-balance">
-        <span>會計報表</span>
+        <span>報表</span>
         <strong>試算表</strong>
-        <p>彙整期初、本期借貸與期末借貸餘額。</p>
+        <p>依期初、借方、貸方、期末餘額檢查借貸是否平衡。</p>
     </a>
     <a class="module-card" href="/accounting/reports/income-statement">
-        <span>會計報表</span>
-        <strong>收支餘絀表</strong>
-        <p>彙整本期收入、支出與餘絀，支援列印與另存 PDF。</p>
+        <span>報表</span>
+        <strong>收支營運表</strong>
+        <p>參考主管機關格式，彙總收益、費損與本期賸餘或短絀。</p>
     </a>
     <a class="module-card" href="/accounting/reports/balance-sheet">
-        <span>會計報表</span>
+        <span>報表</span>
         <strong>資產負債表</strong>
-        <p>依指定日期彙整資產、負債、淨資產與平衡差額。</p>
+        <p>依結報日列示資產、負債、淨資產與本期賸餘。</p>
+    </a>
+    <a class="module-card" href="/accounting/reports/net-assets">
+        <span>報表</span>
+        <strong>淨值變動表</strong>
+        <p>列示期初淨值、本年度賸餘、其他綜合餘絀與期末淨值。</p>
+    </a>
+    <a class="module-card" href="/accounting/reports/cash-flow">
+        <span>報表</span>
+        <strong>現金流量表</strong>
+        <p>依現金、營運資產負債、利息與折舊項目產生現金流量初版。</p>
     </a>
     <a class="module-card" href="/income-expenses">
-        <span>資料來源</span>
+        <span>來源資料</span>
         <strong>收支紀錄</strong>
-        <p>後續將可由收支紀錄自動拋轉會計傳票。</p>
+        <p>日常收支登錄，可連動會計傳票與報表彙整。</p>
     </a>
     <a class="module-card" href="/bank-accounts">
-        <span>資料來源</span>
+        <span>來源資料</span>
         <strong>銀行帳戶</strong>
-        <p>後續將可由銀行交易與零用金撥補建立傳票。</p>
+        <p>管理銀行帳戶、交易明細與對帳資料，支援現金及存款餘額追蹤。</p>
     </a>
 </section>
 
 <section class="panel">
     <div class="panel-header">
         <div>
-            <h2>會計系統建置進度</h2>
-            <p class="muted-text">目前已建立科目、傳票與會計報表；後續可再把零用金、銀行、收支紀錄串成自動傳票。</p>
+            <h2>年度財務報表建構方向</h2>
+            <p class="muted-text">已參考既有 Excel：銀行帳、零用金、差旅費、財產清冊、資產負債表、收支營運表、淨值變動表、現金流量表。</p>
         </div>
     </div>
     <div class="feature-grid">
         <div class="feature-card">
-            <span>已完成</span>
-            <strong>科目表</strong>
-            <p>可新增、編輯、停用科目。</p>
+            <span>已建構</span>
+            <strong>帳務與核心報表</strong>
+            <p>傳票、科目、試算表、收支營運表、資產負債表、淨值變動表、現金流量表。</p>
         </div>
         <div class="feature-card">
-            <span>已完成</span>
-            <strong>傳票分錄</strong>
-            <p>借貸平衡後可過帳。</p>
+            <span>已建構</span>
+            <strong>來源資料</strong>
+            <p>銀行帳戶、零用金、收支紀錄、差旅費、薪資與專案費用可逐步串接會計傳票。</p>
         </div>
         <div class="feature-card">
-            <span>已完成</span>
-            <strong>會計報表</strong>
-            <p>總帳、明細帳與試算表可查詢、列印與另存 PDF。</p>
+            <span>下一步</span>
+            <strong>財產清冊維護</strong>
+            <p>系統資料表已規劃財產種類、登記狀態、取得來源、存放地點、證明文件與財產編號。</p>
         </div>
     </div>
 </section>
