@@ -67,6 +67,11 @@ ob_start();
         <strong>現金流量表</strong>
         <p>依現金、營運資產負債、利息與折舊項目產生現金流量初版。</p>
     </a>
+    <a class="module-card" href="/foundation-assets">
+        <span>報表</span>
+        <strong>財產清冊</strong>
+        <p>管理經法院登記與未經法院登記財產，支援列印財產清冊與明細表。</p>
+    </a>
     <a class="module-card" href="/income-expenses">
         <span>來源資料</span>
         <strong>收支紀錄</strong>
