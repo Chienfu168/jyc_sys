@@ -4,6 +4,8 @@ $activeKey = $active ?? '';
 $approvalsActive = $activeKey === 'approvals';
 $financeActive = in_array($activeKey, [
     'finance',
+    'donors',
+    'donations',
     'annual-budgets',
     'accounting',
     'foundation-assets',
@@ -26,7 +28,9 @@ $operationsActive = in_array($activeKey, [
     'calendar',
 ], true);
 $canFinance = $currentUser && (
-    \App\Core\Permission::can('annual_budgets.view')
+    \App\Core\Permission::can('donors.view')
+    || \App\Core\Permission::can('donations.view')
+    || \App\Core\Permission::can('annual_budgets.view')
     || \App\Core\Permission::can('accounting.view')
     || \App\Core\Permission::can('foundation_assets.view')
     || \App\Core\Permission::can('bank_accounts.view')

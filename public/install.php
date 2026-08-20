@@ -9,7 +9,7 @@ $installLock = BASE_PATH . '/storage/installed.lock';
 $errors = [];
 $messages = [];
 
-if (file_exists($installLock) && ($_GET['force'] ?? '') !== '1') {
+if (file_exists($installLock)) {
     render_page('系統已安裝', 'finish', [
         'errors' => [],
         'messages' => ['系統已完成安裝。如需重新安裝，請先移除 storage/installed.lock。'],
@@ -49,7 +49,7 @@ function handle_save_config(): void
         'APP_DEBUG' => 'false',
         'APP_URL' => rtrim(trim((string) ($_POST['app_url'] ?? '')), '/'),
         'APP_TIMEZONE' => 'Asia/Taipei',
-        'APP_VERSION' => trim((string) ($_POST['app_version'] ?? '0.6.4')),
+        'APP_VERSION' => trim((string) ($_POST['app_version'] ?? '0.6.6')),
         'GITHUB_REPO' => trim((string) ($_POST['github_repo'] ?? '')),
         'GITHUB_TOKEN' => trim((string) ($_POST['github_token'] ?? '')),
         'UPDATE_CHANNEL' => trim((string) ($_POST['update_channel'] ?? 'stable')),
@@ -173,7 +173,7 @@ function handle_finish(): void
     ensure_storage_directories();
     $content = json_encode([
         'installed_at' => date('c'),
-        'app_version' => load_env_values()['APP_VERSION'] ?? '0.6.4',
+        'app_version' => load_env_values()['APP_VERSION'] ?? '0.6.6',
     ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 
     if (file_put_contents(BASE_PATH . '/storage/installed.lock', $content . PHP_EOL) === false) {
@@ -371,7 +371,7 @@ function load_env_values(): array
     $defaults = [
         'APP_NAME' => '游榮吉教育基金會管理系統',
         'APP_URL' => current_url_base(),
-        'APP_VERSION' => '0.6.4',
+        'APP_VERSION' => '0.6.6',
         'GITHUB_REPO' => '',
         'GITHUB_TOKEN' => '',
         'UPDATE_CHANNEL' => 'stable',

@@ -344,6 +344,11 @@ final class ActivityController extends Controller
             $this->backWithInput('/activities/' . $id, $_POST, '檔案格式不支援，請上傳 PDF、圖片、Office、CSV 或 TXT。');
         }
 
+        $detectedMime = $this->detectMime((string) $file['tmp_name']);
+        if (!$this->allowedUploadMime($extension, $detectedMime, (string) $file['tmp_name'])) {
+            $this->backWithInput('/activities/' . $id, $_POST, '檔案內容與副檔名不符，請確認檔案格式後重新上傳。');
+        }
+
         $category = in_array(($_POST['category'] ?? ''), ['photo', 'attendance', 'receipt', 'report', 'other'], true)
             ? (string) $_POST['category']
             : 'other';
@@ -371,7 +376,7 @@ final class ActivityController extends Controller
             'title' => trim((string) ($_POST['title'] ?? '')) ?: $originalName,
             'original_name' => $originalName,
             'stored_path' => $relativePath,
-            'mime_type' => (string) ($file['type'] ?? 'application/octet-stream'),
+            'mime_type' => $detectedMime,
             'file_size' => $size,
             'notes' => trim((string) ($_POST['notes'] ?? '')),
             'uploaded_by' => auth()->user()['id'] ?? null,
@@ -665,6 +670,56 @@ final class ActivityController extends Controller
             UPLOAD_ERR_CANT_WRITE => '主機無法寫入上傳檔案。',
             default => '檔案上傳失敗。',
         };
+    }
+
+    private function detectMime(string $path): string
+    {
+        if (function_exists('finfo_open')) {
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            if ($finfo) {
+                $mime = finfo_file($finfo, $path);
+                finfo_close($finfo);
+                if (is_string($mime) && $mime !== '') {
+                    return $mime;
+                }
+            }
+        }
+
+        return 'application/octet-stream';
+    }
+
+    private function allowedUploadMime(string $extension, string $mime, string $path): bool
+    {
+        $allowed = [
+            'pdf' => ['application/pdf'],
+            'jpg' => ['image/jpeg'],
+            'jpeg' => ['image/jpeg'],
+            'png' => ['image/png'],
+            'doc' => ['application/msword', 'application/octet-stream'],
+            'docx' => [
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'application/zip',
+                'application/octet-stream',
+            ],
+            'xls' => ['application/vnd.ms-excel', 'application/octet-stream'],
+            'xlsx' => [
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'application/zip',
+                'application/octet-stream',
+            ],
+            'csv' => ['text/csv', 'text/plain', 'application/vnd.ms-excel', 'application/octet-stream'],
+            'txt' => ['text/plain', 'application/octet-stream'],
+        ];
+
+        if (!in_array($mime, $allowed[$extension] ?? [], true)) {
+            return false;
+        }
+
+        if (in_array($extension, ['jpg', 'jpeg', 'png'], true) && @getimagesize($path) === false) {
+            return false;
+        }
+
+        return true;
     }
 
     private function datetimeValue(string $key): ?string

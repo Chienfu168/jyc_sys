@@ -68,6 +68,10 @@ final class AuthController extends Controller
             $this->backWithInput('/forgot-password', [], 'Email 不可空白。');
         }
 
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $this->backWithInput('/forgot-password', [], 'Email 格式不正確。');
+        }
+
         $stmt = Database::pdo()->prepare('SELECT id, email FROM users WHERE email = :email AND status = "active" LIMIT 1');
         $stmt->execute(['email' => $email]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -76,6 +80,7 @@ final class AuthController extends Controller
             $token = bin2hex(random_bytes(32));
             $tokenHash = hash('sha256', $token);
             $expiresAt = date('Y-m-d H:i:s', time() + (config('security.password_reset_minutes', 30) * 60));
+            $link = rtrim(config('app.url'), '/') . '/reset-password?token=' . $token . '&email=' . urlencode($email);
 
             Database::pdo()->prepare(
                 'INSERT INTO password_reset_tokens (user_id, token_hash, expires_at, created_at)
@@ -87,13 +92,16 @@ final class AuthController extends Controller
                 'created_at' => now(),
             ]);
 
-            if (!env_bool('MAIL_ENABLED', false)) {
-                $link = rtrim(config('app.url'), '/') . '/reset-password?token=' . $token . '&email=' . urlencode($email);
+            if (env_bool('MAIL_ENABLED', false)) {
+                $this->sendPasswordResetMail($email, $link);
+            } elseif (config('app.env') !== 'production') {
                 file_put_contents(storage_path('logs/password-reset.log'), '[' . now() . '] ' . $email . ' ' . $link . PHP_EOL, FILE_APPEND);
+            } else {
+                file_put_contents(storage_path('logs/password-reset.log'), '[' . now() . '] ' . $email . ' reset token generated; mail disabled in production' . PHP_EOL, FILE_APPEND);
             }
         }
 
-        flash('success', '如果帳號存在，系統已建立重設密碼連結。未啟用郵件時，請查看 storage/logs/password-reset.log。');
+        flash('success', $this->resetMessage());
         redirect('/forgot-password');
     }
 
@@ -167,5 +175,42 @@ final class AuthController extends Controller
 
         flash('success', '密碼已更新，請使用新密碼登入。');
         redirect('/login');
+    }
+
+    private function sendPasswordResetMail(string $email, string $link): void
+    {
+        $fromAddress = $this->sanitizeHeader(env('MAIL_FROM_ADDRESS', 'no-reply@example.com'));
+        $fromName = $this->sanitizeHeader(env('MAIL_FROM_NAME', config('app.name')));
+        $subject = '重設密碼通知';
+        $body = "您好：\n\n請使用下列連結重設密碼，此連結將於 "
+            . config('security.password_reset_minutes', 30)
+            . " 分鐘後失效。\n\n{$link}\n\n如果您沒有提出重設密碼申請，請忽略此信。";
+
+        $headers = [
+            'From: ' . $fromName . ' <' . $fromAddress . '>',
+            'Content-Type: text/plain; charset=UTF-8',
+        ];
+
+        if (!@mail($email, $subject, $body, implode("\r\n", $headers))) {
+            file_put_contents(storage_path('logs/password-reset.log'), '[' . now() . '] ' . $email . ' mail delivery failed' . PHP_EOL, FILE_APPEND);
+        }
+    }
+
+    private function sanitizeHeader(string $value): string
+    {
+        return str_replace(["\r", "\n"], '', trim($value));
+    }
+
+    private function resetMessage(): string
+    {
+        if (env_bool('MAIL_ENABLED', false)) {
+            return '如果帳號存在，系統已寄出重設密碼連結，請檢查 Email。';
+        }
+
+        if (config('app.env') !== 'production') {
+            return '如果帳號存在，系統已建立重設密碼連結。未啟用郵件時，請查看 storage/logs/password-reset.log。';
+        }
+
+        return '如果帳號存在，系統已建立重設密碼請求。正式環境尚未啟用郵件時，請由系統管理員協助重設密碼。';
     }
 }

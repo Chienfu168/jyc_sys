@@ -181,6 +181,8 @@ final class BusinessController extends Controller
     private function financeModules(): array
     {
         return [
+            ['permission' => 'donors.view', 'title' => '捐款人管理', 'href' => '/donors', 'description' => '捐款人資料、收據抬頭與聯絡資訊。'],
+            ['permission' => 'donations.view', 'title' => '捐款紀錄', 'href' => '/donations', 'description' => '捐款登錄、收據狀態與會計傳票拋轉。'],
             ['permission' => 'annual_budgets.view', 'title' => '年度預算', 'href' => '/annual-budgets', 'description' => '年度收支預算、編修與核定。'],
             ['permission' => 'accounting.view', 'title' => '會計系統', 'href' => '/accounting', 'description' => '會計科目、傳票、總帳與報表。'],
             ['permission' => 'bank_accounts.view', 'title' => '銀行帳戶', 'href' => '/bank-accounts', 'description' => '基金會銀行帳戶、交易紀錄與零用金撥補。'],
