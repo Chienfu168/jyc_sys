@@ -1,5 +1,11 @@
 <?php
 $active = 'donations';
+$query = http_build_query([
+    'year' => $year,
+    'receipt_status' => $receiptStatus,
+    'q' => $keyword,
+]);
+$reportQuery = http_build_query(['year' => $year]);
 ob_start();
 ?>
 <section class="stats-grid budget-summary">
@@ -32,6 +38,10 @@ ob_start();
         </form>
         <div class="actions">
             <a class="btn" href="/donors">捐款人</a>
+            <a class="btn" href="/donations/report?<?= e($reportQuery) ?>">捐款台帳</a>
+            <?php if ($canExport): ?>
+                <a class="btn" href="/donations/export?<?= e($query) ?>">匯出 CSV</a>
+            <?php endif; ?>
             <?php if (\App\Core\Permission::can('donations.manage')): ?>
                 <a class="btn primary" href="/donations/create">新增捐款</a>
             <?php endif; ?>
@@ -75,6 +85,9 @@ ob_start();
                     <td class="amount"><?= e(donation_index_money($donation['amount'])) ?></td>
                     <td class="actions">
                         <a class="btn small" href="/donations/<?= e((string) $donation['id']) ?>">檢視</a>
+                        <?php if ($donation['receipt_status'] !== 'not_required'): ?>
+                            <a class="btn small" href="/donations/<?= e((string) $donation['id']) ?>/receipt">收據</a>
+                        <?php endif; ?>
                         <?php if (\App\Core\Permission::can('donations.manage') && empty($donation['accounting_voucher_id'])): ?>
                             <a class="btn small" href="/donations/<?= e((string) $donation['id']) ?>/edit">編輯</a>
                         <?php endif; ?>

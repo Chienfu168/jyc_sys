@@ -5,6 +5,7 @@ namespace App\Modules\Donations\Controllers;
 use App\Core\AuditLog;
 use App\Core\Controller;
 use App\Core\Database;
+use App\Core\Permission;
 use App\Core\Validator;
 use PDO;
 
@@ -14,52 +15,136 @@ final class DonationController extends Controller
     {
         $this->requirePermission('donations.view');
 
-        $year = normalize_fiscal_year($_GET['year'] ?? date('Y'));
-        if ($year < 1912 || $year > 2100) {
-            $year = (int) date('Y');
-        }
-        $receiptStatus = in_array(($_GET['receipt_status'] ?? ''), ['not_required', 'pending', 'issued', 'voided'], true)
-            ? (string) $_GET['receipt_status']
-            : '';
-        $keyword = trim((string) ($_GET['q'] ?? ''));
-
-        $where = ['YEAR(donations.donated_at) = :year'];
-        $params = ['year' => $year];
-        if ($receiptStatus !== '') {
-            $where[] = 'donations.receipt_status = :receipt_status';
-            $params['receipt_status'] = $receiptStatus;
-        }
-        if ($keyword !== '') {
-            $where[] = '(donors.name LIKE :keyword OR donations.receipt_no LIKE :keyword OR donations.project_name LIKE :keyword OR donations.payment_method LIKE :keyword)';
-            $params['keyword'] = '%' . $keyword . '%';
-        }
-
-        $stmt = Database::pdo()->prepare(
-            'SELECT donations.*,
-                    donors.name AS donor_name,
-                    donors.receipt_title,
-                    donors.tax_id,
-                    accounting_vouchers.voucher_no,
-                    accounting_vouchers.status AS voucher_status
-             FROM donations
-             INNER JOIN donors ON donors.id = donations.donor_id
-             LEFT JOIN accounting_vouchers ON accounting_vouchers.id = donations.accounting_voucher_id
-             WHERE ' . implode(' AND ', $where) . '
-             ORDER BY donations.donated_at DESC, donations.id DESC'
-        );
-        $stmt->execute($params);
-        $donations = $stmt->fetchAll();
+        $filters = $this->donationFilters();
+        $donations = $this->donationRows($filters['where'], $filters['params']);
 
         $this->render('donations.index', [
             'title' => '捐款紀錄',
             'section' => '財務會計',
             'active' => 'donations',
             'donations' => $donations,
-            'year' => $year,
-            'receiptStatus' => $receiptStatus,
-            'keyword' => $keyword,
+            'year' => $filters['year'],
+            'receiptStatus' => $filters['receiptStatus'],
+            'keyword' => $filters['keyword'],
             'summary' => $this->summary($donations),
+            'canExport' => $this->canExportDonations(),
         ]);
+    }
+
+    public function report(): void
+    {
+        $this->requirePermission('donations.view');
+
+        $year = $this->yearValue($_GET['year'] ?? date('Y'));
+        $month = preg_match('/^(0[1-9]|1[0-2])$/', (string) ($_GET['month'] ?? ''))
+            ? (string) $_GET['month']
+            : '';
+        [$where, $params] = $this->reportDateScope($year, $month);
+        $donations = $this->donationRows([$where], $params, 'ASC');
+
+        $statusSummary = $this->groupedDonationSummary(
+            'donations.receipt_status',
+            $where,
+            $params,
+            false
+        );
+        $paymentSummary = $this->groupedDonationSummary(
+            'donations.payment_method',
+            $where,
+            $params
+        );
+        $projectSummary = $this->groupedDonationSummary(
+            'COALESCE(NULLIF(donations.project_name, ""), "未指定")',
+            $where,
+            $params
+        );
+        $topDonors = $this->topDonors($where, $params);
+        $monthlySummary = $this->monthlySummary($year);
+
+        $this->render('donations.report', [
+            'title' => '捐款台帳',
+            'section' => '財務會計',
+            'active' => 'donations',
+            'year' => $year,
+            'month' => $month,
+            'summary' => $this->summary($donations),
+            'statusSummary' => $statusSummary,
+            'paymentSummary' => $paymentSummary,
+            'projectSummary' => $projectSummary,
+            'topDonors' => $topDonors,
+            'monthlySummary' => $monthlySummary,
+            'canExport' => $this->canExportDonations(),
+            'profile' => foundation_profile(),
+        ]);
+    }
+
+    public function export(): void
+    {
+        $this->requireDonationExportPermission();
+
+        $filters = $this->donationFilters();
+        $donations = $this->donationRows($filters['where'], $filters['params']);
+
+        AuditLog::write('export', 'donations', 'donations', null, [
+            'year' => $filters['year'],
+            'month' => $filters['month'],
+            'receipt_status' => $filters['receiptStatus'],
+            'keyword' => $filters['keyword'],
+            'count' => count($donations),
+        ]);
+
+        $scope = $filters['month'] !== '' ? $filters['year'] . $filters['month'] : (string) $filters['year'];
+        $filename = 'donations-' . $scope . '-' . date('YmdHis') . '.csv';
+        header('Content-Type: text/csv; charset=UTF-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('X-Content-Type-Options: nosniff');
+
+        echo "\xEF\xBB\xBF";
+        $output = fopen('php://output', 'w');
+        if ($output === false) {
+            exit;
+        }
+
+        fputcsv($output, [
+            '捐款日期',
+            '捐款人',
+            '捐款人類型',
+            '收據抬頭',
+            '統編/身分證字號',
+            '電話',
+            'Email',
+            '捐款方式',
+            '收據狀態',
+            '收據號碼',
+            '指定專案/用途',
+            '金額',
+            '會計傳票',
+            '傳票狀態',
+            '備註',
+        ]);
+
+        foreach ($donations as $donation) {
+            fputcsv($output, [
+                $donation['donated_at'],
+                $donation['donor_name'],
+                $this->donorTypeLabel((string) $donation['donor_type']),
+                $donation['receipt_title'] ?: $donation['donor_name'],
+                $donation['tax_id'] ?: '',
+                $donation['donor_phone'] ?: '',
+                $donation['donor_email'] ?: '',
+                $donation['payment_method'],
+                $this->receiptLabel((string) $donation['receipt_status']),
+                $donation['receipt_no'] ?: '',
+                $donation['project_name'] ?: '',
+                number_format((float) $donation['amount'], 0, '.', ''),
+                $donation['voucher_no'] ?: '',
+                $this->voucherLabel((string) ($donation['voucher_status'] ?? '')),
+                $donation['notes'] ?: '',
+            ]);
+        }
+
+        fclose($output);
+        exit;
     }
 
     public function create(): void
@@ -113,6 +198,19 @@ final class DonationController extends Controller
 
         $this->render('donations.show', [
             'title' => '捐款紀錄',
+            'section' => '財務會計',
+            'active' => 'donations',
+            'donation' => $this->findDonation((int) $id),
+            'profile' => foundation_profile(),
+        ]);
+    }
+
+    public function receipt(string $id): void
+    {
+        $this->requirePermission('donations.view');
+
+        $this->render('donations.receipt', [
+            'title' => '捐款收據',
             'section' => '財務會計',
             'active' => 'donations',
             'donation' => $this->findDonation((int) $id),
@@ -318,6 +416,164 @@ final class DonationController extends Controller
         ];
     }
 
+    private function donationFilters(): array
+    {
+        $year = $this->yearValue($_GET['year'] ?? date('Y'));
+        $month = preg_match('/^(0[1-9]|1[0-2])$/', (string) ($_GET['month'] ?? ''))
+            ? (string) $_GET['month']
+            : '';
+        $receiptStatus = in_array(($_GET['receipt_status'] ?? ''), ['not_required', 'pending', 'issued', 'voided'], true)
+            ? (string) $_GET['receipt_status']
+            : '';
+        $keyword = trim((string) ($_GET['q'] ?? ''));
+
+        $where = ['YEAR(donations.donated_at) = :year'];
+        $params = ['year' => $year];
+        if ($month !== '') {
+            $where[] = 'DATE_FORMAT(donations.donated_at, "%Y-%m") = :month';
+            $params['month'] = $year . '-' . $month;
+        }
+        if ($receiptStatus !== '') {
+            $where[] = 'donations.receipt_status = :receipt_status';
+            $params['receipt_status'] = $receiptStatus;
+        }
+        if ($keyword !== '') {
+            $where[] = '(donors.name LIKE :keyword OR donors.receipt_title LIKE :keyword OR donors.tax_id LIKE :keyword OR donations.receipt_no LIKE :keyword OR donations.project_name LIKE :keyword OR donations.payment_method LIKE :keyword)';
+            $params['keyword'] = '%' . $keyword . '%';
+        }
+
+        return [
+            'year' => $year,
+            'month' => $month,
+            'receiptStatus' => $receiptStatus,
+            'keyword' => $keyword,
+            'where' => $where,
+            'params' => $params,
+        ];
+    }
+
+    private function donationRows(array $where, array $params, string $direction = 'DESC'): array
+    {
+        $direction = strtoupper($direction) === 'ASC' ? 'ASC' : 'DESC';
+        $stmt = Database::pdo()->prepare(
+            'SELECT donations.*,
+                    donors.name AS donor_name,
+                    donors.donor_type,
+                    donors.receipt_title,
+                    donors.tax_id,
+                    donors.phone AS donor_phone,
+                    donors.email AS donor_email,
+                    accounting_vouchers.voucher_no,
+                    accounting_vouchers.status AS voucher_status
+             FROM donations
+             INNER JOIN donors ON donors.id = donations.donor_id
+             LEFT JOIN accounting_vouchers ON accounting_vouchers.id = donations.accounting_voucher_id
+             WHERE ' . implode(' AND ', $where) . '
+             ORDER BY donations.donated_at ' . $direction . ', donations.id ' . $direction
+        );
+        $stmt->execute($params);
+
+        return $stmt->fetchAll();
+    }
+
+    private function yearValue(mixed $value): int
+    {
+        $year = normalize_fiscal_year($value);
+        if ($year < 1912 || $year > 2100) {
+            return (int) date('Y');
+        }
+
+        return $year;
+    }
+
+    private function reportDateScope(int $year, string $month): array
+    {
+        if ($month !== '') {
+            return [
+                'DATE_FORMAT(donations.donated_at, "%Y-%m") = :report_month',
+                ['report_month' => $year . '-' . $month],
+            ];
+        }
+
+        return [
+            'YEAR(donations.donated_at) = :report_year',
+            ['report_year' => $year],
+        ];
+    }
+
+    private function groupedDonationSummary(string $groupExpression, string $where, array $params, bool $excludeVoided = true): array
+    {
+        $voidedClause = $excludeVoided ? ' AND donations.receipt_status != "voided"' : '';
+        $stmt = Database::pdo()->prepare(
+            'SELECT ' . $groupExpression . ' AS group_name,
+                    COUNT(*) AS donation_count,
+                    SUM(donations.amount) AS total_amount
+             FROM donations
+             INNER JOIN donors ON donors.id = donations.donor_id
+             WHERE ' . $where . $voidedClause . '
+             GROUP BY group_name
+             ORDER BY total_amount DESC, group_name'
+        );
+        $stmt->execute($params);
+
+        return $stmt->fetchAll();
+    }
+
+    private function topDonors(string $where, array $params): array
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT donors.id,
+                    donors.name,
+                    donors.donor_type,
+                    COUNT(donations.id) AS donation_count,
+                    SUM(donations.amount) AS total_amount,
+                    MAX(donations.donated_at) AS last_donated_at
+             FROM donations
+             INNER JOIN donors ON donors.id = donations.donor_id
+             WHERE ' . $where . ' AND donations.receipt_status != "voided"
+             GROUP BY donors.id, donors.name, donors.donor_type
+             ORDER BY total_amount DESC, donation_count DESC, donors.name
+             LIMIT 10'
+        );
+        $stmt->execute($params);
+
+        return $stmt->fetchAll();
+    }
+
+    private function monthlySummary(int $year): array
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT MONTH(donations.donated_at) AS month_no,
+                    COUNT(*) AS donation_count,
+                    SUM(donations.amount) AS total_amount
+             FROM donations
+             WHERE YEAR(donations.donated_at) = :year
+               AND donations.receipt_status != "voided"
+             GROUP BY month_no
+             ORDER BY month_no'
+        );
+        $stmt->execute(['year' => $year]);
+        $rows = $stmt->fetchAll();
+
+        $summary = [];
+        for ($month = 1; $month <= 12; $month++) {
+            $summary[$month] = [
+                'month_no' => $month,
+                'donation_count' => 0,
+                'total_amount' => 0,
+            ];
+        }
+
+        foreach ($rows as $row) {
+            $month = (int) $row['month_no'];
+            if (isset($summary[$month])) {
+                $summary[$month] = $row;
+            }
+        }
+
+        return array_values($summary);
+    }
+
     private function findDonation(int $id): array
     {
         $stmt = Database::pdo()->prepare(
@@ -416,6 +672,37 @@ final class DonationController extends Controller
     private function amountValue(): float
     {
         return round((float) ($_POST['amount'] ?? 0), 2);
+    }
+
+    private function requireDonationExportPermission(): void
+    {
+        $this->requireAuth();
+
+        if (!$this->canExportDonations()) {
+            http_response_code(403);
+            view('errors.403', ['title' => '沒有權限']);
+            exit;
+        }
+    }
+
+    private function canExportDonations(): bool
+    {
+        return Permission::can('reports.export') || Permission::can('donations.manage');
+    }
+
+    private function receiptLabel(string $status): string
+    {
+        return ['not_required' => '免開', 'pending' => '待處理', 'issued' => '已開立', 'voided' => '作廢'][$status] ?? $status;
+    }
+
+    private function voucherLabel(string $status): string
+    {
+        return ['draft' => '草稿', 'posted' => '已入帳', 'voided' => '已作廢'][$status] ?? $status;
+    }
+
+    private function donorTypeLabel(string $type): string
+    {
+        return ['person' => '個人', 'organization' => '組織'][$type] ?? $type;
     }
 
     private function summary(array $donations): array

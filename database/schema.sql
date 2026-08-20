@@ -159,6 +159,7 @@ CREATE TABLE donations (
   payment_method VARCHAR(40) NOT NULL,
   receipt_no VARCHAR(80) NULL,
   receipt_status ENUM('not_required', 'pending', 'issued', 'voided') NOT NULL DEFAULT 'pending',
+  accounting_voucher_id BIGINT UNSIGNED NULL,
   project_name VARCHAR(120) NULL,
   notes TEXT NULL,
   created_by BIGINT UNSIGNED NULL,
@@ -171,7 +172,8 @@ CREATE TABLE donations (
     FOREIGN KEY (created_by) REFERENCES users(id)
     ON DELETE SET NULL,
   INDEX idx_donations_donated_at (donated_at),
-  INDEX idx_donations_receipt_status (receipt_status)
+  INDEX idx_donations_receipt_status (receipt_status),
+  INDEX idx_donations_accounting_voucher (accounting_voucher_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE activities (

@@ -16,6 +16,9 @@ ob_start();
         <div class="actions">
             <a class="btn" href="/donations">返回列表</a>
             <a class="btn" href="/donors/<?= e((string) $donation['donor_id']) ?>">捐款人資料</a>
+            <?php if ($donation['receipt_status'] !== 'not_required'): ?>
+                <a class="btn" href="/donations/<?= e((string) $donation['id']) ?>/receipt">列印收據</a>
+            <?php endif; ?>
             <?php if ($canManage && empty($donation['accounting_voucher_id']) && $donation['receipt_status'] !== 'voided'): ?>
                 <a class="btn" href="/donations/<?= e((string) $donation['id']) ?>/edit">編輯</a>
                 <?php if (\App\Core\Permission::can('accounting.manage')): ?>
