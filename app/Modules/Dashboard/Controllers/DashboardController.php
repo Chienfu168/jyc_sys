@@ -15,6 +15,8 @@ final class DashboardController extends Controller
 
         $sources = ApprovalCatalog::sources();
         $pendingApprovals = $this->pendingApprovals($sources);
+        $operationalCards = $this->operationalCards();
+        $operationalAlerts = $this->operationalAlerts();
 
         $stats = [
             'users' => (int) Database::pdo()->query('SELECT COUNT(*) FROM users')->fetchColumn(),
@@ -41,7 +43,249 @@ final class DashboardController extends Controller
             'logs' => $stmt->fetchAll(),
             'pendingApprovals' => $pendingApprovals,
             'canApproveAny' => $this->canApproveAny($sources),
+            'operationalCards' => $operationalCards,
+            'operationalAlerts' => $operationalAlerts,
         ]);
+    }
+
+    private function operationalCards(): array
+    {
+        $month = date('Y-m');
+        $cards = [];
+
+        if (Permission::can('donations.view')) {
+            $cards[] = [
+                'label' => '待開捐款收據',
+                'count' => $this->count('SELECT COUNT(*) FROM donations WHERE receipt_status = "pending"'),
+                'href' => '/donations?year=' . date('Y') . '&receipt_status=pending',
+                'tone' => 'warning',
+            ];
+        }
+
+        if (Permission::can('income_expenses.view')) {
+            $cards[] = [
+                'label' => '待補收支憑證',
+                'count' => $this->count('SELECT COUNT(*) FROM income_expense_records WHERE receipt_status = "pending" AND status != "voided"'),
+                'href' => '/income-expenses?month=' . $month,
+                'tone' => 'warning',
+            ];
+        }
+
+        if (Permission::can('accounting.view')) {
+            $cards[] = [
+                'label' => '本月草稿傳票',
+                'count' => $this->count('SELECT COUNT(*) FROM accounting_vouchers WHERE status = "draft" AND DATE_FORMAT(voucher_date, "%Y-%m") = :month', ['month' => $month]),
+                'href' => '/accounting/vouchers?month=' . $month . '&status=draft',
+                'tone' => 'muted',
+            ];
+        }
+
+        if (Permission::can('bank_accounts.view')) {
+            $cards[] = [
+                'label' => '本月未對帳',
+                'count' => $this->count('SELECT COUNT(*) FROM bank_account_transactions WHERE reconciliation_status = "unreconciled" AND DATE_FORMAT(transacted_on, "%Y-%m") = :month', ['month' => $month]),
+                'href' => '/bank-transactions/reconciliation?month=' . $month . '&status=unreconciled',
+                'tone' => 'warning',
+            ];
+        }
+
+        if (Permission::can('activities.view')) {
+            $cards[] = [
+                'label' => '14 日內活動',
+                'count' => $this->count(
+                    'SELECT COUNT(*) FROM activities
+                     WHERE status IN ("draft", "published")
+                       AND starts_at BETWEEN :start_at AND :end_at',
+                    [
+                        'start_at' => date('Y-m-d 00:00:00'),
+                        'end_at' => date('Y-m-d 23:59:59', strtotime('+14 days')),
+                    ]
+                ),
+                'href' => '/activities?month=' . $month,
+                'tone' => 'ok',
+            ];
+        }
+
+        return $cards;
+    }
+
+    private function operationalAlerts(): array
+    {
+        $alerts = [];
+
+        if (Permission::can('donations.view')) {
+            array_push($alerts, ...$this->pendingDonationReceiptAlerts());
+        }
+        if (Permission::can('income_expenses.view')) {
+            array_push($alerts, ...$this->pendingIncomeReceiptAlerts());
+        }
+        if (Permission::can('accounting.view')) {
+            array_push($alerts, ...$this->draftVoucherAlerts());
+        }
+        if (Permission::can('bank_accounts.view')) {
+            array_push($alerts, ...$this->unreconciledBankAlerts());
+        }
+        if (Permission::can('activities.view')) {
+            array_push($alerts, ...$this->upcomingActivityAlerts());
+        }
+
+        usort($alerts, static function (array $a, array $b): int {
+            if ((int) $a['priority'] !== (int) $b['priority']) {
+                return (int) $b['priority'] <=> (int) $a['priority'];
+            }
+
+            return strcmp((string) $a['date'], (string) $b['date']);
+        });
+
+        return array_slice($alerts, 0, 12);
+    }
+
+    private function pendingDonationReceiptAlerts(): array
+    {
+        $stmt = Database::pdo()->query(
+            'SELECT donations.id,
+                    donations.donated_at AS item_date,
+                    donations.amount,
+                    donations.receipt_no,
+                    donors.name AS donor_name
+             FROM donations
+             INNER JOIN donors ON donors.id = donations.donor_id
+             WHERE donations.receipt_status = "pending"
+             ORDER BY donations.donated_at DESC, donations.id DESC
+             LIMIT 5'
+        );
+
+        return array_map(static fn (array $row): array => [
+            'source' => '捐款收據',
+            'status' => '待處理',
+            'tone' => 'warning',
+            'date' => $row['item_date'],
+            'title' => $row['donor_name'],
+            'detail' => '金額 ' . number_format((float) $row['amount'], 0) . ($row['receipt_no'] ? ' / ' . $row['receipt_no'] : ''),
+            'href' => '/donations/' . $row['id'],
+            'priority' => 80,
+        ], $stmt->fetchAll());
+    }
+
+    private function pendingIncomeReceiptAlerts(): array
+    {
+        $stmt = Database::pdo()->query(
+            'SELECT id, occurred_on AS item_date, item_type, subject, amount, receipt_no
+             FROM income_expense_records
+             WHERE receipt_status = "pending"
+               AND status != "voided"
+             ORDER BY occurred_on DESC, id DESC
+             LIMIT 5'
+        );
+
+        return array_map(static fn (array $row): array => [
+            'source' => '收支憑證',
+            'status' => '待補件',
+            'tone' => 'warning',
+            'date' => $row['item_date'],
+            'title' => $row['subject'],
+            'detail' => (($row['item_type'] ?? '') === 'income' ? '收入 ' : '支出 ') . number_format((float) $row['amount'], 0) . ($row['receipt_no'] ? ' / ' . $row['receipt_no'] : ''),
+            'href' => '/income-expenses/' . $row['id'],
+            'priority' => 70,
+        ], $stmt->fetchAll());
+    }
+
+    private function draftVoucherAlerts(): array
+    {
+        $stmt = Database::pdo()->query(
+            'SELECT accounting_vouchers.id,
+                    accounting_vouchers.voucher_no,
+                    accounting_vouchers.voucher_date AS item_date,
+                    accounting_vouchers.summary,
+                    COALESCE(SUM(accounting_voucher_lines.debit), 0) AS debit_total,
+                    COALESCE(SUM(accounting_voucher_lines.credit), 0) AS credit_total
+             FROM accounting_vouchers
+             LEFT JOIN accounting_voucher_lines ON accounting_voucher_lines.voucher_id = accounting_vouchers.id
+             WHERE accounting_vouchers.status = "draft"
+             GROUP BY accounting_vouchers.id
+             ORDER BY accounting_vouchers.voucher_date DESC, accounting_vouchers.id DESC
+             LIMIT 5'
+        );
+
+        return array_map(static function (array $row): array {
+            $balanced = round((float) $row['debit_total'], 2) === round((float) $row['credit_total'], 2)
+                && (float) $row['debit_total'] > 0;
+
+            return [
+                'source' => '會計傳票',
+                'status' => $balanced ? '待過帳' : '需檢查',
+                'tone' => $balanced ? 'muted' : 'danger',
+                'date' => $row['item_date'],
+                'title' => ($row['voucher_no'] ?: '未編號') . ' ' . $row['summary'],
+                'detail' => '借方 ' . number_format((float) $row['debit_total'], 0) . ' / 貸方 ' . number_format((float) $row['credit_total'], 0),
+                'href' => '/accounting/vouchers/' . $row['id'],
+                'priority' => $balanced ? 50 : 90,
+            ];
+        }, $stmt->fetchAll());
+    }
+
+    private function unreconciledBankAlerts(): array
+    {
+        $stmt = Database::pdo()->query(
+            'SELECT bank_account_transactions.id,
+                    bank_account_transactions.bank_account_id,
+                    bank_account_transactions.transacted_on AS item_date,
+                    bank_account_transactions.subject,
+                    bank_account_transactions.amount,
+                    bank_accounts.bank_name,
+                    bank_accounts.account_no
+             FROM bank_account_transactions
+             INNER JOIN bank_accounts ON bank_accounts.id = bank_account_transactions.bank_account_id
+             WHERE bank_account_transactions.reconciliation_status = "unreconciled"
+             ORDER BY bank_account_transactions.transacted_on DESC, bank_account_transactions.id DESC
+             LIMIT 5'
+        );
+
+        return array_map(static fn (array $row): array => [
+            'source' => '銀行對帳',
+            'status' => '未對帳',
+            'tone' => 'warning',
+            'date' => $row['item_date'],
+            'title' => $row['subject'],
+            'detail' => trim($row['bank_name'] . ' ' . $row['account_no']) . ' / ' . number_format((float) $row['amount'], 0),
+            'href' => '/bank-transactions/reconciliation?month=' . substr((string) $row['item_date'], 0, 7) . '&bank_account_id=' . (int) $row['bank_account_id'] . '&status=unreconciled',
+            'priority' => 60,
+        ], $stmt->fetchAll());
+    }
+
+    private function upcomingActivityAlerts(): array
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT id, starts_at AS item_date, title, location, status
+             FROM activities
+             WHERE status IN ("draft", "published")
+               AND starts_at BETWEEN :start_at AND :end_at
+             ORDER BY starts_at, id
+             LIMIT 5'
+        );
+        $stmt->execute([
+            'start_at' => date('Y-m-d 00:00:00'),
+            'end_at' => date('Y-m-d 23:59:59', strtotime('+14 days')),
+        ]);
+
+        return array_map(static fn (array $row): array => [
+            'source' => '近期活動',
+            'status' => $row['status'] === 'published' ? '已發布' : '草稿',
+            'tone' => $row['status'] === 'published' ? 'ok' : 'muted',
+            'date' => substr((string) $row['item_date'], 0, 10),
+            'title' => $row['title'],
+            'detail' => trim(substr((string) $row['item_date'], 11, 5) . ' ' . ($row['location'] ?: '')),
+            'href' => '/activities/' . $row['id'],
+            'priority' => 40,
+        ], $stmt->fetchAll());
+    }
+
+    private function count(string $sql, array $params = []): int
+    {
+        $stmt = Database::pdo()->prepare($sql);
+        $stmt->execute($params);
+
+        return (int) $stmt->fetchColumn();
     }
 
     private function pendingApprovals(array $sources): array

@@ -16,6 +16,7 @@ INSERT INTO permissions (code, name, module, created_at, updated_at) VALUES
   ('users.create', '新增使用者', 'users', NOW(), NOW()),
   ('users.update', '編輯使用者', 'users', NOW(), NOW()),
   ('roles.view', '檢視角色權限', 'roles', NOW(), NOW()),
+  ('roles.manage', '管理角色權限', 'roles', NOW(), NOW()),
   ('donors.view', '檢視捐款人', 'donors', NOW(), NOW()),
   ('donors.manage', '管理捐款人', 'donors', NOW(), NOW()),
   ('donations.view', '檢視捐款紀錄', 'donations', NOW(), NOW()),

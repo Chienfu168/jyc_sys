@@ -9,6 +9,7 @@ PHP + MySQL 的內部管理系統，目標是部署在一般租用主機 / cPane
 - 使用者管理、角色權限檢視與權限勾選管理
 - 正式環境密碼重設不落地明文 token；可啟用主機 mail 寄送重設連結
 - 總儀表板
+- 工作台營運提醒：待開收據、待補憑證、草稿傳票、未對帳交易與近期活動
 - 捐款人管理：個人 / 組織、聯絡方式、收據抬頭、統編與封存
 - 捐款紀錄：年度查詢、收據狀態、指定用途、一鍵建立草稿會計傳票、捐款台帳、收據列印與 CSV 匯出
 - 年度預算編寫、檢視、編輯與核定
@@ -57,7 +58,7 @@ https://你的網域/install.php
 `.env` 主要設定：
 
 ```env
-APP_VERSION=0.6.7
+APP_VERSION=0.6.8
 GITHUB_REPO=Chienfu168/jyc_sys
 GITHUB_TOKEN=
 UPDATE_CHANNEL=stable

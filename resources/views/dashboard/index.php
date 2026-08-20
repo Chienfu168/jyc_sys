@@ -21,6 +21,55 @@ ob_start();
     </div>
 </section>
 
+<?php if ($operationalCards): ?>
+<section class="stats-grid budget-summary">
+    <?php foreach ($operationalCards as $card): ?>
+        <div class="stat-card">
+            <span><a class="text-link" href="<?= e($card['href']) ?>"><?= e($card['label']) ?></a></span>
+            <strong><?= e(number_format((int) $card['count'])) ?></strong>
+        </div>
+    <?php endforeach; ?>
+</section>
+<?php endif; ?>
+
+<section class="panel">
+    <div class="panel-header">
+        <div>
+            <h2>營運提醒</h2>
+            <p class="muted-text">依照目前帳號權限彙整收據、憑證、傳票、對帳與近期活動。</p>
+        </div>
+    </div>
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+            <tr>
+                <th>類別</th>
+                <th>狀態</th>
+                <th>日期</th>
+                <th>事項</th>
+                <th>補充</th>
+                <th class="no-print">操作</th>
+            </tr>
+            </thead>
+            <tbody>
+            <?php foreach ($operationalAlerts as $alert): ?>
+                <tr>
+                    <td><?= e($alert['source']) ?></td>
+                    <td><span class="badge <?= e($alert['tone']) ?>"><?= e($alert['status']) ?></span></td>
+                    <td><?= e(dashboard_alert_date($alert['date'])) ?></td>
+                    <td><a class="text-link" href="<?= e($alert['href']) ?>"><?= e($alert['title']) ?></a></td>
+                    <td><?= e($alert['detail']) ?></td>
+                    <td class="table-actions no-print"><a class="btn small" href="<?= e($alert['href']) ?>">處理</a></td>
+                </tr>
+            <?php endforeach; ?>
+            <?php if (!$operationalAlerts): ?>
+                <tr><td colspan="6" class="empty-state">目前沒有營運提醒</td></tr>
+            <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
+</section>
+
 <section class="panel">
     <div class="panel-header">
         <div>
@@ -126,6 +175,15 @@ function dashboard_datetime(?string $datetime): string
     $time = substr($datetime, 11, 5);
 
     return roc_date($date) . ($time ? ' ' . $time : '');
+}
+
+function dashboard_alert_date(?string $date): string
+{
+    if (!$date) {
+        return '-';
+    }
+
+    return roc_date(substr($date, 0, 10));
 }
 
 function dashboard_pending_days(array $approval): int
