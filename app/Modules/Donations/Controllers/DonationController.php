@@ -24,6 +24,7 @@ final class DonationController extends Controller
             'active' => 'donations',
             'donations' => $donations,
             'year' => $filters['year'],
+            'month' => $filters['month'],
             'receiptStatus' => $filters['receiptStatus'],
             'keyword' => $filters['keyword'],
             'summary' => $this->summary($donations),
@@ -201,6 +202,8 @@ final class DonationController extends Controller
             'section' => '財務會計',
             'active' => 'donations',
             'donation' => $this->findDonation((int) $id),
+            'receiptVoids' => $this->receiptVoids((int) $id),
+            'receiptDeliveries' => $this->receiptDeliveries((int) $id),
             'profile' => foundation_profile(),
         ]);
     }
@@ -214,8 +217,326 @@ final class DonationController extends Controller
             'section' => '財務會計',
             'active' => 'donations',
             'donation' => $this->findDonation((int) $id),
+            'receiptVoids' => $this->receiptVoids((int) $id),
+            'receiptDeliveries' => $this->receiptDeliveries((int) $id),
             'profile' => foundation_profile(),
         ]);
+    }
+
+    public function printReceipts(): void
+    {
+        $this->requirePermission('donations.view');
+
+        $filters = $this->donationFiltersFrom($_GET, 'issued');
+        $where = $filters['where'];
+        $where[] = 'donations.receipt_no IS NOT NULL AND donations.receipt_no != ""';
+        $donations = $this->donationRows($where, $filters['params'], 'ASC');
+
+        if (!$donations) {
+            flash('error', '目前查詢條件沒有已開立且具收據號碼的收據。');
+            redirect($this->donationListUrl(
+                $filters['year'],
+                $filters['month'],
+                'issued',
+                $filters['keyword']
+            ));
+        }
+
+        AuditLog::write('print_receipts', 'donations', 'donations', null, [
+            'year' => $filters['year'],
+            'month' => $filters['month'],
+            'keyword' => $filters['keyword'],
+            'count' => count($donations),
+        ]);
+
+        $this->render('donations.receipts-print', [
+            'title' => '批次列印收據',
+            'section' => '財務會計',
+            'active' => 'donations',
+            'donations' => $donations,
+            'year' => $filters['year'],
+            'month' => $filters['month'],
+            'keyword' => $filters['keyword'],
+            'profile' => foundation_profile(),
+        ]);
+    }
+
+    public function issueReceipt(string $id): void
+    {
+        $this->requirePermission('donations.manage');
+        $donation = $this->findDonation((int) $id);
+
+        if ($donation['receipt_status'] === 'voided') {
+            flash('error', '已作廢的捐款不可開立收據。');
+            redirect('/donations/' . $id);
+        }
+        if ($donation['receipt_status'] === 'not_required') {
+            flash('error', '此捐款標示為免開收據，請先編輯收據狀態。');
+            redirect('/donations/' . $id);
+        }
+        if ($donation['receipt_status'] === 'issued' && !empty($donation['receipt_no'])) {
+            flash('success', '此捐款收據已開立。');
+            redirect('/donations/' . $id . '/receipt');
+        }
+
+        $pdo = Database::pdo();
+        $receiptNo = trim((string) ($donation['receipt_no'] ?? ''));
+        $pdo->beginTransaction();
+        try {
+            if ($receiptNo === '') {
+                $receiptNo = $this->nextReceiptNo($pdo, (string) $donation['donated_at']);
+            } elseif ($this->receiptNoExists($pdo, $receiptNo, (int) $donation['id'])) {
+                throw new \RuntimeException('收據號碼已被其他捐款紀錄使用，請先更正後再開立。');
+            }
+
+            $pdo->prepare(
+                'UPDATE donations
+                 SET receipt_no = :receipt_no,
+                     receipt_status = "issued",
+                     updated_at = :updated_at
+                 WHERE id = :id'
+            )->execute([
+                'receipt_no' => $receiptNo,
+                'updated_at' => now(),
+                'id' => (int) $donation['id'],
+            ]);
+
+            $pdo->commit();
+        } catch (\Throwable $exception) {
+            $pdo->rollBack();
+            flash('error', '收據開立失敗：' . $exception->getMessage());
+            redirect('/donations/' . $id);
+        }
+
+        AuditLog::write('issue_receipt', 'donations', 'donations', (int) $donation['id'], [
+            'receipt_no' => $receiptNo,
+        ]);
+        flash('success', '收據已開立：' . $receiptNo);
+        redirect('/donations/' . $id . '/receipt');
+    }
+
+    public function voidReceipt(string $id): void
+    {
+        $this->requirePermission('donations.manage');
+
+        $reason = $this->receiptVoidReason();
+        if ($reason === '') {
+            flash('error', '請填寫收據作廢原因。');
+            redirect('/donations/' . $id);
+        }
+
+        $pdo = Database::pdo();
+        $receiptNo = '';
+        $pdo->beginTransaction();
+        try {
+            $donation = $this->lockDonation($pdo, (int) $id);
+            $receiptNo = trim((string) ($donation['receipt_no'] ?? ''));
+            if ($donation['receipt_status'] !== 'issued' || $receiptNo === '') {
+                throw new \RuntimeException('只有已開立且有號碼的收據可以作廢。');
+            }
+
+            $this->recordReceiptVoid($pdo, (int) $donation['id'], $receiptNo, $reason, null);
+            $pdo->prepare(
+                'UPDATE donations
+                 SET receipt_no = NULL,
+                     receipt_status = "pending",
+                     updated_at = :updated_at
+                 WHERE id = :id'
+            )->execute([
+                'updated_at' => now(),
+                'id' => (int) $donation['id'],
+            ]);
+
+            $pdo->commit();
+        } catch (\Throwable $exception) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            flash('error', '收據作廢失敗：' . $exception->getMessage());
+            redirect('/donations/' . $id);
+        }
+
+        AuditLog::write('void_receipt', 'donations', 'donations', (int) $id, [
+            'receipt_no' => $receiptNo,
+            'reason' => $reason,
+        ]);
+        flash('success', '收據已作廢，捐款已回到待處理。');
+        redirect('/donations/' . $id);
+    }
+
+    public function reissueReceipt(string $id): void
+    {
+        $this->requirePermission('donations.manage');
+
+        $reason = $this->receiptVoidReason();
+        if ($reason === '') {
+            flash('error', '請填寫重開原因。');
+            redirect('/donations/' . $id);
+        }
+
+        $pdo = Database::pdo();
+        $oldReceiptNo = '';
+        $newReceiptNo = '';
+        $pdo->beginTransaction();
+        try {
+            $donation = $this->lockDonation($pdo, (int) $id);
+            $oldReceiptNo = trim((string) ($donation['receipt_no'] ?? ''));
+            if ($donation['receipt_status'] !== 'issued' || $oldReceiptNo === '') {
+                throw new \RuntimeException('只有已開立且有號碼的收據可以重開。');
+            }
+
+            $newReceiptNo = $this->nextReceiptNo($pdo, (string) $donation['donated_at']);
+            $this->recordReceiptVoid($pdo, (int) $donation['id'], $oldReceiptNo, $reason, $newReceiptNo);
+            $pdo->prepare(
+                'UPDATE donations
+                 SET receipt_no = :receipt_no,
+                     receipt_status = "issued",
+                     updated_at = :updated_at
+                 WHERE id = :id'
+            )->execute([
+                'receipt_no' => $newReceiptNo,
+                'updated_at' => now(),
+                'id' => (int) $donation['id'],
+            ]);
+
+            $pdo->commit();
+        } catch (\Throwable $exception) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            flash('error', '收據重開失敗：' . $exception->getMessage());
+            redirect('/donations/' . $id);
+        }
+
+        AuditLog::write('reissue_receipt', 'donations', 'donations', (int) $id, [
+            'old_receipt_no' => $oldReceiptNo,
+            'new_receipt_no' => $newReceiptNo,
+            'reason' => $reason,
+        ]);
+        flash('success', '收據已重開，舊號 ' . $oldReceiptNo . '，新號 ' . $newReceiptNo . '。');
+        redirect('/donations/' . $id . '/receipt');
+    }
+
+    public function recordReceiptDelivery(string $id): void
+    {
+        $this->requirePermission('donations.manage');
+        $donation = $this->findDonation((int) $id);
+
+        if ($donation['receipt_status'] !== 'issued' || empty($donation['receipt_no'])) {
+            flash('error', '只有已開立且有號碼的收據可以記錄寄送。');
+            redirect('/donations/' . $id);
+        }
+
+        $pdo = Database::pdo();
+        if (!$this->receiptDeliveriesTableExists($pdo)) {
+            flash('error', '收據寄送資料表尚未建立，請先執行系統更新。');
+            redirect('/donations/' . $id);
+        }
+
+        $payload = $this->receiptDeliveryPayload();
+        if (isset($payload['error'])) {
+            flash('error', $payload['error']);
+            redirect('/donations/' . $id);
+        }
+
+        $pdo->prepare(
+            'INSERT INTO donation_receipt_deliveries
+             (donation_id, receipt_no, delivery_method, delivered_to, delivered_on, notes, created_by, created_at)
+             VALUES
+             (:donation_id, :receipt_no, :delivery_method, :delivered_to, :delivered_on, :notes, :created_by, :created_at)'
+        )->execute([
+            'donation_id' => (int) $donation['id'],
+            'receipt_no' => (string) $donation['receipt_no'],
+            'delivery_method' => $payload['delivery_method'],
+            'delivered_to' => $payload['delivered_to'],
+            'delivered_on' => $payload['delivered_on'],
+            'notes' => $payload['notes'],
+            'created_by' => auth()->user()['id'] ?? null,
+            'created_at' => now(),
+        ]);
+
+        AuditLog::write('record_receipt_delivery', 'donations', 'donations', (int) $id, [
+            'receipt_no' => (string) $donation['receipt_no'],
+            'delivery_method' => $payload['delivery_method'],
+            'delivered_on' => $payload['delivered_on'],
+            'delivered_to' => $payload['delivered_to'],
+        ]);
+        flash('success', '收據寄送紀錄已新增。');
+        redirect('/donations/' . $id);
+    }
+
+    public function bulkIssueReceipts(): void
+    {
+        $this->requirePermission('donations.manage');
+
+        $filters = $this->donationFiltersFrom($_POST, 'pending');
+        $pendingUrl = $this->donationListUrl(
+            $filters['year'],
+            $filters['month'],
+            'pending',
+            $filters['keyword']
+        );
+        $issuedUrl = $this->donationListUrl(
+            $filters['year'],
+            $filters['month'],
+            'issued',
+            $filters['keyword']
+        );
+
+        $pdo = Database::pdo();
+        $issuedReceiptNos = [];
+        $pdo->beginTransaction();
+        try {
+            $donations = $this->donationRowsForUpdate($pdo, $filters['where'], $filters['params']);
+            if (!$donations) {
+                $pdo->rollBack();
+                flash('success', '目前查詢條件沒有待處理收據。');
+                redirect($pendingUrl);
+            }
+
+            $stmt = $pdo->prepare(
+                'UPDATE donations
+                 SET receipt_no = :receipt_no,
+                     receipt_status = "issued",
+                     updated_at = :updated_at
+                 WHERE id = :id'
+            );
+
+            foreach ($donations as $donation) {
+                $receiptNo = trim((string) ($donation['receipt_no'] ?? ''));
+                if ($receiptNo === '') {
+                    $receiptNo = $this->nextReceiptNo($pdo, (string) $donation['donated_at']);
+                } elseif ($this->receiptNoExists($pdo, $receiptNo, (int) $donation['id'])) {
+                    throw new \RuntimeException('收據號碼 ' . $receiptNo . ' 已被其他捐款紀錄使用，請先更正後再開立。');
+                }
+
+                $stmt->execute([
+                    'receipt_no' => $receiptNo,
+                    'updated_at' => now(),
+                    'id' => (int) $donation['id'],
+                ]);
+                $issuedReceiptNos[] = $receiptNo;
+            }
+
+            $pdo->commit();
+        } catch (\Throwable $exception) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            flash('error', '批次開立收據失敗：' . $exception->getMessage());
+            redirect($pendingUrl);
+        }
+
+        AuditLog::write('bulk_issue_receipts', 'donations', 'donations', null, [
+            'year' => $filters['year'],
+            'month' => $filters['month'],
+            'keyword' => $filters['keyword'],
+            'count' => count($issuedReceiptNos),
+            'receipt_no_from' => $issuedReceiptNos[0] ?? null,
+            'receipt_no_to' => $issuedReceiptNos[count($issuedReceiptNos) - 1] ?? null,
+        ]);
+        flash('success', '已批次開立 ' . number_format(count($issuedReceiptNos)) . ' 筆收據。');
+        redirect($issuedUrl);
     }
 
     public function edit(string $id): void
@@ -242,7 +563,7 @@ final class DonationController extends Controller
             redirect('/donations/' . $id);
         }
 
-        $this->validateDonation('/donations/' . $id . '/edit');
+        $this->validateDonation('/donations/' . $id . '/edit', (int) $id);
 
         Database::pdo()->prepare(
             'UPDATE donations
@@ -276,13 +597,32 @@ final class DonationController extends Controller
             redirect('/donations/' . $id);
         }
 
-        Database::pdo()->prepare('UPDATE donations SET receipt_status = "voided", updated_at = :updated_at WHERE id = :id')
-            ->execute([
-                'updated_at' => now(),
-                'id' => (int) $id,
-            ]);
+        $pdo = Database::pdo();
+        $receiptNo = trim((string) ($donation['receipt_no'] ?? ''));
+        $pdo->beginTransaction();
+        try {
+            if ($donation['receipt_status'] === 'issued' && $receiptNo !== '') {
+                $this->recordReceiptVoid($pdo, (int) $donation['id'], $receiptNo, '捐款紀錄作廢', null);
+            }
 
-        AuditLog::write('void', 'donations', 'donations', (int) $id);
+            $pdo->prepare('UPDATE donations SET receipt_status = "voided", updated_at = :updated_at WHERE id = :id')
+                ->execute([
+                    'updated_at' => now(),
+                    'id' => (int) $id,
+                ]);
+
+            $pdo->commit();
+        } catch (\Throwable $exception) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            flash('error', '捐款作廢失敗：' . $exception->getMessage());
+            redirect('/donations/' . $id);
+        }
+
+        AuditLog::write('void', 'donations', 'donations', (int) $id, [
+            'receipt_no' => $receiptNo ?: null,
+        ]);
         flash('success', '捐款紀錄已作廢。');
         redirect('/donations/' . $id);
     }
@@ -377,7 +717,7 @@ final class DonationController extends Controller
         redirect('/accounting/vouchers/' . $voucherId);
     }
 
-    private function validateDonation(string $path): void
+    private function validateDonation(string $path, ?int $ignoreId = null): void
     {
         if ($error = Validator::required($_POST, [
             'donor_id' => '捐款人',
@@ -400,6 +740,15 @@ final class DonationController extends Controller
         if (!in_array($_POST['receipt_status'] ?? '', ['not_required', 'pending', 'issued', 'voided'], true)) {
             $this->backWithInput($path, $_POST, '收據狀態不正確。');
         }
+
+        $receiptStatus = (string) ($_POST['receipt_status'] ?? 'pending');
+        $receiptNo = trim((string) ($_POST['receipt_no'] ?? ''));
+        if ($receiptStatus === 'issued' && $receiptNo === '') {
+            $this->backWithInput($path, $_POST, '已開立收據必須填寫收據號碼，或先儲存為待處理後使用開立收據。');
+        }
+        if ($receiptNo !== '' && $this->receiptNoExists(Database::pdo(), $receiptNo, $ignoreId)) {
+            $this->backWithInput($path, $_POST, '收據號碼已被其他捐款紀錄使用。');
+        }
     }
 
     private function payload(): array
@@ -418,14 +767,24 @@ final class DonationController extends Controller
 
     private function donationFilters(): array
     {
-        $year = $this->yearValue($_GET['year'] ?? date('Y'));
-        $month = preg_match('/^(0[1-9]|1[0-2])$/', (string) ($_GET['month'] ?? ''))
-            ? (string) $_GET['month']
+        return $this->donationFiltersFrom($_GET);
+    }
+
+    private function donationFiltersFrom(array $input, ?string $forcedReceiptStatus = null): array
+    {
+        $validReceiptStatuses = ['not_required', 'pending', 'issued', 'voided'];
+        $yearInput = is_scalar($input['year'] ?? null) ? $input['year'] : date('Y');
+        $monthInput = is_scalar($input['month'] ?? null) ? (string) $input['month'] : '';
+        $receiptStatusInput = is_scalar($input['receipt_status'] ?? null) ? (string) $input['receipt_status'] : '';
+        $keyword = trim(is_scalar($input['q'] ?? null) ? (string) $input['q'] : '');
+
+        $year = $this->yearValue($yearInput);
+        $month = preg_match('/^(0[1-9]|1[0-2])$/', $monthInput)
+            ? $monthInput
             : '';
-        $receiptStatus = in_array(($_GET['receipt_status'] ?? ''), ['not_required', 'pending', 'issued', 'voided'], true)
-            ? (string) $_GET['receipt_status']
-            : '';
-        $keyword = trim((string) ($_GET['q'] ?? ''));
+        $receiptStatus = in_array($forcedReceiptStatus, $validReceiptStatuses, true)
+            ? (string) $forcedReceiptStatus
+            : (in_array($receiptStatusInput, $validReceiptStatuses, true) ? $receiptStatusInput : '');
 
         $where = ['YEAR(donations.donated_at) = :year'];
         $params = ['year' => $year];
@@ -461,6 +820,7 @@ final class DonationController extends Controller
                     donors.donor_type,
                     donors.receipt_title,
                     donors.tax_id,
+                    donors.address AS donor_address,
                     donors.phone AS donor_phone,
                     donors.email AS donor_email,
                     accounting_vouchers.voucher_no,
@@ -474,6 +834,56 @@ final class DonationController extends Controller
         $stmt->execute($params);
 
         return $stmt->fetchAll();
+    }
+
+    private function donationRowsForUpdate(PDO $pdo, array $where, array $params): array
+    {
+        $lockClause = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql' ? ' FOR UPDATE' : '';
+        $stmt = $pdo->prepare(
+            'SELECT donations.id,
+                    donations.donated_at,
+                    donations.receipt_no
+             FROM donations
+             INNER JOIN donors ON donors.id = donations.donor_id
+             WHERE ' . implode(' AND ', $where) . '
+             ORDER BY donations.donated_at ASC, donations.id ASC' . $lockClause
+        );
+        $stmt->execute($params);
+
+        return $stmt->fetchAll();
+    }
+
+    private function lockDonation(PDO $pdo, int $id): array
+    {
+        $lockClause = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql' ? ' FOR UPDATE' : '';
+        $stmt = $pdo->prepare(
+            'SELECT id, donated_at, receipt_no, receipt_status
+             FROM donations
+             WHERE id = :id
+             LIMIT 1' . $lockClause
+        );
+        $stmt->execute(['id' => $id]);
+        $donation = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$donation) {
+            throw new \RuntimeException('找不到捐款紀錄。');
+        }
+
+        return $donation;
+    }
+
+    private function donationListUrl(int $year, string $month, string $receiptStatus, string $keyword): string
+    {
+        $query = [
+            'year' => $year,
+            'receipt_status' => $receiptStatus,
+            'q' => $keyword,
+        ];
+        if ($month !== '') {
+            $query['month'] = $month;
+        }
+
+        return '/donations?' . http_build_query($query);
     }
 
     private function yearValue(mixed $value): int
@@ -606,6 +1016,47 @@ final class DonationController extends Controller
         return $donation;
     }
 
+    private function receiptVoids(int $donationId): array
+    {
+        $pdo = Database::pdo();
+        if (!$this->receiptVoidsTableExists($pdo)) {
+            return [];
+        }
+
+        $stmt = $pdo->prepare(
+            'SELECT donation_receipt_voids.*,
+                    users.name AS voided_by_name
+             FROM donation_receipt_voids
+             LEFT JOIN users ON users.id = donation_receipt_voids.voided_by
+             WHERE donation_receipt_voids.donation_id = :donation_id
+             ORDER BY donation_receipt_voids.voided_at DESC, donation_receipt_voids.id DESC'
+        );
+        $stmt->execute(['donation_id' => $donationId]);
+
+        return $stmt->fetchAll();
+    }
+
+    private function receiptDeliveries(int $donationId): array
+    {
+        $pdo = Database::pdo();
+        if (!$this->receiptDeliveriesTableExists($pdo)) {
+            return [];
+        }
+
+        $stmt = $pdo->prepare(
+            'SELECT donation_receipt_deliveries.*,
+                    users.name AS created_by_name
+             FROM donation_receipt_deliveries
+             LEFT JOIN users ON users.id = donation_receipt_deliveries.created_by
+             WHERE donation_receipt_deliveries.donation_id = :donation_id
+             ORDER BY donation_receipt_deliveries.delivered_on DESC,
+                      donation_receipt_deliveries.id DESC'
+        );
+        $stmt->execute(['donation_id' => $donationId]);
+
+        return $stmt->fetchAll();
+    }
+
     private function donors(): array
     {
         return Database::pdo()->query(
@@ -669,6 +1120,206 @@ final class DonationController extends Controller
         return $prefix . str_pad((string) ((int) $stmt->fetchColumn() + 1), 3, '0', STR_PAD_LEFT);
     }
 
+    private function nextReceiptNo(PDO $pdo, string $date): string
+    {
+        $year = $this->receiptYear($date);
+        $prefix = 'R' . $year . '-';
+        $existingMax = $this->maxExistingReceiptNumber($pdo, $prefix);
+
+        $pdo->prepare(
+            'INSERT IGNORE INTO donation_receipt_sequences
+             (receipt_year, current_no, updated_by, updated_at)
+             VALUES
+             (:receipt_year, :current_no, :updated_by, :updated_at)'
+        )->execute([
+            'receipt_year' => $year,
+            'current_no' => $existingMax,
+            'updated_by' => auth()->user()['id'] ?? null,
+            'updated_at' => now(),
+        ]);
+
+        $stmt = $pdo->prepare('SELECT current_no FROM donation_receipt_sequences WHERE receipt_year = :receipt_year FOR UPDATE');
+        $stmt->execute(['receipt_year' => $year]);
+        $current = max((int) $stmt->fetchColumn(), $existingMax);
+
+        do {
+            $current++;
+            $receiptNo = $prefix . str_pad((string) $current, 4, '0', STR_PAD_LEFT);
+        } while ($this->receiptNoExists($pdo, $receiptNo));
+
+        $pdo->prepare(
+            'UPDATE donation_receipt_sequences
+             SET current_no = :current_no,
+                 updated_by = :updated_by,
+                 updated_at = :updated_at
+             WHERE receipt_year = :receipt_year'
+        )->execute([
+            'current_no' => $current,
+            'updated_by' => auth()->user()['id'] ?? null,
+            'updated_at' => now(),
+            'receipt_year' => $year,
+        ]);
+
+        return $receiptNo;
+    }
+
+    private function receiptYear(string $date): int
+    {
+        if (preg_match('/^(\d{4})-\d{2}-\d{2}$/', $date, $matches)) {
+            return (int) $matches[1];
+        }
+
+        return (int) date('Y');
+    }
+
+    private function maxExistingReceiptNumber(PDO $pdo, string $prefix): int
+    {
+        $sql = 'SELECT receipt_no FROM donations WHERE receipt_no LIKE :prefix';
+        $params = ['prefix' => $prefix . '%'];
+        if ($this->receiptVoidsTableExists($pdo)) {
+            $sql .= ' UNION ALL SELECT receipt_no FROM donation_receipt_voids WHERE receipt_no LIKE :void_prefix';
+            $params['void_prefix'] = $prefix . '%';
+        }
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+
+        $max = 0;
+        foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $receiptNo) {
+            if (preg_match('/^' . preg_quote($prefix, '/') . '(\d+)$/', (string) $receiptNo, $matches)) {
+                $max = max($max, (int) $matches[1]);
+            }
+        }
+
+        return $max;
+    }
+
+    private function receiptNoExists(PDO $pdo, string $receiptNo, ?int $ignoreId = null): bool
+    {
+        $sql = 'SELECT id FROM donations WHERE receipt_no = :receipt_no';
+        $params = ['receipt_no' => $receiptNo];
+        if ($ignoreId !== null) {
+            $sql .= ' AND id != :ignore_id';
+            $params['ignore_id'] = $ignoreId;
+        }
+        $sql .= ' LIMIT 1';
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+
+        if ($stmt->fetchColumn()) {
+            return true;
+        }
+
+        if (!$this->receiptVoidsTableExists($pdo)) {
+            return false;
+        }
+
+        $stmt = $pdo->prepare('SELECT id FROM donation_receipt_voids WHERE receipt_no = :receipt_no LIMIT 1');
+        $stmt->execute(['receipt_no' => $receiptNo]);
+
+        return (bool) $stmt->fetchColumn();
+    }
+
+    private function receiptVoidsTableExists(PDO $pdo): bool
+    {
+        static $exists = null;
+        if ($exists !== null) {
+            return $exists;
+        }
+
+        try {
+            $stmt = $pdo->prepare(
+                'SELECT COUNT(*)
+                 FROM information_schema.TABLES
+                 WHERE TABLE_SCHEMA = DATABASE()
+                   AND TABLE_NAME = :table_name'
+            );
+            $stmt->execute(['table_name' => 'donation_receipt_voids']);
+            $exists = (bool) $stmt->fetchColumn();
+        } catch (\Throwable) {
+            $exists = false;
+        }
+
+        return $exists;
+    }
+
+    private function receiptDeliveriesTableExists(PDO $pdo): bool
+    {
+        static $exists = null;
+        if ($exists !== null) {
+            return $exists;
+        }
+
+        try {
+            $stmt = $pdo->prepare(
+                'SELECT COUNT(*)
+                 FROM information_schema.TABLES
+                 WHERE TABLE_SCHEMA = DATABASE()
+                   AND TABLE_NAME = :table_name'
+            );
+            $stmt->execute(['table_name' => 'donation_receipt_deliveries']);
+            $exists = (bool) $stmt->fetchColumn();
+        } catch (\Throwable) {
+            $exists = false;
+        }
+
+        return $exists;
+    }
+
+    private function recordReceiptVoid(PDO $pdo, int $donationId, string $receiptNo, string $reason, ?string $reissuedReceiptNo): void
+    {
+        if (!$this->receiptVoidsTableExists($pdo)) {
+            throw new \RuntimeException('收據作廢資料表尚未建立，請先執行系統更新。');
+        }
+
+        $pdo->prepare(
+            'INSERT INTO donation_receipt_voids
+             (donation_id, receipt_no, reason, reissued_receipt_no, voided_by, voided_at, created_at)
+             VALUES
+             (:donation_id, :receipt_no, :reason, :reissued_receipt_no, :voided_by, :voided_at, :created_at)'
+        )->execute([
+            'donation_id' => $donationId,
+            'receipt_no' => $receiptNo,
+            'reason' => $reason,
+            'reissued_receipt_no' => $reissuedReceiptNo,
+            'voided_by' => auth()->user()['id'] ?? null,
+            'voided_at' => now(),
+            'created_at' => now(),
+        ]);
+    }
+
+    private function receiptVoidReason(): string
+    {
+        return trim(is_scalar($_POST['reason'] ?? null) ? (string) $_POST['reason'] : '');
+    }
+
+    private function receiptDeliveryPayload(): array
+    {
+        $method = is_scalar($_POST['delivery_method'] ?? null) ? (string) $_POST['delivery_method'] : '';
+        $validMethods = ['email', 'post', 'in_person', 'pickup', 'other'];
+        if (!in_array($method, $validMethods, true)) {
+            return ['error' => '寄送方式不正確。'];
+        }
+
+        $deliveredOn = trim(is_scalar($_POST['delivered_on'] ?? null) ? (string) $_POST['delivered_on'] : '');
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $deliveredOn)) {
+            return ['error' => '寄送日期格式不正確。'];
+        }
+
+        $deliveredTo = trim(is_scalar($_POST['delivered_to'] ?? null) ? (string) $_POST['delivered_to'] : '');
+        if (mb_strlen($deliveredTo) > 190) {
+            return ['error' => '收件對象不可超過 190 個字。'];
+        }
+
+        return [
+            'delivery_method' => $method,
+            'delivered_to' => $deliveredTo,
+            'delivered_on' => $deliveredOn,
+            'notes' => trim(is_scalar($_POST['notes'] ?? null) ? (string) $_POST['notes'] : ''),
+        ];
+    }
+
     private function amountValue(): float
     {
         return round((float) ($_POST['amount'] ?? 0), 2);
@@ -713,6 +1364,7 @@ final class DonationController extends Controller
             'count' => count($valid),
             'amount' => array_sum(array_map(static fn (array $donation): float => (float) $donation['amount'], $valid)),
             'pending_receipts' => count(array_filter($valid, static fn (array $donation): bool => $donation['receipt_status'] === 'pending')),
+            'issued_receipts' => count(array_filter($valid, static fn (array $donation): bool => $donation['receipt_status'] === 'issued' && trim((string) ($donation['receipt_no'] ?? '')) !== '')),
         ];
     }
 }

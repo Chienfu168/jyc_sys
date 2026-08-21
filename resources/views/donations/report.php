@@ -7,6 +7,12 @@ $exportQuery = http_build_query([
     'receipt_status' => '',
     'q' => '',
 ]);
+$receiptPrintQuery = http_build_query([
+    'year' => $year,
+    'month' => $month,
+    'receipt_status' => 'issued',
+    'q' => '',
+]);
 ob_start();
 ?>
 <?php require base_path('resources/views/shared/print-header.php'); ?>
@@ -43,6 +49,19 @@ ob_start();
             <a class="btn" href="/donations?year=<?= e((string) $year) ?>">捐款紀錄</a>
             <?php if ($canExport): ?>
                 <a class="btn" href="/donations/export?<?= e($exportQuery) ?>">匯出 CSV</a>
+            <?php endif; ?>
+            <?php if ((int) $summary['issued_receipts'] > 0): ?>
+                <a class="btn" href="/donations/receipts/print?<?= e($receiptPrintQuery) ?>">批次列印收據</a>
+            <?php endif; ?>
+            <?php if (\App\Core\Permission::can('donations.manage') && (int) $summary['pending_receipts'] > 0): ?>
+                <form method="post" action="/donations/bulk-issue-receipts" onsubmit="return confirm('確定要批次開立本台帳期間的待處理收據？');">
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="year" value="<?= e((string) $year) ?>">
+                    <input type="hidden" name="month" value="<?= e($month) ?>">
+                    <input type="hidden" name="receipt_status" value="pending">
+                    <input type="hidden" name="q" value="">
+                    <button class="btn" type="submit">批次開立待處理</button>
+                </form>
             <?php endif; ?>
             <button class="btn primary" type="button" onclick="window.print()">列印 / 另存 PDF</button>
         </div>

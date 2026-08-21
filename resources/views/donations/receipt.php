@@ -1,6 +1,7 @@
 <?php
 $active = 'donations';
 $documentTitle = '捐款收據';
+$canManage = \App\Core\Permission::can('donations.manage');
 ob_start();
 ?>
 <?php require base_path('resources/views/shared/print-header.php'); ?>
@@ -14,6 +15,12 @@ ob_start();
         </div>
         <div class="actions">
             <a class="btn" href="/donations/<?= e((string) $donation['id']) ?>">返回明細</a>
+            <?php if ($canManage && $donation['receipt_status'] === 'pending'): ?>
+                <form method="post" action="/donations/<?= e((string) $donation['id']) ?>/issue-receipt">
+                    <?= csrf_field() ?>
+                    <button class="btn primary" type="submit">開立收據</button>
+                </form>
+            <?php endif; ?>
             <button class="btn primary" type="button" onclick="window.print()">列印 / 另存 PDF</button>
         </div>
     </div>
@@ -82,6 +89,8 @@ ob_start();
 
     <?php require base_path('resources/views/shared/signatures.php'); ?>
 </section>
+
+<?php require base_path('resources/views/donations/receipt-deliveries.php'); ?>
 <?php
 function donation_receipt_money($value): string
 {

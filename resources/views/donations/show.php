@@ -16,6 +16,12 @@ ob_start();
         <div class="actions">
             <a class="btn" href="/donations">返回列表</a>
             <a class="btn" href="/donors/<?= e((string) $donation['donor_id']) ?>">捐款人資料</a>
+            <?php if ($canManage && $donation['receipt_status'] === 'pending'): ?>
+                <form method="post" action="/donations/<?= e((string) $donation['id']) ?>/issue-receipt">
+                    <?= csrf_field() ?>
+                    <button class="btn primary" type="submit">開立收據</button>
+                </form>
+            <?php endif; ?>
             <?php if ($donation['receipt_status'] !== 'not_required'): ?>
                 <a class="btn" href="/donations/<?= e((string) $donation['id']) ?>/receipt">列印收據</a>
             <?php endif; ?>
@@ -27,9 +33,9 @@ ob_start();
                         <button class="btn primary" type="submit">建立會計傳票</button>
                     </form>
                 <?php endif; ?>
-                <form method="post" action="/donations/<?= e((string) $donation['id']) ?>/void">
+                <form method="post" action="/donations/<?= e((string) $donation['id']) ?>/void" onsubmit="return confirm('確定要作廢整筆捐款紀錄？');">
                     <?= csrf_field() ?>
-                    <button class="btn" type="submit">作廢</button>
+                    <button class="btn" type="submit">捐款作廢</button>
                 </form>
             <?php endif; ?>
             <?php if (!empty($donation['accounting_voucher_id'])): ?>
@@ -64,6 +70,9 @@ ob_start();
 
     <?php require base_path('resources/views/shared/signatures.php'); ?>
 </section>
+
+<?php require base_path('resources/views/donations/receipt-deliveries.php'); ?>
+<?php require base_path('resources/views/donations/receipt-workflow.php'); ?>
 <?php
 function donation_show_money($value): string
 {

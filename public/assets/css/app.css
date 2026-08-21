@@ -1247,6 +1247,26 @@ textarea:focus {
     margin: 0 0 6px;
 }
 
+.receipt-batch {
+    display: grid;
+    gap: 18px;
+}
+
+.receipt-page {
+    padding: 22px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #ffffff;
+}
+
+.receipt-page .statement-title {
+    margin-bottom: 18px;
+}
+
+.receipt-table {
+    margin-top: 12px;
+}
+
 .statement-table {
     min-width: 1180px;
     border-collapse: collapse;
@@ -1375,6 +1395,24 @@ textarea:focus {
 
     .print-only {
         display: block;
+    }
+
+    .receipt-batch {
+        display: block;
+    }
+
+    .receipt-page {
+        margin: 0;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        break-after: page;
+        page-break-after: always;
+    }
+
+    .receipt-page:last-child {
+        break-after: auto;
+        page-break-after: auto;
     }
 
     .budget-statement {
