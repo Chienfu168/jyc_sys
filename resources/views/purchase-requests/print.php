@@ -1,6 +1,9 @@
 <?php
 $active = 'purchase-requests';
 $documentTitle = '採購申請單';
+$supervisingDepartment = purchase_print_supervising_department($request);
+$procurementOwner = purchase_print_procurement_owner($request, $supervisingDepartment);
+$signatureSteps = purchase_print_signature_steps($request, $profile, $supervisingDepartment, $procurementOwner);
 ob_start();
 ?>
 <section class="panel purchase-print-form">
@@ -29,10 +32,9 @@ ob_start();
 
     <div class="purchase-print-approvers">
         <span>申請人：<?= e($request['requester_name']) ?></span>
-        <span>總務：</span>
-        <span>執行長：<?= e($profile['executive_director'] ?? '') ?></span>
-        <span>董事長：<?= e($profile['representative'] ?? '') ?></span>
-        <span>會計：</span>
+        <span>請購單位：<?= e($request['request_unit']) ?></span>
+        <span>主管部門：<?= e($supervisingDepartment) ?></span>
+        <span>採購承辦：<?= e($procurementOwner) ?></span>
     </div>
 
     <table class="purchase-form-table">
@@ -44,6 +46,10 @@ ob_start();
         <tr>
             <th>請購單位：</th>
             <td><?= purchase_print_options(['總務', '活動組', '業務推廣組', '志工組', '企劃'], $request['request_unit'], '其他') ?></td>
+        </tr>
+        <tr>
+            <th>主管部門：</th>
+            <td><strong><?= e($supervisingDepartment) ?></strong><span class="purchase-print-inline-note">依請購屬性與申請單位歸納</span></td>
         </tr>
         <tr>
             <th>申請項目</th>
@@ -111,10 +117,12 @@ ob_start();
     </div>
 
     <section class="purchase-signature-grid">
-        <?php foreach (['申請人' => $request['requester_name'], '總務' => '', '會計' => '', '執行長' => ($profile['executive_director'] ?? ''), '董事長' => ($profile['representative'] ?? '')] as $label => $name): ?>
+        <?php foreach ($signatureSteps as $step): ?>
             <div class="purchase-signature-box">
-                <span><?= e($label) ?></span>
-                <strong><?= e((string) $name) ?></strong>
+                <span><?= e($step['role']) ?></span>
+                <small><?= e($step['department']) ?></small>
+                <div class="purchase-signature-stamp" aria-hidden="true"></div>
+                <strong><?= e($step['name'] !== '' ? $step['name'] : '　') ?></strong>
             </div>
         <?php endforeach; ?>
     </section>
@@ -139,6 +147,101 @@ function purchase_print_options(array $options, string $value, string $otherLabe
     $parts[] = ($matched ? '□' : '☑') . e($otherLabel) . '（' . e($matched ? '' : $value) . '）';
 
     return implode('　', $parts);
+}
+
+function purchase_print_supervising_department(array $request): string
+{
+    $text = implode(' ', [
+        (string) ($request['purchase_category'] ?? ''),
+        (string) ($request['request_unit'] ?? ''),
+        (string) ($request['purchase_method'] ?? ''),
+        (string) ($request['subject'] ?? ''),
+        (string) ($request['reason'] ?? ''),
+        (string) ($request['purpose'] ?? ''),
+    ]);
+
+    $unit = (string) ($request['request_unit'] ?? '');
+    $rules = [
+        '資訊主管部門' => ['資訊', '電腦', '網站', '網域', '主機', '系統', '軟體', '雲端', '資安', '網路', 'IT'],
+        '財務會計主管部門' => ['會計', '財務', '稅務', '銀行', '帳務', '憑證', '發票'],
+        '企劃主管部門' => ['企劃', '計畫', '專案', '補助', '成果', '行銷', '宣傳'],
+        '活動主管部門' => ['活動', '課程', '場地', '講師', '招生', '志工'],
+        '總務主管部門' => ['總務', '辦公', '設備', '雜項', '修繕', '庶務', '耗材', '家具'],
+    ];
+
+    foreach ($rules as $department => $keywords) {
+        if (purchase_print_contains_any($text, $keywords)) {
+            return $department;
+        }
+    }
+
+    return $unit !== '' ? $unit . '主管' : '主管部門';
+}
+
+function purchase_print_procurement_owner(array $request, string $supervisingDepartment): string
+{
+    $text = implode(' ', [
+        (string) ($request['purchase_method'] ?? ''),
+        (string) ($request['purchase_category'] ?? ''),
+        $supervisingDepartment,
+    ]);
+
+    if (purchase_print_contains_any($text, ['資訊', '電腦', '網站', '網域', '系統', '軟體'])) {
+        return '資訊採購';
+    }
+
+    if (purchase_print_contains_any($text, ['總務', '辦公', '設備', '雜項', '修繕', '庶務'])) {
+        return '總務採購';
+    }
+
+    return '採購承辦';
+}
+
+function purchase_print_signature_steps(array $request, array $profile, string $supervisingDepartment, string $procurementOwner): array
+{
+    return [
+        [
+            'role' => '申請人',
+            'department' => (string) ($request['request_unit'] ?? ''),
+            'name' => (string) ($request['requester_name'] ?? ''),
+        ],
+        [
+            'role' => '主管部門',
+            'department' => $supervisingDepartment,
+            'name' => '',
+        ],
+        [
+            'role' => '採購承辦',
+            'department' => $procurementOwner,
+            'name' => '',
+        ],
+        [
+            'role' => '會計',
+            'department' => '財務會計',
+            'name' => '',
+        ],
+        [
+            'role' => '執行長',
+            'department' => '',
+            'name' => (string) ($profile['executive_director'] ?? ''),
+        ],
+        [
+            'role' => '董事長',
+            'department' => '',
+            'name' => (string) ($profile['representative'] ?? ''),
+        ],
+    ];
+}
+
+function purchase_print_contains_any(string $text, array $keywords): bool
+{
+    foreach ($keywords as $keyword) {
+        if ($keyword !== '' && str_contains($text, $keyword)) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 function purchase_print_money($value): string

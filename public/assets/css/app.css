@@ -1611,7 +1611,13 @@ textarea:focus {
 }
 
 .purchase-print-approvers {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.purchase-print-inline-note {
+    color: var(--muted);
+    margin-left: 12px;
+    font-size: 12px;
 }
 
 .purchase-form-table th {
@@ -1655,21 +1661,55 @@ textarea:focus {
 
 .purchase-signature-grid {
     display: grid;
-    grid-template-columns: repeat(5, minmax(120px, 1fr));
-    gap: 14px;
-    margin-top: 34px;
+    grid-template-columns: repeat(6, minmax(92px, 1fr));
+    gap: 0;
+    margin-top: 18px;
+    border-top: 1px solid var(--line);
+    border-left: 1px solid var(--line);
+    break-inside: avoid;
 }
 
 .purchase-signature-box {
-    min-height: 82px;
-    border-top: 1px solid var(--line);
-    padding-top: 10px;
+    min-height: 104px;
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    display: grid;
+    grid-template-rows: auto auto 48px auto;
+    text-align: center;
+    background: #ffffff;
 }
 
 .purchase-signature-box span {
     display: block;
+    margin: 0;
+    padding: 6px 5px 5px;
+    background: #f6f8f7;
+    border-bottom: 1px solid var(--line);
+    color: var(--text);
+    font-weight: 700;
+    line-height: 1.25;
+}
+
+.purchase-signature-box small {
+    display: block;
+    min-height: 24px;
+    padding: 4px 5px 2px;
     color: var(--muted);
-    margin-bottom: 22px;
+    font-size: 11px;
+    line-height: 1.25;
+}
+
+.purchase-signature-stamp {
+    min-height: 48px;
+}
+
+.purchase-signature-box strong {
+    display: block;
+    min-height: 22px;
+    padding: 4px 5px;
+    border-top: 1px solid var(--line);
+    font-size: 12px;
+    line-height: 1.2;
 }
 
 @media print {
@@ -1812,12 +1852,38 @@ textarea:focus {
     }
 
     .purchase-signature-grid {
-        grid-template-columns: repeat(5, minmax(90px, 1fr));
+        grid-template-columns: repeat(6, minmax(72px, 1fr));
+        margin-top: 12px;
         break-inside: avoid;
+    }
+
+    .purchase-signature-box {
+        min-height: 88px;
+        grid-template-rows: auto auto 40px auto;
+    }
+
+    .purchase-signature-box span {
+        padding: 5px 4px 4px;
+    }
+
+    .purchase-signature-box small {
+        min-height: 20px;
+        padding: 3px 4px 1px;
+        font-size: 10px;
+    }
+
+    .purchase-signature-stamp {
+        min-height: 40px;
+    }
+
+    .purchase-signature-box strong {
+        min-height: 18px;
+        padding: 3px 4px;
+        font-size: 10px;
     }
 }
 
-@media (max-width: 900px) {
+@media screen and (max-width: 900px) {
     .app-shell {
         display: block;
     }
