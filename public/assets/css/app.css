@@ -1342,19 +1342,22 @@ textarea:focus {
 
 .purchase-detail {
     display: grid;
-    gap: 16px;
+    gap: 18px;
+    align-content: start;
 }
 
 .purchase-detail-hero {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 20px;
-    border-left: 4px solid var(--primary);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(190px, 260px) auto;
+    align-items: start;
+    gap: 18px;
+    border-color: #d8e6df;
+    background: linear-gradient(135deg, #ffffff 0%, #f7fbf9 100%);
 }
 
 .purchase-detail-title {
     min-width: 0;
+    max-width: 760px;
 }
 
 .purchase-title-row,
@@ -1391,19 +1394,61 @@ textarea:focus {
     vertical-align: -1px;
 }
 
+.purchase-hero-insight {
+    min-width: 0;
+    padding: 12px 14px;
+    border: 1px solid #d8e6df;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.74);
+}
+
+.purchase-hero-insight span,
+.purchase-hero-insight small {
+    display: block;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.purchase-hero-insight strong {
+    display: block;
+    margin: 5px 0;
+    color: var(--primary-strong);
+    font-size: 17px;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.purchase-detail-actions {
+    justify-content: flex-end;
+    max-width: 260px;
+}
+
+.purchase-detail-actions form {
+    margin: 0;
+}
+
 .purchase-summary-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 14px;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 12px;
 }
 
 .purchase-summary-tile {
     min-width: 0;
-    padding: 16px;
+    padding: 15px;
     border: 1px solid var(--line);
     border-radius: 8px;
     background: var(--surface);
     box-shadow: 0 1px 2px rgba(24, 32, 28, 0.04);
+}
+
+.purchase-summary-primary {
+    border-color: #c9ddd4;
+    background: #f7fbf9;
+}
+
+.purchase-summary-vendor {
+    grid-column: span 2;
 }
 
 .purchase-summary-tile span {
@@ -1421,9 +1466,33 @@ textarea:focus {
     overflow-wrap: anywhere;
 }
 
+.purchase-summary-primary strong {
+    color: var(--primary-strong);
+    font-size: 26px;
+}
+
 .purchase-summary-tile strong.text-fit {
     font-size: 18px;
     line-height: 1.4;
+}
+
+.purchase-detail-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+    gap: 16px;
+    align-items: start;
+}
+
+.purchase-detail-main,
+.purchase-detail-sidebar {
+    min-width: 0;
+}
+
+.purchase-detail-sidebar {
+    display: grid;
+    gap: 16px;
+    position: sticky;
+    top: 18px;
 }
 
 .purchase-section-heading {
@@ -1446,7 +1515,7 @@ textarea:focus {
 .purchase-info-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 20px 28px;
+    gap: 18px 24px;
     padding-top: 4px;
 }
 
@@ -1562,6 +1631,142 @@ textarea:focus {
     font-size: 14px;
 }
 
+.purchase-side-panel {
+    padding: 16px;
+}
+
+.purchase-side-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.purchase-side-heading h3 {
+    margin: 0;
+    font-size: 16px;
+}
+
+.purchase-side-heading > span:not(.badge) {
+    color: var(--muted);
+    font-size: 12px;
+    overflow-wrap: anywhere;
+    text-align: right;
+}
+
+.purchase-progress-list {
+    list-style: none;
+    display: grid;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+}
+
+.purchase-progress-list li {
+    position: relative;
+    min-width: 0;
+    padding: 10px 0 10px 30px;
+    border-bottom: 1px solid var(--line);
+}
+
+.purchase-progress-list li:last-child {
+    border-bottom: 0;
+}
+
+.purchase-progress-list li::before {
+    content: "";
+    position: absolute;
+    left: 4px;
+    top: 16px;
+    width: 11px;
+    height: 11px;
+    border: 2px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface);
+}
+
+.purchase-progress-list li.complete::before {
+    border-color: var(--primary);
+    background: var(--primary);
+}
+
+.purchase-progress-list li.current::before {
+    border-color: var(--primary);
+    background: #ffffff;
+    box-shadow: 0 0 0 4px rgba(31, 122, 91, 0.12);
+}
+
+.purchase-progress-list li.current.danger::before {
+    border-color: var(--danger);
+    box-shadow: 0 0 0 4px rgba(159, 45, 45, 0.12);
+}
+
+.purchase-progress-list span {
+    display: block;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.purchase-progress-list small {
+    display: block;
+    margin-top: 3px;
+    color: var(--muted);
+    line-height: 1.45;
+}
+
+.purchase-progress-list li.pending span {
+    color: var(--muted);
+    font-weight: 600;
+}
+
+.purchase-check-list {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+}
+
+.purchase-check-list div {
+    display: grid;
+    grid-template-columns: minmax(88px, 0.9fr) minmax(0, 1.1fr);
+    gap: 10px;
+    align-items: center;
+    padding: 10px 11px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fbfcfb;
+}
+
+.purchase-check-list div.ok {
+    border-color: #cde5d7;
+    background: #f4fbf7;
+}
+
+.purchase-check-list div.warning {
+    border-color: #ead8a8;
+    background: #fffaf0;
+}
+
+.purchase-check-list div.danger {
+    border-color: #efc4c4;
+    background: #fff6f6;
+}
+
+.purchase-check-list dt {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.purchase-check-list dd {
+    min-width: 0;
+    margin: 0;
+    font-weight: 700;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+    text-align: right;
+}
+
 .purchase-attachments {
     display: grid;
     gap: 14px;
@@ -1585,6 +1790,11 @@ textarea:focus {
 
 .purchase-approval-panel .section-title p {
     margin: 4px 0 0;
+}
+
+.purchase-approval-panel {
+    display: grid;
+    gap: 16px;
 }
 
 .purchase-print-form {
@@ -1907,22 +2117,38 @@ textarea:focus {
     .purchase-line-grid,
     .purchase-summary-grid,
     .purchase-info-grid,
+    .purchase-detail-layout,
     .purchase-print-meta,
     .purchase-print-approvers,
     .purchase-signature-grid {
         grid-template-columns: 1fr;
     }
 
+    .purchase-summary-vendor {
+        grid-column: span 1;
+    }
+
     .purchase-detail-hero {
         display: grid;
+        grid-template-columns: 1fr;
     }
 
     .purchase-detail-title h2 {
         font-size: 21px;
     }
 
-    .purchase-detail-hero .actions {
+    .purchase-hero-insight,
+    .purchase-detail-actions {
+        max-width: none;
+    }
+
+    .purchase-detail-hero .actions,
+    .purchase-detail-actions {
         justify-content: flex-start;
+    }
+
+    .purchase-detail-sidebar {
+        position: static;
     }
 
     .purchase-section-heading {

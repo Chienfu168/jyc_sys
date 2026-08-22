@@ -48,6 +48,18 @@ function config(string $key, mixed $default = null): mixed
     return $item === null ? $config[$file] : ($config[$file][$item] ?? $default);
 }
 
+function asset_url(string $path): string
+{
+    $assetPath = '/' . ltrim($path, '/');
+    $scriptDir = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/');
+
+    if ($scriptDir === '' || $scriptDir === '.' || $scriptDir === '/') {
+        return $assetPath;
+    }
+
+    return $scriptDir . $assetPath;
+}
+
 function view(string $template, array $data = []): void
 {
     extract($data, EXTR_SKIP);
