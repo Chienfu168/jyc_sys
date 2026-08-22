@@ -15,6 +15,10 @@ $checkItems = purchase_show_check_items($request, $attachmentCount, $supervising
 ob_start();
 ?>
 
+<style>
+<?php require base_path('resources/views/shared/critical-css.php'); ?>
+</style>
+
 <div class="purchase-detail">
     <section class="panel purchase-detail-hero no-print">
         <div class="purchase-detail-title">
