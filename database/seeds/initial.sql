@@ -55,6 +55,8 @@ INSERT INTO permissions (code, name, module, created_at, updated_at) VALUES
   ('purchase_requests.approve', '核准採購申請', 'purchase_requests', NOW(), NOW()),
   ('income_expenses.view', '檢視收支紀錄', 'income_expenses', NOW(), NOW()),
   ('income_expenses.manage', '管理收支紀錄', 'income_expenses', NOW(), NOW()),
+  ('payment_receipts.view', '檢視領款收據', 'payment_receipts', NOW(), NOW()),
+  ('payment_receipts.manage', '管理領款收據', 'payment_receipts', NOW(), NOW()),
   ('lecturer_expenses.view', '檢視講師支出費用', 'lecturer_expenses', NOW(), NOW()),
   ('lecturer_expenses.manage', '管理講師支出費用', 'lecturer_expenses', NOW(), NOW()),
   ('travel_expenses.view', '檢視出差費用', 'travel_expenses', NOW(), NOW()),
@@ -97,6 +99,7 @@ WHERE code IN (
   'purchase_requests.view',
   'purchase_requests.approve',
   'income_expenses.view',
+  'payment_receipts.view',
   'lecturer_expenses.view',
   'travel_expenses.view',
   'payroll.view',
@@ -137,6 +140,8 @@ WHERE code IN (
   'purchase_requests.manage',
   'income_expenses.view',
   'income_expenses.manage',
+  'payment_receipts.view',
+  'payment_receipts.manage',
   'lecturer_expenses.view',
   'lecturer_expenses.manage',
   'travel_expenses.view',
@@ -162,5 +167,6 @@ WHERE code IN (
   'calendar.view',
   'purchase_requests.view',
   'income_expenses.view',
+  'payment_receipts.view',
   'leave_requests.view'
 );

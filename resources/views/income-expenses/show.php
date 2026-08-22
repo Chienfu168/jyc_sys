@@ -4,6 +4,9 @@ $documentTitle = '收支紀錄明細';
 $approvalStatus = (string) ($record['approval_status'] ?? 'draft');
 $canManage = \App\Core\Permission::can('income_expenses.manage');
 $canApprove = \App\Core\Permission::can('income_expenses.approve');
+$paymentReceipt = $paymentReceipt ?? null;
+$canViewPaymentReceipts = \App\Core\Permission::can('payment_receipts.view');
+$canManagePaymentReceipts = \App\Core\Permission::can('payment_receipts.manage');
 ob_start();
 ?>
 <?php require base_path('resources/views/shared/print-header.php'); ?>
@@ -40,6 +43,14 @@ ob_start();
                         <button class="btn" type="submit">作廢</button>
                     </form>
                 <?php endif; ?>
+            <?php endif; ?>
+            <?php if ($paymentReceipt && $canViewPaymentReceipts): ?>
+                <a class="btn" href="/payment-receipts/<?= e((string) $paymentReceipt['id']) ?>">查看領據</a>
+            <?php elseif ($record['item_type'] === 'expense' && $record['status'] !== 'voided' && $canManagePaymentReceipts): ?>
+                <form method="post" action="/income-expenses/<?= e((string) $record['id']) ?>/payment-receipt">
+                    <?= csrf_field() ?>
+                    <button class="btn primary" type="submit">產生領據</button>
+                </form>
             <?php endif; ?>
         </div>
     </div>

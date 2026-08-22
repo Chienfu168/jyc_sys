@@ -167,6 +167,7 @@ final class IncomeExpenseController extends Controller
             'section' => '財務會計',
             'active' => 'income-expenses',
             'record' => $this->findRecord((int) $id),
+            'paymentReceipt' => $this->paymentReceiptForSource('income_expense_records', (int) $id),
             'approvalHistory' => ApprovalFlow::history('income_expenses', 'income_expense_records', (int) $id),
             'profile' => foundation_profile(),
         ]);
@@ -496,6 +497,30 @@ final class IncomeExpenseController extends Controller
         }
 
         return $record;
+    }
+
+    private function paymentReceiptForSource(string $sourceType, int $sourceId): ?array
+    {
+        try {
+            $stmt = Database::pdo()->prepare(
+                'SELECT id, receipt_no, status
+                 FROM payment_receipts
+                 WHERE source_type = :source_type
+                   AND source_id = :source_id
+                   AND status != "voided"
+                 ORDER BY id DESC
+                 LIMIT 1'
+            );
+            $stmt->execute([
+                'source_type' => $sourceType,
+                'source_id' => $sourceId,
+            ]);
+            $receipt = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            return $receipt ?: null;
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     private function categories(): array

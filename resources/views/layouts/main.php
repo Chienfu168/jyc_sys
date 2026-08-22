@@ -13,6 +13,7 @@ $financeActive = in_array($activeKey, [
     'petty-cash',
     'purchase-requests',
     'income-expenses',
+    'payment-receipts',
     'lecturer-expenses',
     'travel-expenses',
     'payroll',
@@ -38,6 +39,7 @@ $canFinance = $currentUser && (
     || \App\Core\Permission::can('petty_cash.view')
     || \App\Core\Permission::can('purchase_requests.view')
     || \App\Core\Permission::can('income_expenses.view')
+    || \App\Core\Permission::can('payment_receipts.view')
     || \App\Core\Permission::can('lecturer_expenses.view')
     || \App\Core\Permission::can('travel_expenses.view')
     || \App\Core\Permission::can('payroll.view')

@@ -1,6 +1,9 @@
 <?php
 $active = 'lecturer-expenses';
 $documentTitle = '講師費用請款單';
+$paymentReceipt = $paymentReceipt ?? null;
+$canViewPaymentReceipts = \App\Core\Permission::can('payment_receipts.view');
+$canManagePaymentReceipts = \App\Core\Permission::can('payment_receipts.manage');
 ob_start();
 ?>
 <?php require base_path('resources/views/shared/print-header.php'); ?>
@@ -36,6 +39,14 @@ ob_start();
                         <button class="btn" type="submit">作廢</button>
                     </form>
                 <?php endif; ?>
+            <?php endif; ?>
+            <?php if ($paymentReceipt && $canViewPaymentReceipts): ?>
+                <a class="btn" href="/payment-receipts/<?= e((string) $paymentReceipt['id']) ?>">查看領據</a>
+            <?php elseif ($expense['payment_status'] !== 'voided' && $canManagePaymentReceipts): ?>
+                <form method="post" action="/lecturer-expenses/<?= e((string) $expense['id']) ?>/payment-receipt">
+                    <?= csrf_field() ?>
+                    <button class="btn primary" type="submit">產生領據</button>
+                </form>
             <?php endif; ?>
         </div>
     </div>

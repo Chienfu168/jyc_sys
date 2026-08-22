@@ -189,6 +189,7 @@ final class BusinessController extends Controller
             ['permission' => 'petty_cash.view', 'title' => '零用金', 'href' => '/petty-cash', 'description' => '撥補、借支、核銷與月結。'],
             ['permission' => 'purchase_requests.view', 'title' => '採購申請', 'href' => '/purchase-requests', 'description' => '請購申請、簽核、採購進度與申請單列印。'],
             ['permission' => 'income_expenses.view', 'title' => '收支紀錄', 'href' => '/income-expenses', 'description' => '收入、支出、付款方式與專案歸屬。'],
+            ['permission' => 'payment_receipts.view', 'title' => '領款收據', 'href' => '/payment-receipts', 'description' => '常用領據、匯款與現金版本、備註調整與列印。'],
             ['permission' => 'lecturer_expenses.view', 'title' => '講師支出費用', 'href' => '/lecturer-expenses', 'description' => '鐘點費、交通費、扣繳與請款清冊。'],
             ['permission' => 'travel_expenses.view', 'title' => '出差費用', 'href' => '/travel-expenses', 'description' => '出差申請、核銷單據與費用報表。'],
             ['permission' => 'payroll.view', 'title' => '薪資管理', 'href' => '/payroll', 'description' => '薪資月份、項目、發放與薪資條。'],

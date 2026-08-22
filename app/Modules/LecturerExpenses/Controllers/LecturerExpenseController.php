@@ -119,6 +119,7 @@ final class LecturerExpenseController extends Controller
             'section' => '財務會計',
             'active' => 'lecturer-expenses',
             'expense' => $this->findExpense((int) $id),
+            'paymentReceipt' => $this->paymentReceiptForSource('lecturer_expenses', (int) $id),
             'profile' => foundation_profile(),
         ]);
     }
@@ -434,6 +435,30 @@ final class LecturerExpenseController extends Controller
         }
 
         return $expense;
+    }
+
+    private function paymentReceiptForSource(string $sourceType, int $sourceId): ?array
+    {
+        try {
+            $stmt = Database::pdo()->prepare(
+                'SELECT id, receipt_no, status
+                 FROM payment_receipts
+                 WHERE source_type = :source_type
+                   AND source_id = :source_id
+                   AND status != "voided"
+                 ORDER BY id DESC
+                 LIMIT 1'
+            );
+            $stmt->execute([
+                'source_type' => $sourceType,
+                'source_id' => $sourceId,
+            ]);
+            $receipt = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            return $receipt ?: null;
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     private function lecturers(): array
