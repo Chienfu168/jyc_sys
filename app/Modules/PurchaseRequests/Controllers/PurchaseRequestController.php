@@ -106,6 +106,7 @@ final class PurchaseRequestController extends Controller
             'active' => 'purchase-requests',
             'request' => $this->findRequest((int) $id),
             'items' => $this->items((int) $id),
+            'attachments' => $this->attachments((int) $id),
             'approvalHistory' => ApprovalFlow::history('purchase_requests', 'purchase_requests', (int) $id),
             'profile' => foundation_profile(),
         ]);
@@ -310,6 +311,146 @@ final class PurchaseRequestController extends Controller
 
         AuditLog::write('void', 'purchase_requests', 'purchase_requests', (int) $request['id']);
         flash('success', '採購申請已作廢。');
+        redirect('/purchase-requests/' . $id);
+    }
+
+    public function storeAttachment(string $id): void
+    {
+        $this->requirePermission('purchase_requests.manage');
+        $request = $this->findRequest((int) $id);
+
+        if (!$this->attachmentTableExists()) {
+            $this->backWithInput('/purchase-requests/' . $id, $_POST, '採購附件資料表尚未建立，請先執行系統更新。');
+        }
+
+        if (empty($_FILES['attachment']) || !is_array($_FILES['attachment'])) {
+            $this->backWithInput('/purchase-requests/' . $id, $_POST, '請選擇要上傳的檔案。');
+        }
+
+        $file = $_FILES['attachment'];
+        if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+            $this->backWithInput('/purchase-requests/' . $id, $_POST, $this->uploadError((int) ($file['error'] ?? UPLOAD_ERR_NO_FILE)));
+        }
+
+        $size = (int) ($file['size'] ?? 0);
+        if ($size <= 0 || $size > 10 * 1024 * 1024) {
+            $this->backWithInput('/purchase-requests/' . $id, $_POST, '檔案大小需介於 1 byte 到 10MB。');
+        }
+
+        $originalName = basename((string) ($file['name'] ?? ''));
+        $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+        $allowed = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'txt'];
+        if (!in_array($extension, $allowed, true)) {
+            $this->backWithInput('/purchase-requests/' . $id, $_POST, '檔案格式不支援，請上傳 PDF、圖片、Office、CSV 或 TXT。');
+        }
+
+        $detectedMime = $this->detectMime((string) $file['tmp_name']);
+        if (!$this->allowedUploadMime($extension, $detectedMime, (string) $file['tmp_name'])) {
+            $this->backWithInput('/purchase-requests/' . $id, $_POST, '檔案內容與副檔名不符，請確認檔案格式後重新上傳。');
+        }
+
+        $category = $this->attachmentCategory();
+        $storedName = date('YmdHis') . '_' . bin2hex(random_bytes(8)) . '.' . $extension;
+        $relativePath = 'private_uploads/purchase_requests/' . (int) $request['id'] . '/' . $storedName;
+        $targetDir = storage_path('private_uploads/purchase_requests/' . (int) $request['id']);
+        $targetPath = storage_path($relativePath);
+
+        if (!is_dir($targetDir) && !mkdir($targetDir, 0775, true) && !is_dir($targetDir)) {
+            $this->backWithInput('/purchase-requests/' . $id, $_POST, '無法建立上傳目錄。');
+        }
+
+        if (!move_uploaded_file((string) $file['tmp_name'], $targetPath)) {
+            $this->backWithInput('/purchase-requests/' . $id, $_POST, '檔案上傳失敗，請確認 storage 目錄權限。');
+        }
+
+        $attachmentId = 0;
+        try {
+            Database::pdo()->prepare(
+                'INSERT INTO purchase_request_attachments
+                 (purchase_request_id, category, title, original_name, stored_path, mime_type, file_size, notes, uploaded_by, created_at)
+                 VALUES
+                 (:purchase_request_id, :category, :title, :original_name, :stored_path, :mime_type, :file_size, :notes, :uploaded_by, :created_at)'
+            )->execute([
+                'purchase_request_id' => (int) $request['id'],
+                'category' => $category,
+                'title' => trim((string) ($_POST['title'] ?? '')) ?: $originalName,
+                'original_name' => $originalName,
+                'stored_path' => $relativePath,
+                'mime_type' => $detectedMime,
+                'file_size' => $size,
+                'notes' => trim((string) ($_POST['notes'] ?? '')),
+                'uploaded_by' => auth()->user()['id'] ?? null,
+                'created_at' => now(),
+            ]);
+            $attachmentId = (int) Database::pdo()->lastInsertId();
+
+            if ($category === 'quotation') {
+                Database::pdo()->prepare(
+                    'UPDATE purchase_requests
+                     SET quotation_attached = 1,
+                         quotation_missing_reason = NULL,
+                         updated_at = :updated_at
+                     WHERE id = :id'
+                )->execute([
+                    'updated_at' => now(),
+                    'id' => (int) $request['id'],
+                ]);
+            }
+        } catch (\Throwable $exception) {
+            if (is_file($targetPath)) {
+                @unlink($targetPath);
+            }
+            $this->backWithInput('/purchase-requests/' . $id, $_POST, '採購附件上傳失敗：' . $exception->getMessage());
+        }
+
+        AuditLog::write('upload', 'purchase_requests', 'purchase_request_attachments', $attachmentId);
+        flash('success', '採購附件已上傳。');
+        redirect('/purchase-requests/' . $id);
+    }
+
+    public function downloadAttachment(string $id, string $attachmentId): void
+    {
+        $this->requirePermission('purchase_requests.view');
+        $this->findRequest((int) $id);
+        $attachment = $this->findAttachment((int) $id, (int) $attachmentId);
+        $path = storage_path((string) $attachment['stored_path']);
+
+        if (!$this->attachmentPathIsSafe($path) || !is_file($path)) {
+            http_response_code(404);
+            view('errors.404', ['title' => '找不到採購附件檔案']);
+            exit;
+        }
+
+        AuditLog::write('download', 'purchase_requests', 'purchase_request_attachments', (int) $attachment['id']);
+        header('Content-Type: ' . ($attachment['mime_type'] ?: 'application/octet-stream'));
+        header('Content-Length: ' . (string) filesize($path));
+        header('Content-Disposition: attachment; filename="' . rawurlencode((string) $attachment['original_name']) . '"');
+        header('X-Content-Type-Options: nosniff');
+        readfile($path);
+        exit;
+    }
+
+    public function deleteAttachment(string $id, string $attachmentId): void
+    {
+        $this->requirePermission('purchase_requests.manage');
+        $this->findRequest((int) $id);
+        $attachment = $this->findAttachment((int) $id, (int) $attachmentId);
+        $path = storage_path((string) $attachment['stored_path']);
+
+        Database::pdo()->prepare(
+            'DELETE FROM purchase_request_attachments
+             WHERE purchase_request_id = :purchase_request_id AND id = :id'
+        )->execute([
+            'purchase_request_id' => (int) $id,
+            'id' => (int) $attachmentId,
+        ]);
+
+        if ($this->attachmentPathIsSafe($path) && is_file($path)) {
+            @unlink($path);
+        }
+
+        AuditLog::write('delete', 'purchase_requests', 'purchase_request_attachments', (int) $attachment['id']);
+        flash('success', '採購附件已刪除。');
         redirect('/purchase-requests/' . $id);
     }
 
@@ -556,6 +697,53 @@ final class PurchaseRequestController extends Controller
         return $stmt->fetchAll();
     }
 
+    private function attachments(int $requestId): array
+    {
+        if (!$this->attachmentTableExists()) {
+            return [];
+        }
+
+        $stmt = Database::pdo()->prepare(
+            'SELECT purchase_request_attachments.*, users.name AS uploaded_by_name
+             FROM purchase_request_attachments
+             LEFT JOIN users ON users.id = purchase_request_attachments.uploaded_by
+             WHERE purchase_request_attachments.purchase_request_id = :purchase_request_id
+             ORDER BY FIELD(purchase_request_attachments.category, \'quotation\', \'contract\', \'invoice\', \'delivery\', \'payment\', \'other\'), purchase_request_attachments.id DESC'
+        );
+        $stmt->execute(['purchase_request_id' => $requestId]);
+
+        return $stmt->fetchAll();
+    }
+
+    private function findAttachment(int $requestId, int $attachmentId): array
+    {
+        if (!$this->attachmentTableExists()) {
+            http_response_code(404);
+            view('errors.404', ['title' => '找不到採購附件']);
+            exit;
+        }
+
+        $stmt = Database::pdo()->prepare(
+            'SELECT *
+             FROM purchase_request_attachments
+             WHERE purchase_request_id = :purchase_request_id AND id = :id
+             LIMIT 1'
+        );
+        $stmt->execute([
+            'purchase_request_id' => $requestId,
+            'id' => $attachmentId,
+        ]);
+        $attachment = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$attachment) {
+            http_response_code(404);
+            view('errors.404', ['title' => '找不到採購附件']);
+            exit;
+        }
+
+        return $attachment;
+    }
+
     private function nextRequestNo(string $date): string
     {
         $prefix = 'PR' . str_replace('-', '', $date) . '-';
@@ -573,6 +761,107 @@ final class PurchaseRequestController extends Controller
     private function itemsTotal(array $items): float
     {
         return array_sum(array_map(static fn (array $item): float => (float) $item['amount'], $items));
+    }
+
+    private function attachmentCategory(): string
+    {
+        $category = (string) ($_POST['category'] ?? 'other');
+        return in_array($category, ['quotation', 'invoice', 'contract', 'delivery', 'payment', 'other'], true)
+            ? $category
+            : 'other';
+    }
+
+    private function uploadError(int $code): string
+    {
+        return match ($code) {
+            UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => '檔案超過主機允許大小。',
+            UPLOAD_ERR_PARTIAL => '檔案只有部分上傳，請重新上傳。',
+            UPLOAD_ERR_NO_FILE => '請選擇要上傳的檔案。',
+            UPLOAD_ERR_NO_TMP_DIR => '主機缺少暫存目錄。',
+            UPLOAD_ERR_CANT_WRITE => '主機無法寫入上傳檔案。',
+            default => '檔案上傳失敗。',
+        };
+    }
+
+    private function detectMime(string $path): string
+    {
+        if (function_exists('finfo_open')) {
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            if ($finfo) {
+                $mime = finfo_file($finfo, $path);
+                finfo_close($finfo);
+                if (is_string($mime) && $mime !== '') {
+                    return $mime;
+                }
+            }
+        }
+
+        return 'application/octet-stream';
+    }
+
+    private function allowedUploadMime(string $extension, string $mime, string $path): bool
+    {
+        $allowed = [
+            'pdf' => ['application/pdf'],
+            'jpg' => ['image/jpeg'],
+            'jpeg' => ['image/jpeg'],
+            'png' => ['image/png'],
+            'doc' => ['application/msword', 'application/octet-stream'],
+            'docx' => [
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'application/zip',
+                'application/octet-stream',
+            ],
+            'xls' => ['application/vnd.ms-excel', 'application/octet-stream'],
+            'xlsx' => [
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'application/zip',
+                'application/octet-stream',
+            ],
+            'csv' => ['text/csv', 'text/plain', 'application/vnd.ms-excel', 'application/octet-stream'],
+            'txt' => ['text/plain', 'application/octet-stream'],
+        ];
+
+        if (!in_array($mime, $allowed[$extension] ?? [], true)) {
+            return false;
+        }
+
+        if (in_array($extension, ['jpg', 'jpeg', 'png'], true) && @getimagesize($path) === false) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function attachmentPathIsSafe(string $path): bool
+    {
+        $base = rtrim(str_replace('\\', '/', storage_path('private_uploads/purchase_requests')), '/') . '/';
+        $normalized = str_replace('\\', '/', $path);
+
+        return str_starts_with($normalized, $base);
+    }
+
+    private function attachmentTableExists(): bool
+    {
+        static $exists = null;
+        if ($exists !== null) {
+            return $exists;
+        }
+
+        try {
+            $stmt = Database::pdo()->prepare(
+                'SELECT COUNT(*)
+                 FROM information_schema.TABLES
+                 WHERE TABLE_SCHEMA = DATABASE()
+                   AND TABLE_NAME = :table_name'
+            );
+            $stmt->execute(['table_name' => 'purchase_request_attachments']);
+            $exists = (bool) $stmt->fetchColumn();
+        } catch (\Throwable) {
+            $exists = false;
+        }
+
+        return $exists;
     }
 
     private function summary(array $requests): array

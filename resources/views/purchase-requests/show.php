@@ -58,7 +58,7 @@ ob_start();
         <tr><th>請購類別</th><td><?= e($request['purchase_category']) ?></td><th>請購單位</th><td><?= e($request['request_unit']) ?></td></tr>
         <tr><th>採購方式</th><td><?= e($request['purchase_method']) ?></td><th>廠商名稱</th><td><?= e($request['vendor_name'] ?: '-') ?></td></tr>
         <tr><th>狀態</th><td><?= e(purchase_show_status_label((string) $request['status'])) ?></td><th>總金額</th><td class="amount"><?= e(purchase_show_money($request['total_amount'])) ?></td></tr>
-        <tr><th>報價單</th><td colspan="3"><?= e((int) $request['quotation_attached'] === 1 ? '已檢附' : '未檢附，原因：' . ($request['quotation_missing_reason'] ?: '-')) ?></td></tr>
+        <tr><th>報價單</th><td><?= e((int) $request['quotation_attached'] === 1 ? '已檢附' : '未檢附，原因：' . ($request['quotation_missing_reason'] ?: '-')) ?></td><th>附件數</th><td><?= e(number_format(count($attachments ?? []))) ?></td></tr>
         <tr><th>申請項目</th><td colspan="3"><?= e($request['subject']) ?></td></tr>
         <tr><th>請購事由</th><td colspan="3"><?= nl2br(e($request['reason'])) ?></td></tr>
         <tr><th>申請目的</th><td colspan="3"><?= nl2br(e($request['purpose'])) ?></td></tr>
@@ -99,6 +99,8 @@ ob_start();
             </tfoot>
         </table>
     </div>
+
+    <?php require base_path('resources/views/purchase-requests/attachments.php'); ?>
 
     <?php
     $approvalTargetId = (int) $request['id'];
