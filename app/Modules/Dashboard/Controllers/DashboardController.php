@@ -60,6 +60,25 @@ final class DashboardController extends Controller
                 'href' => '/donations?year=' . date('Y') . '&receipt_status=pending',
                 'tone' => 'warning',
             ];
+
+            if ($this->receiptDeliveriesTableExists()) {
+                $cards[] = [
+                    'label' => '未寄送收據',
+                    'count' => $this->count(
+                        'SELECT COUNT(*)
+                         FROM donations
+                         LEFT JOIN donation_receipt_deliveries
+                           ON donation_receipt_deliveries.donation_id = donations.id
+                          AND donation_receipt_deliveries.receipt_no = donations.receipt_no
+                         WHERE donations.receipt_status = "issued"
+                           AND donations.receipt_no IS NOT NULL
+                           AND donations.receipt_no != ""
+                           AND donation_receipt_deliveries.id IS NULL'
+                    ),
+                    'href' => '/donations?year=' . date('Y') . '&receipt_status=issued&delivery_status=undelivered',
+                    'tone' => 'warning',
+                ];
+            }
         }
 
         if (Permission::can('income_expenses.view')) {
@@ -67,6 +86,15 @@ final class DashboardController extends Controller
                 'label' => '待補收支憑證',
                 'count' => $this->count('SELECT COUNT(*) FROM income_expense_records WHERE receipt_status = "pending" AND status != "voided"'),
                 'href' => '/income-expenses?month=' . $month,
+                'tone' => 'warning',
+            ];
+        }
+
+        if (Permission::can('purchase_requests.view') && $this->tableExists('purchase_requests')) {
+            $cards[] = [
+                'label' => '待核採購申請',
+                'count' => $this->count('SELECT COUNT(*) FROM purchase_requests WHERE status = \'submitted\''),
+                'href' => '/purchase-requests?month=' . $month . '&status=submitted',
                 'tone' => 'warning',
             ];
         }
@@ -115,9 +143,13 @@ final class DashboardController extends Controller
 
         if (Permission::can('donations.view')) {
             array_push($alerts, ...$this->pendingDonationReceiptAlerts());
+            array_push($alerts, ...$this->undeliveredDonationReceiptAlerts());
         }
         if (Permission::can('income_expenses.view')) {
             array_push($alerts, ...$this->pendingIncomeReceiptAlerts());
+        }
+        if (Permission::can('purchase_requests.view')) {
+            array_push($alerts, ...$this->purchaseRequestAlerts());
         }
         if (Permission::can('accounting.view')) {
             array_push($alerts, ...$this->draftVoucherAlerts());
@@ -167,6 +199,43 @@ final class DashboardController extends Controller
         ], $stmt->fetchAll());
     }
 
+    private function undeliveredDonationReceiptAlerts(): array
+    {
+        if (!$this->receiptDeliveriesTableExists()) {
+            return [];
+        }
+
+        $stmt = Database::pdo()->query(
+            'SELECT donations.id,
+                    donations.donated_at AS item_date,
+                    donations.amount,
+                    donations.receipt_no,
+                    donors.name AS donor_name
+             FROM donations
+             INNER JOIN donors ON donors.id = donations.donor_id
+             LEFT JOIN donation_receipt_deliveries
+               ON donation_receipt_deliveries.donation_id = donations.id
+              AND donation_receipt_deliveries.receipt_no = donations.receipt_no
+             WHERE donations.receipt_status = "issued"
+               AND donations.receipt_no IS NOT NULL
+               AND donations.receipt_no != ""
+               AND donation_receipt_deliveries.id IS NULL
+             ORDER BY donations.donated_at ASC, donations.id ASC
+             LIMIT 5'
+        );
+
+        return array_map(static fn (array $row): array => [
+            'source' => '捐款收據',
+            'status' => '未寄送',
+            'tone' => 'warning',
+            'date' => $row['item_date'],
+            'title' => $row['donor_name'],
+            'detail' => '收據 ' . $row['receipt_no'] . ' / 金額 ' . number_format((float) $row['amount'], 0),
+            'href' => '/donations/' . $row['id'],
+            'priority' => 75,
+        ], $stmt->fetchAll());
+    }
+
     private function pendingIncomeReceiptAlerts(): array
     {
         $stmt = Database::pdo()->query(
@@ -188,6 +257,53 @@ final class DashboardController extends Controller
             'href' => '/income-expenses/' . $row['id'],
             'priority' => 70,
         ], $stmt->fetchAll());
+    }
+
+    private function purchaseRequestAlerts(): array
+    {
+        if (!$this->tableExists('purchase_requests')) {
+            return [];
+        }
+
+        $stmt = Database::pdo()->query(
+            'SELECT id,
+                    requested_on AS item_date,
+                    request_no,
+                    subject,
+                    requester_name,
+                    total_amount,
+                    status
+             FROM purchase_requests
+             WHERE status IN (\'submitted\', \'approved\', \'ordered\')
+             ORDER BY FIELD(status, \'submitted\', \'approved\', \'ordered\'),
+                      requested_on ASC,
+                      id ASC
+             LIMIT 5'
+        );
+
+        return array_map(static function (array $row): array {
+            $statusLabels = [
+                'submitted' => '待核准',
+                'approved' => '待採購',
+                'ordered' => '待驗收',
+            ];
+            $priorities = [
+                'submitted' => 78,
+                'approved' => 64,
+                'ordered' => 62,
+            ];
+
+            return [
+                'source' => '採購申請',
+                'status' => $statusLabels[$row['status']] ?? $row['status'],
+                'tone' => $row['status'] === 'submitted' ? 'warning' : 'muted',
+                'date' => $row['item_date'],
+                'title' => $row['subject'],
+                'detail' => $row['request_no'] . ' / ' . $row['requester_name'] . ' / ' . number_format((float) $row['total_amount'], 0),
+                'href' => '/purchase-requests/' . $row['id'],
+                'priority' => $priorities[$row['status']] ?? 50,
+            ];
+        }, $stmt->fetchAll());
     }
 
     private function draftVoucherAlerts(): array
@@ -286,6 +402,34 @@ final class DashboardController extends Controller
         $stmt->execute($params);
 
         return (int) $stmt->fetchColumn();
+    }
+
+    private function receiptDeliveriesTableExists(): bool
+    {
+        return $this->tableExists('donation_receipt_deliveries');
+    }
+
+    private function tableExists(string $tableName): bool
+    {
+        static $cache = [];
+        if (array_key_exists($tableName, $cache)) {
+            return $cache[$tableName];
+        }
+
+        try {
+            $stmt = Database::pdo()->prepare(
+                'SELECT COUNT(*)
+                 FROM information_schema.TABLES
+                 WHERE TABLE_SCHEMA = DATABASE()
+                   AND TABLE_NAME = :table_name'
+            );
+            $stmt->execute(['table_name' => $tableName]);
+            $cache[$tableName] = (bool) $stmt->fetchColumn();
+        } catch (\Throwable) {
+            $cache[$tableName] = false;
+        }
+
+        return $cache[$tableName];
     }
 
     private function pendingApprovals(array $sources): array

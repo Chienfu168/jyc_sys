@@ -113,6 +113,9 @@ function approval_type_label(array $row): string
     if (in_array($source, ['年度預算', '工作計畫'], true)) {
         return '文件';
     }
+    if ($source === '採購申請') {
+        return '採購';
+    }
 
     return ($row['item_type'] ?? '') === 'income' ? '收入' : '支出';
 }

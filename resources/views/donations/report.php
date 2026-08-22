@@ -5,12 +5,22 @@ $exportQuery = http_build_query([
     'year' => $year,
     'month' => $month,
     'receipt_status' => '',
+    'delivery_status' => '',
+    'q' => '',
+]);
+$listQuery = http_build_query(['year' => $year, 'month' => $month]);
+$undeliveredQuery = http_build_query([
+    'year' => $year,
+    'month' => $month,
+    'receipt_status' => 'issued',
+    'delivery_status' => 'undelivered',
     'q' => '',
 ]);
 $receiptPrintQuery = http_build_query([
     'year' => $year,
     'month' => $month,
     'receipt_status' => 'issued',
+    'delivery_status' => '',
     'q' => '',
 ]);
 ob_start();
@@ -30,6 +40,10 @@ ob_start();
         <span>待處理收據</span>
         <strong><?= e(number_format((int) $summary['pending_receipts'])) ?></strong>
     </div>
+    <div class="stat-card">
+        <span>未寄送收據</span>
+        <strong><?= e(number_format((int) $summary['undelivered_receipts'])) ?></strong>
+    </div>
 </section>
 
 <section class="panel">
@@ -46,9 +60,12 @@ ob_start();
             <button class="btn" type="submit">查詢</button>
         </form>
         <div class="actions">
-            <a class="btn" href="/donations?year=<?= e((string) $year) ?>">捐款紀錄</a>
+            <a class="btn" href="/donations?<?= e($listQuery) ?>">捐款紀錄</a>
             <?php if ($canExport): ?>
                 <a class="btn" href="/donations/export?<?= e($exportQuery) ?>">匯出 CSV</a>
+            <?php endif; ?>
+            <?php if ((int) $summary['undelivered_receipts'] > 0): ?>
+                <a class="btn" href="/donations?<?= e($undeliveredQuery) ?>">未寄送收據</a>
             <?php endif; ?>
             <?php if ((int) $summary['issued_receipts'] > 0): ?>
                 <a class="btn" href="/donations/receipts/print?<?= e($receiptPrintQuery) ?>">批次列印收據</a>
@@ -77,6 +94,37 @@ ob_start();
         </tr>
         </tbody>
     </table>
+
+    <h3>未寄送收據</h3>
+    <div class="table-wrap">
+        <table>
+            <thead>
+            <tr>
+                <th>日期</th>
+                <th>收據</th>
+                <th>捐款人</th>
+                <th>聯絡</th>
+                <th class="amount">金額</th>
+                <th class="actions no-print">操作</th>
+            </tr>
+            </thead>
+            <tbody>
+            <?php foreach ($undeliveredReceipts as $row): ?>
+                <tr>
+                    <td><?= e(roc_date($row['donated_at'])) ?></td>
+                    <td class="mono"><?= e($row['receipt_no']) ?></td>
+                    <td><a class="text-link" href="/donors/<?= e((string) $row['donor_id']) ?>"><?= e($row['donor_name']) ?></a></td>
+                    <td><?= e(donation_report_contact($row)) ?></td>
+                    <td class="amount"><?= e(donation_report_money($row['amount'])) ?></td>
+                    <td class="actions no-print"><a class="btn small" href="/donations/<?= e((string) $row['id']) ?>">檢視</a></td>
+                </tr>
+            <?php endforeach; ?>
+            <?php if (!$undeliveredReceipts): ?>
+                <tr><td colspan="6" class="empty">本期間無未寄送收據。</td></tr>
+            <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
 
     <div class="table-wrap">
         <table>
@@ -228,6 +276,11 @@ function donation_report_receipt_label(string $status): string
 function donation_report_donor_type_label(string $type): string
 {
     return ['person' => '個人', 'organization' => '組織'][$type] ?? $type;
+}
+
+function donation_report_contact(array $row): string
+{
+    return $row['donor_email'] ?: ($row['donor_address'] ?: '-');
 }
 
 $content = ob_get_clean();

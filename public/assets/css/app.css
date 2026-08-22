@@ -1321,6 +1321,110 @@ textarea:focus {
     min-width: 520px;
 }
 
+.purchase-lines-editor {
+    display: grid;
+    gap: 12px;
+}
+
+.purchase-line {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px;
+    background: #fbfcfb;
+}
+
+.purchase-line-grid {
+    display: grid;
+    grid-template-columns: minmax(160px, 1.5fr) minmax(160px, 1.5fr) 90px 110px 120px minmax(140px, 1fr) 64px;
+    gap: 10px;
+    align-items: end;
+}
+
+.purchase-print-form {
+    max-width: 980px;
+    margin: 0 auto;
+}
+
+.purchase-print-title {
+    text-align: center;
+    margin-bottom: 14px;
+}
+
+.purchase-print-title h2,
+.purchase-print-title h3 {
+    margin: 0 0 6px;
+}
+
+.purchase-print-meta,
+.purchase-print-approvers {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px 18px;
+    margin-bottom: 12px;
+}
+
+.purchase-print-approvers {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.purchase-form-table th {
+    width: 150px;
+    background: #f6f8f7;
+    vertical-align: top;
+}
+
+.purchase-form-table td {
+    line-height: 1.7;
+}
+
+.purchase-print-section-title {
+    margin: 18px 0 8px;
+    font-size: 16px;
+}
+
+.purchase-print-lines th,
+.purchase-print-lines td {
+    vertical-align: middle;
+}
+
+.purchase-print-lines th:first-child,
+.purchase-print-lines td:first-child {
+    width: 52px;
+    text-align: center;
+}
+
+.purchase-print-note {
+    margin-top: 12px;
+    line-height: 1.7;
+}
+
+.purchase-print-note p {
+    margin: 4px 0;
+}
+
+.purchase-print-warning {
+    font-weight: 700;
+}
+
+.purchase-signature-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(120px, 1fr));
+    gap: 14px;
+    margin-top: 34px;
+}
+
+.purchase-signature-box {
+    min-height: 82px;
+    border-top: 1px solid var(--line);
+    padding-top: 10px;
+}
+
+.purchase-signature-box span {
+    display: block;
+    color: var(--muted);
+    margin-bottom: 22px;
+}
+
 @media print {
     :root {
         --bg: #ffffff;
@@ -1435,6 +1539,35 @@ textarea:focus {
         grid-template-columns: repeat(4, minmax(120px, 1fr));
         break-inside: avoid;
     }
+
+    .purchase-print-form {
+        max-width: none;
+        border: 0;
+        padding: 0;
+    }
+
+    .purchase-print-meta,
+    .purchase-print-approvers {
+        font-size: 12px;
+    }
+
+    .purchase-form-table,
+    .purchase-print-lines {
+        width: 100%;
+        font-size: 11px;
+    }
+
+    .purchase-form-table th,
+    .purchase-form-table td,
+    .purchase-print-lines th,
+    .purchase-print-lines td {
+        padding: 6px 5px;
+    }
+
+    .purchase-signature-grid {
+        grid-template-columns: repeat(5, minmax(90px, 1fr));
+        break-inside: avoid;
+    }
 }
 
 @media (max-width: 900px) {
@@ -1456,6 +1589,13 @@ textarea:focus {
     .login-card {
         justify-self: stretch;
         width: 100%;
+    }
+
+    .purchase-line-grid,
+    .purchase-print-meta,
+    .purchase-print-approvers,
+    .purchase-signature-grid {
+        grid-template-columns: 1fr;
     }
 
     .login-feature-grid {

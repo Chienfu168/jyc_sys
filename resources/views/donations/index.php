@@ -4,6 +4,7 @@ $query = http_build_query([
     'year' => $year,
     'month' => $month,
     'receipt_status' => $receiptStatus,
+    'delivery_status' => $deliveryStatus,
     'q' => $keyword,
 ]);
 $reportQuery = http_build_query(['year' => $year, 'month' => $month]);
@@ -11,6 +12,7 @@ $receiptPrintQuery = http_build_query([
     'year' => $year,
     'month' => $month,
     'receipt_status' => 'issued',
+    'delivery_status' => $deliveryStatus,
     'q' => $keyword,
 ]);
 ob_start();
@@ -27,6 +29,10 @@ ob_start();
     <div class="stat-card">
         <span>待處理收據</span>
         <strong><?= e(number_format((int) $summary['pending_receipts'])) ?></strong>
+    </div>
+    <div class="stat-card">
+        <span>未寄送收據</span>
+        <strong><?= e(number_format((int) $summary['undelivered_receipts'])) ?></strong>
     </div>
 </section>
 
@@ -45,6 +51,12 @@ ob_start();
                 <option value="">全部收據</option>
                 <?php foreach (['not_required' => '免開', 'pending' => '待處理', 'issued' => '已開立', 'voided' => '作廢'] as $value => $label): ?>
                     <option value="<?= e($value) ?>" <?= $receiptStatus === $value ? 'selected' : '' ?>><?= e($label) ?></option>
+                <?php endforeach; ?>
+            </select>
+            <select name="delivery_status">
+                <option value="">全部寄送</option>
+                <?php foreach (['undelivered' => '未寄送', 'delivered' => '已寄送'] as $value => $label): ?>
+                    <option value="<?= e($value) ?>" <?= $deliveryStatus === $value ? 'selected' : '' ?>><?= e($label) ?></option>
                 <?php endforeach; ?>
             </select>
             <input type="search" name="q" value="<?= e($keyword) ?>" placeholder="捐款人、收據、專案、方式">
@@ -100,6 +112,9 @@ ob_start();
                         <?php if (!empty($donation['receipt_no'])): ?>
                             <div class="muted-text mono"><?= e($donation['receipt_no']) ?></div>
                         <?php endif; ?>
+                        <?php if ($donation['receipt_status'] === 'issued' && !empty($donation['receipt_no'])): ?>
+                            <div class="muted-text"><?= e(donation_index_delivery_label($donation)) ?></div>
+                        <?php endif; ?>
                     </td>
                     <td><?= e($donation['project_name'] ?: '-') ?></td>
                     <td>
@@ -143,6 +158,17 @@ function donation_index_money($value): string
 function donation_index_receipt_label(string $status): string
 {
     return ['not_required' => '免開', 'pending' => '待處理', 'issued' => '已開立', 'voided' => '作廢'][$status] ?? $status;
+}
+
+function donation_index_delivery_label(array $donation): string
+{
+    if ((int) ($donation['receipt_delivery_count'] ?? 0) <= 0) {
+        return '未寄送';
+    }
+
+    $date = (string) ($donation['latest_receipt_delivered_on'] ?? '');
+
+    return '已寄送' . ($date !== '' ? ' / ' . roc_date($date) : '');
 }
 
 $content = ob_get_clean();

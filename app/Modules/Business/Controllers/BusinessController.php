@@ -187,6 +187,7 @@ final class BusinessController extends Controller
             ['permission' => 'accounting.view', 'title' => '會計系統', 'href' => '/accounting', 'description' => '會計科目、傳票、總帳與報表。'],
             ['permission' => 'bank_accounts.view', 'title' => '銀行帳戶', 'href' => '/bank-accounts', 'description' => '基金會銀行帳戶、交易紀錄與零用金撥補。'],
             ['permission' => 'petty_cash.view', 'title' => '零用金', 'href' => '/petty-cash', 'description' => '撥補、借支、核銷與月結。'],
+            ['permission' => 'purchase_requests.view', 'title' => '採購申請', 'href' => '/purchase-requests', 'description' => '請購申請、簽核、採購進度與申請單列印。'],
             ['permission' => 'income_expenses.view', 'title' => '收支紀錄', 'href' => '/income-expenses', 'description' => '收入、支出、付款方式與專案歸屬。'],
             ['permission' => 'lecturer_expenses.view', 'title' => '講師支出費用', 'href' => '/lecturer-expenses', 'description' => '鐘點費、交通費、扣繳與請款清冊。'],
             ['permission' => 'travel_expenses.view', 'title' => '出差費用', 'href' => '/travel-expenses', 'description' => '出差申請、核銷單據與費用報表。'],

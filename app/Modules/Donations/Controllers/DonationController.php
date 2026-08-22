@@ -26,6 +26,7 @@ final class DonationController extends Controller
             'year' => $filters['year'],
             'month' => $filters['month'],
             'receiptStatus' => $filters['receiptStatus'],
+            'deliveryStatus' => $filters['deliveryStatus'],
             'keyword' => $filters['keyword'],
             'summary' => $this->summary($donations),
             'canExport' => $this->canExportDonations(),
@@ -42,6 +43,7 @@ final class DonationController extends Controller
             : '';
         [$where, $params] = $this->reportDateScope($year, $month);
         $donations = $this->donationRows([$where], $params, 'ASC');
+        $undeliveredReceipts = $this->undeliveredReceiptRows($where, $params);
 
         $statusSummary = $this->groupedDonationSummary(
             'donations.receipt_status',
@@ -74,6 +76,7 @@ final class DonationController extends Controller
             'projectSummary' => $projectSummary,
             'topDonors' => $topDonors,
             'monthlySummary' => $monthlySummary,
+            'undeliveredReceipts' => $undeliveredReceipts,
             'canExport' => $this->canExportDonations(),
             'profile' => foundation_profile(),
         ]);
@@ -90,6 +93,7 @@ final class DonationController extends Controller
             'year' => $filters['year'],
             'month' => $filters['month'],
             'receipt_status' => $filters['receiptStatus'],
+            'delivery_status' => $filters['deliveryStatus'],
             'keyword' => $filters['keyword'],
             'count' => count($donations),
         ]);
@@ -117,6 +121,8 @@ final class DonationController extends Controller
             '捐款方式',
             '收據狀態',
             '收據號碼',
+            '寄送狀態',
+            '最近寄送日',
             '指定專案/用途',
             '金額',
             '會計傳票',
@@ -136,6 +142,8 @@ final class DonationController extends Controller
                 $donation['payment_method'],
                 $this->receiptLabel((string) $donation['receipt_status']),
                 $donation['receipt_no'] ?: '',
+                $this->receiptDeliveryLabel($donation),
+                !empty($donation['latest_receipt_delivered_on']) ? roc_date((string) $donation['latest_receipt_delivered_on']) : '',
                 $donation['project_name'] ?: '',
                 number_format((float) $donation['amount'], 0, '.', ''),
                 $donation['voucher_no'] ?: '',
@@ -773,9 +781,11 @@ final class DonationController extends Controller
     private function donationFiltersFrom(array $input, ?string $forcedReceiptStatus = null): array
     {
         $validReceiptStatuses = ['not_required', 'pending', 'issued', 'voided'];
+        $validDeliveryStatuses = ['delivered', 'undelivered'];
         $yearInput = is_scalar($input['year'] ?? null) ? $input['year'] : date('Y');
         $monthInput = is_scalar($input['month'] ?? null) ? (string) $input['month'] : '';
         $receiptStatusInput = is_scalar($input['receipt_status'] ?? null) ? (string) $input['receipt_status'] : '';
+        $deliveryStatusInput = is_scalar($input['delivery_status'] ?? null) ? (string) $input['delivery_status'] : '';
         $keyword = trim(is_scalar($input['q'] ?? null) ? (string) $input['q'] : '');
 
         $year = $this->yearValue($yearInput);
@@ -785,6 +795,7 @@ final class DonationController extends Controller
         $receiptStatus = in_array($forcedReceiptStatus, $validReceiptStatuses, true)
             ? (string) $forcedReceiptStatus
             : (in_array($receiptStatusInput, $validReceiptStatuses, true) ? $receiptStatusInput : '');
+        $deliveryStatus = in_array($deliveryStatusInput, $validDeliveryStatuses, true) ? $deliveryStatusInput : '';
 
         $where = ['YEAR(donations.donated_at) = :year'];
         $params = ['year' => $year];
@@ -796,6 +807,23 @@ final class DonationController extends Controller
             $where[] = 'donations.receipt_status = :receipt_status';
             $params['receipt_status'] = $receiptStatus;
         }
+        if ($deliveryStatus !== '') {
+            $where[] = 'donations.receipt_status = "issued"';
+            $where[] = 'donations.receipt_no IS NOT NULL AND donations.receipt_no != ""';
+            if ($this->receiptDeliveriesTableExists(Database::pdo())) {
+                $receiptDeliveryExists = 'EXISTS (
+                    SELECT 1
+                    FROM donation_receipt_deliveries
+                    WHERE donation_receipt_deliveries.donation_id = donations.id
+                      AND donation_receipt_deliveries.receipt_no = donations.receipt_no
+                )';
+                $where[] = $deliveryStatus === 'delivered'
+                    ? $receiptDeliveryExists
+                    : 'NOT ' . $receiptDeliveryExists;
+            } elseif ($deliveryStatus === 'delivered') {
+                $where[] = '1 = 0';
+            }
+        }
         if ($keyword !== '') {
             $where[] = '(donors.name LIKE :keyword OR donors.receipt_title LIKE :keyword OR donors.tax_id LIKE :keyword OR donations.receipt_no LIKE :keyword OR donations.project_name LIKE :keyword OR donations.payment_method LIKE :keyword)';
             $params['keyword'] = '%' . $keyword . '%';
@@ -805,6 +833,7 @@ final class DonationController extends Controller
             'year' => $year,
             'month' => $month,
             'receiptStatus' => $receiptStatus,
+            'deliveryStatus' => $deliveryStatus,
             'keyword' => $keyword,
             'where' => $where,
             'params' => $params,
@@ -814,7 +843,26 @@ final class DonationController extends Controller
     private function donationRows(array $where, array $params, string $direction = 'DESC'): array
     {
         $direction = strtoupper($direction) === 'ASC' ? 'ASC' : 'DESC';
-        $stmt = Database::pdo()->prepare(
+        $pdo = Database::pdo();
+        $hasReceiptDeliveries = $this->receiptDeliveriesTableExists($pdo);
+        $deliveryColumns = $hasReceiptDeliveries
+            ? 'COALESCE(receipt_delivery_summary.delivery_count, 0) AS receipt_delivery_count,
+                    receipt_delivery_summary.latest_delivered_on AS latest_receipt_delivered_on'
+            : '0 AS receipt_delivery_count,
+                    NULL AS latest_receipt_delivered_on';
+        $deliveryJoin = $hasReceiptDeliveries
+            ? 'LEFT JOIN (
+                    SELECT donation_id,
+                           receipt_no,
+                           COUNT(*) AS delivery_count,
+                           MAX(delivered_on) AS latest_delivered_on
+                    FROM donation_receipt_deliveries
+                    GROUP BY donation_id, receipt_no
+                ) receipt_delivery_summary
+                  ON receipt_delivery_summary.donation_id = donations.id
+                 AND receipt_delivery_summary.receipt_no = donations.receipt_no'
+            : '';
+        $stmt = $pdo->prepare(
             'SELECT donations.*,
                     donors.name AS donor_name,
                     donors.donor_type,
@@ -824,10 +872,12 @@ final class DonationController extends Controller
                     donors.phone AS donor_phone,
                     donors.email AS donor_email,
                     accounting_vouchers.voucher_no,
-                    accounting_vouchers.status AS voucher_status
+                    accounting_vouchers.status AS voucher_status,
+                    ' . $deliveryColumns . '
              FROM donations
              INNER JOIN donors ON donors.id = donations.donor_id
              LEFT JOIN accounting_vouchers ON accounting_vouchers.id = donations.accounting_voucher_id
+             ' . $deliveryJoin . '
              WHERE ' . implode(' AND ', $where) . '
              ORDER BY donations.donated_at ' . $direction . ', donations.id ' . $direction
         );
@@ -982,6 +1032,41 @@ final class DonationController extends Controller
         }
 
         return array_values($summary);
+    }
+
+    private function undeliveredReceiptRows(string $where, array $params): array
+    {
+        $pdo = Database::pdo();
+        $hasReceiptDeliveries = $this->receiptDeliveriesTableExists($pdo);
+        $deliveryJoin = $hasReceiptDeliveries
+            ? 'LEFT JOIN donation_receipt_deliveries
+                  ON donation_receipt_deliveries.donation_id = donations.id
+                 AND donation_receipt_deliveries.receipt_no = donations.receipt_no'
+            : '';
+        $deliveryWhere = $hasReceiptDeliveries ? 'AND donation_receipt_deliveries.id IS NULL' : '';
+
+        $stmt = $pdo->prepare(
+            'SELECT donations.id,
+                    donations.donor_id,
+                    donations.donated_at,
+                    donations.amount,
+                    donations.receipt_no,
+                    donors.name AS donor_name,
+                    donors.email AS donor_email,
+                    donors.address AS donor_address
+             FROM donations
+             INNER JOIN donors ON donors.id = donations.donor_id
+             ' . $deliveryJoin . '
+             WHERE ' . $where . '
+               AND donations.receipt_status = "issued"
+               AND donations.receipt_no IS NOT NULL
+               AND donations.receipt_no != ""
+               ' . $deliveryWhere . '
+             ORDER BY donations.donated_at ASC, donations.id ASC'
+        );
+        $stmt->execute($params);
+
+        return $stmt->fetchAll();
     }
 
     private function findDonation(int $id): array
@@ -1346,6 +1431,15 @@ final class DonationController extends Controller
         return ['not_required' => '免開', 'pending' => '待處理', 'issued' => '已開立', 'voided' => '作廢'][$status] ?? $status;
     }
 
+    private function receiptDeliveryLabel(array $donation): string
+    {
+        if ((string) ($donation['receipt_status'] ?? '') !== 'issued' || trim((string) ($donation['receipt_no'] ?? '')) === '') {
+            return '-';
+        }
+
+        return (int) ($donation['receipt_delivery_count'] ?? 0) > 0 ? '已寄送' : '未寄送';
+    }
+
     private function voucherLabel(string $status): string
     {
         return ['draft' => '草稿', 'posted' => '已入帳', 'voided' => '已作廢'][$status] ?? $status;
@@ -1359,12 +1453,22 @@ final class DonationController extends Controller
     private function summary(array $donations): array
     {
         $valid = array_values(array_filter($donations, static fn (array $donation): bool => $donation['receipt_status'] !== 'voided'));
+        $issuedWithReceipt = static fn (array $donation): bool => $donation['receipt_status'] === 'issued'
+            && trim((string) ($donation['receipt_no'] ?? '')) !== '';
 
         return [
             'count' => count($valid),
             'amount' => array_sum(array_map(static fn (array $donation): float => (float) $donation['amount'], $valid)),
             'pending_receipts' => count(array_filter($valid, static fn (array $donation): bool => $donation['receipt_status'] === 'pending')),
-            'issued_receipts' => count(array_filter($valid, static fn (array $donation): bool => $donation['receipt_status'] === 'issued' && trim((string) ($donation['receipt_no'] ?? '')) !== '')),
+            'issued_receipts' => count(array_filter($valid, $issuedWithReceipt)),
+            'undelivered_receipts' => count(array_filter(
+                $valid,
+                static fn (array $donation): bool => $issuedWithReceipt($donation) && (int) ($donation['receipt_delivery_count'] ?? 0) === 0
+            )),
+            'delivered_receipts' => count(array_filter(
+                $valid,
+                static fn (array $donation): bool => $issuedWithReceipt($donation) && (int) ($donation['receipt_delivery_count'] ?? 0) > 0
+            )),
         ];
     }
 }
