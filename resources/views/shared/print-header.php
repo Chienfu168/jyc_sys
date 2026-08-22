@@ -1,5 +1,5 @@
 <?php $profile = $profile ?? foundation_profile(); ?>
-<div class="print-document-header">
+<div class="print-document-header" style="display: none;">
     <h2><?= e($profile['foundation_name'] ?? foundation_name()) ?></h2>
     <?php if (!empty($documentTitle ?? '')): ?>
         <h3><?= e($documentTitle) ?></h3>

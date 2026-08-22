@@ -1,7 +1,7 @@
 <?php $attachments = $attachments ?? []; ?>
 
-<section class="purchase-attachments no-print">
-    <div class="section-title">
+<section class="panel purchase-attachments no-print">
+    <div class="purchase-section-heading">
         <h3>採購附件</h3>
         <p class="muted-text">保存報價單、發票、合約、驗收文件與付款憑證。</p>
     </div>
