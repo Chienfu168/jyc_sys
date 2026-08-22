@@ -53,11 +53,20 @@ function asset_url(string $path): string
     $assetPath = '/' . ltrim($path, '/');
     $scriptDir = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/');
 
+    if ($scriptDir === '/public' || str_ends_with($scriptDir, '/public')) {
+        $scriptDir = substr($scriptDir, 0, -7);
+    }
+
     if ($scriptDir === '' || $scriptDir === '.' || $scriptDir === '/') {
         return $assetPath;
     }
 
     return $scriptDir . $assetPath;
+}
+
+function asset_version(): string
+{
+    return preg_replace('/^v/i', '', (string) config('app.version', '0'));
 }
 
 function view(string $template, array $data = []): void

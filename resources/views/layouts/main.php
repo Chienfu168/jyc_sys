@@ -59,8 +59,13 @@ $canOperations = $currentUser && (
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= e(($title ?? '') . ' | ' . config('app.name')) ?></title>
-    <link rel="stylesheet" href="<?= e(asset_url('assets/css/app.css')) ?>?v=<?= e(config('app.version', '0')) ?>">
+    <?php $assetVersion = asset_version(); ?>
+    <link rel="stylesheet" href="<?= e(asset_url('assets/css/app.css')) ?>?v=<?= e($assetVersion) ?>">
+    <?php if (asset_url('assets/css/app.css') !== '/assets/css/app.css'): ?>
+        <link rel="stylesheet" href="/assets/css/app.css?v=<?= e($assetVersion) ?>">
+    <?php endif; ?>
     <style>
+        <?php require base_path('resources/views/shared/critical-css.php'); ?>
         .sidebar .nav { display: block !important; }
         .sidebar .nav-section { display: block !important; margin-bottom: 22px !important; }
         .sidebar .nav-section-title { display: block !important; margin: 0 0 8px !important; padding: 0 10px !important; }
