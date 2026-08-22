@@ -11,6 +11,7 @@ final class BackupService
 {
     public function create(): array
     {
+        $this->extendRuntime();
         $this->ensureBackupDirectory();
         $stamp = date('Ymd_His');
 
@@ -89,42 +90,58 @@ final class BackupService
         $target = storage_path('backups' . DIRECTORY_SEPARATOR . "database_{$stamp}.sql");
         $pdo = Database::pdo();
         $tables = $pdo->query('SHOW TABLES')->fetchAll(PDO::FETCH_COLUMN);
-        $sql = "-- Foundation system database backup\n";
-        $sql .= "-- Created at " . date('c') . "\n\n";
-        $sql .= "SET FOREIGN_KEY_CHECKS=0;\n\n";
-
-        foreach ($tables as $table) {
-            $quotedTable = '`' . str_replace('`', '``', (string) $table) . '`';
-            $create = $pdo->query("SHOW CREATE TABLE {$quotedTable}")->fetch(PDO::FETCH_ASSOC);
-            $createSql = array_values($create)[1] ?? '';
-
-            $sql .= "DROP TABLE IF EXISTS {$quotedTable};\n";
-            $sql .= $createSql . ";\n\n";
-
-            $rows = $pdo->query("SELECT * FROM {$quotedTable}")->fetchAll(PDO::FETCH_ASSOC);
-            foreach ($rows as $row) {
-                $columns = array_map(
-                    static fn (string $column) => '`' . str_replace('`', '``', $column) . '`',
-                    array_keys($row)
-                );
-                $values = array_map(
-                    fn ($value) => $value === null ? 'NULL' : $pdo->quote((string) $value),
-                    array_values($row)
-                );
-
-                $sql .= "INSERT INTO {$quotedTable} (" . implode(', ', $columns) . ') VALUES (' . implode(', ', $values) . ");\n";
-            }
-
-            $sql .= "\n";
-        }
-
-        $sql .= "SET FOREIGN_KEY_CHECKS=1;\n";
-
-        if (file_put_contents($target, $sql) === false) {
+        $handle = fopen($target, 'wb');
+        if ($handle === false) {
             throw new RuntimeException('無法建立資料庫備份檔');
         }
 
+        try {
+            $this->writeBackup($handle, "-- Foundation system database backup\n");
+            $this->writeBackup($handle, "-- Created at " . date('c') . "\n\n");
+            $this->writeBackup($handle, "SET FOREIGN_KEY_CHECKS=0;\n\n");
+
+            foreach ($tables as $table) {
+                $quotedTable = '`' . str_replace('`', '``', (string) $table) . '`';
+                $create = $pdo->query("SHOW CREATE TABLE {$quotedTable}")->fetch(PDO::FETCH_ASSOC);
+                $createSql = array_values($create)[1] ?? '';
+
+                $this->writeBackup($handle, "DROP TABLE IF EXISTS {$quotedTable};\n");
+                $this->writeBackup($handle, $createSql . ";\n\n");
+
+                $rows = $pdo->query("SELECT * FROM {$quotedTable}");
+                while ($row = $rows->fetch(PDO::FETCH_ASSOC)) {
+                    $columns = array_map(
+                        static fn (string $column) => '`' . str_replace('`', '``', $column) . '`',
+                        array_keys($row)
+                    );
+                    $values = array_map(
+                        fn ($value) => $value === null ? 'NULL' : $pdo->quote((string) $value),
+                        array_values($row)
+                    );
+
+                    $this->writeBackup(
+                        $handle,
+                        "INSERT INTO {$quotedTable} (" . implode(', ', $columns) . ') VALUES (' . implode(', ', $values) . ");\n"
+                    );
+                }
+                $rows->closeCursor();
+
+                $this->writeBackup($handle, "\n");
+            }
+
+            $this->writeBackup($handle, "SET FOREIGN_KEY_CHECKS=1;\n");
+        } finally {
+            fclose($handle);
+        }
+
         return $target;
+    }
+
+    private function writeBackup($handle, string $content): void
+    {
+        if (fwrite($handle, $content) === false) {
+            throw new RuntimeException('無法寫入資料庫備份檔');
+        }
     }
 
     private function addDirectoryToZip(ZipArchive $zip, string $directory, string $base): void
@@ -152,6 +169,17 @@ final class BackupService
         $dir = storage_path('backups');
         if (!is_dir($dir) && !mkdir($dir, 0755, true) && !is_dir($dir)) {
             throw new RuntimeException('無法建立 storage/backups 目錄');
+        }
+    }
+
+    private function extendRuntime(): void
+    {
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(0);
+        }
+
+        if (function_exists('ignore_user_abort')) {
+            @ignore_user_abort(true);
         }
     }
 }

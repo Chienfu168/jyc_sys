@@ -12,6 +12,7 @@ final class UpdateService
 
     public function applyLatestPackage(): array
     {
+        $this->extendRuntime();
         if (!class_exists(ZipArchive::class)) {
             throw new RuntimeException('PHP ZipArchive extension 未啟用，無法解壓更新包');
         }
@@ -241,5 +242,16 @@ final class UpdateService
     private function relativePath(string $path): string
     {
         return str_replace('\\', '/', substr($path, strlen(base_path()) + 1));
+    }
+
+    private function extendRuntime(): void
+    {
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(0);
+        }
+
+        if (function_exists('ignore_user_abort')) {
+            @ignore_user_abort(true);
+        }
     }
 }
