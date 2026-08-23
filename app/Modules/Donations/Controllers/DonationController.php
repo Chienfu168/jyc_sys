@@ -7,6 +7,7 @@ use App\Core\Controller;
 use App\Core\Database;
 use App\Core\Permission;
 use App\Core\Validator;
+use App\Domain\Donations\ReceiptNumber;
 use PDO;
 
 final class DonationController extends Controller
@@ -1207,9 +1208,9 @@ final class DonationController extends Controller
 
     private function nextReceiptNo(PDO $pdo, string $date): string
     {
-        $year = $this->receiptYear($date);
-        $prefix = 'R' . $year . '-';
-        $existingMax = $this->maxExistingReceiptNumber($pdo, $prefix);
+        $year = ReceiptNumber::year($date);
+        $prefix = ReceiptNumber::prefix($year);
+        $existingMax = $this->maxExistingReceiptNumber($pdo, $year, $prefix);
 
         $pdo->prepare(
             'INSERT IGNORE INTO donation_receipt_sequences
@@ -1229,7 +1230,7 @@ final class DonationController extends Controller
 
         do {
             $current++;
-            $receiptNo = $prefix . str_pad((string) $current, 4, '0', STR_PAD_LEFT);
+            $receiptNo = ReceiptNumber::format($year, $current);
         } while ($this->receiptNoExists($pdo, $receiptNo));
 
         $pdo->prepare(
@@ -1248,16 +1249,7 @@ final class DonationController extends Controller
         return $receiptNo;
     }
 
-    private function receiptYear(string $date): int
-    {
-        if (preg_match('/^(\d{4})-\d{2}-\d{2}$/', $date, $matches)) {
-            return (int) $matches[1];
-        }
-
-        return (int) date('Y');
-    }
-
-    private function maxExistingReceiptNumber(PDO $pdo, string $prefix): int
+    private function maxExistingReceiptNumber(PDO $pdo, int $year, string $prefix): int
     {
         $sql = 'SELECT receipt_no FROM donations WHERE receipt_no LIKE :prefix';
         $params = ['prefix' => $prefix . '%'];
@@ -1269,14 +1261,7 @@ final class DonationController extends Controller
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
 
-        $max = 0;
-        foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $receiptNo) {
-            if (preg_match('/^' . preg_quote($prefix, '/') . '(\d+)$/', (string) $receiptNo, $matches)) {
-                $max = max($max, (int) $matches[1]);
-            }
-        }
-
-        return $max;
+        return ReceiptNumber::maxSequence($stmt->fetchAll(PDO::FETCH_COLUMN), $year);
     }
 
     private function receiptNoExists(PDO $pdo, string $receiptNo, ?int $ignoreId = null): bool
