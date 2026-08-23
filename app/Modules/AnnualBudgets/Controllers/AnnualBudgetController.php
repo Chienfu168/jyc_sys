@@ -8,6 +8,7 @@ use App\Core\Controller;
 use App\Core\Database;
 use App\Core\Permission;
 use App\Core\Validator;
+use App\Domain\AnnualBudgets\BudgetSummary;
 use PDO;
 
 final class AnnualBudgetController extends Controller
@@ -495,33 +496,7 @@ final class AnnualBudgetController extends Controller
 
     private function executionTotals(array $items): array
     {
-        $totals = [
-            'income_budget' => 0.0,
-            'income_actual' => 0.0,
-            'expense_budget' => 0.0,
-            'expense_actual' => 0.0,
-            'unmapped' => 0,
-            'over_budget' => 0,
-        ];
-
-        foreach ($items as $item) {
-            $type = $item['item_type'] === 'income' ? 'income' : 'expense';
-            $totals[$type . '_budget'] += (float) $item['amount'];
-            $totals[$type . '_actual'] += (float) $item['actual_amount'];
-            if (empty($item['account_id'])) {
-                $totals['unmapped']++;
-            }
-            if ($item['item_type'] === 'expense' && (float) $item['remaining_amount'] < 0) {
-                $totals['over_budget']++;
-            }
-        }
-
-        $totals['income_rate'] = $totals['income_budget'] > 0 ? round(($totals['income_actual'] / $totals['income_budget']) * 100, 2) : 0;
-        $totals['expense_rate'] = $totals['expense_budget'] > 0 ? round(($totals['expense_actual'] / $totals['expense_budget']) * 100, 2) : 0;
-        $totals['budget_balance'] = $totals['income_budget'] - $totals['expense_budget'];
-        $totals['actual_balance'] = $totals['income_actual'] - $totals['expense_actual'];
-
-        return $totals;
+        return BudgetSummary::executionTotals($items);
     }
 
     private function budgetAccounts(): array
@@ -537,29 +512,7 @@ final class AnnualBudgetController extends Controller
 
     private function totals(array $items): array
     {
-        $income = 0.0;
-        $expense = 0.0;
-        $previousIncome = 0.0;
-        $previousExpense = 0.0;
-
-        foreach ($items as $item) {
-            if ($item['item_type'] === 'income') {
-                $income += (float) $item['amount'];
-                $previousIncome += (float) ($item['previous_amount'] ?? 0);
-            } else {
-                $expense += (float) $item['amount'];
-                $previousExpense += (float) ($item['previous_amount'] ?? 0);
-            }
-        }
-
-        return [
-            'income' => $income,
-            'expense' => $expense,
-            'balance' => $income - $expense,
-            'previous_income' => $previousIncome,
-            'previous_expense' => $previousExpense,
-            'previous_balance' => $previousIncome - $previousExpense,
-        ];
+        return BudgetSummary::totals($items);
     }
 
     private function statementSummary(array $items): array
