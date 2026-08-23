@@ -4,6 +4,7 @@ namespace App\Modules\Accounting\Controllers;
 
 use App\Core\Controller;
 use App\Core\Database;
+use App\Domain\Accounting\LedgerMath;
 use PDO;
 
 final class ReportController extends Controller
@@ -589,7 +590,7 @@ final class ReportController extends Controller
 
     private function signedAmount(float $debit, float $credit, string $normalBalance): float
     {
-        return $normalBalance === 'credit' ? $credit - $debit : $debit - $credit;
+        return LedgerMath::signedAmount($debit, $credit, $normalBalance);
     }
 
     private function totals(array $accounts): array
@@ -613,8 +614,8 @@ final class ReportController extends Controller
         return [
             'period_debit' => array_sum(array_map(static fn (array $row): float => (float) $row['period_debit'], $rows)),
             'period_credit' => array_sum(array_map(static fn (array $row): float => (float) $row['period_credit'], $rows)),
-            'ending_debit' => array_sum(array_map(static fn (array $row): float => $row['normal_balance'] === 'debit' ? max(0, (float) $row['ending_balance']) : max(0, -(float) $row['ending_balance']), $rows)),
-            'ending_credit' => array_sum(array_map(static fn (array $row): float => $row['normal_balance'] === 'credit' ? max(0, (float) $row['ending_balance']) : max(0, -(float) $row['ending_balance']), $rows)),
+            'ending_debit' => array_sum(array_map(static fn (array $row): float => LedgerMath::endingDebit((float) $row['ending_balance'], (string) $row['normal_balance']), $rows)),
+            'ending_credit' => array_sum(array_map(static fn (array $row): float => LedgerMath::endingCredit((float) $row['ending_balance'], (string) $row['normal_balance']), $rows)),
         ];
     }
 }
