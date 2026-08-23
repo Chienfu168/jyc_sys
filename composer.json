@@ -2,6 +2,7 @@
   "name": "foundation/internal-management-system",
   "description": "Internal foundation management system built with PHP and MySQL.",
   "type": "project",
+  "license": "proprietary",
   "require": {
     "php": ">=8.2",
     "ext-pdo": "*"
