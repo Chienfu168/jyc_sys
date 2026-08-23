@@ -56,16 +56,12 @@ ob_start();
             </thead>
             <tbody>
             <?php foreach ($summary as $row): ?>
-                <?php
-                $base = $row['item_type'] === 'income' ? $totals['income'] : $totals['expense'];
-                $ratio = $base > 0 ? ((float) $row['subtotal'] / $base * 100) : 0;
-                ?>
                 <tr>
                     <td><?= e($row['item_type'] === 'income' ? '收入' : '支出') ?></td>
                     <td><?= e($row['category_name']) ?></td>
                     <td class="amount"><?= e((string) $row['record_count']) ?></td>
                     <td class="amount"><?= e(income_expense_report_money($row['subtotal'])) ?></td>
-                    <td class="amount"><?= e(number_format($ratio, 1)) ?>%</td>
+                    <td class="amount"><?= e(number_format((float) ($row['ratio'] ?? 0), 1)) ?>%</td>
                 </tr>
             <?php endforeach; ?>
             <?php if (!$summary): ?>

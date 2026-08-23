@@ -7,6 +7,7 @@ use App\Core\ApprovalFlow;
 use App\Core\Controller;
 use App\Core\Database;
 use App\Core\Validator;
+use App\Domain\IncomeExpenses\IncomeExpenseReport;
 use PDO;
 
 final class IncomeExpenseController extends Controller
@@ -77,7 +78,7 @@ final class IncomeExpenseController extends Controller
              ORDER BY item_type, subtotal DESC, category_name"
         );
         $summaryStmt->execute($params);
-        $summary = $summaryStmt->fetchAll();
+        $summaryRows = $summaryStmt->fetchAll();
 
         $recordsStmt = Database::pdo()->prepare(
             "SELECT income_expense_records.*, users.name AS created_by_name
@@ -89,15 +90,17 @@ final class IncomeExpenseController extends Controller
         $recordsStmt->execute($params);
         $records = $recordsStmt->fetchAll();
 
+        $totals = $this->totals($records);
+
         $this->render('income-expenses.report', [
             'title' => '收支統計表',
             'section' => '財務會計',
             'active' => 'income-expenses',
             'year' => $year,
             'month' => $month,
-            'summary' => $summary,
+            'summary' => IncomeExpenseReport::summaryWithRatios($summaryRows, $totals['income'], $totals['expense']),
             'records' => $records,
-            'totals' => $this->totals(array_values(array_filter($records, static fn (array $record): bool => $record['status'] !== 'voided'))),
+            'totals' => $totals,
             'profile' => foundation_profile(),
         ]);
     }
@@ -567,26 +570,7 @@ final class IncomeExpenseController extends Controller
 
     private function totals(array $records): array
     {
-        $income = 0.0;
-        $expense = 0.0;
-
-        foreach ($records as $record) {
-            if ($record['status'] === 'voided') {
-                continue;
-            }
-
-            if ($record['item_type'] === 'income') {
-                $income += (float) $record['amount'];
-            } else {
-                $expense += (float) $record['amount'];
-            }
-        }
-
-        return [
-            'income' => $income,
-            'expense' => $expense,
-            'balance' => $income - $expense,
-        ];
+        return IncomeExpenseReport::totals($records);
     }
 
     private function dateScope(int $year, string $month): array
