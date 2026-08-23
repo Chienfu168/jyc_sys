@@ -74,16 +74,12 @@ $periodLabel = $month === '' ? roc_year_label($year) : roc_year_label($year) . '
             </thead>
             <tbody>
             <?php foreach ($summary as $row): ?>
-                <?php
-                $base = $row['item_type'] === 'income' ? $incomeTotal : $expenseTotal;
-                $ratio = $base > 0 ? ((float) $row['subtotal'] / $base * 100) : 0;
-                ?>
                 <tr>
                     <td><?= e($row['item_type'] === 'income' ? '收入' : '支出') ?></td>
                     <td><?= e($row['item_name']) ?></td>
                     <td class="amount"><?= e((string) $row['entry_count']) ?></td>
                     <td class="amount"><?= e(report_money($row['subtotal'])) ?></td>
-                    <td class="amount"><?= e(number_format($ratio, 1)) ?>%</td>
+                    <td class="amount"><?= e(number_format((float) ($row['ratio'] ?? 0), 1)) ?>%</td>
                 </tr>
             <?php endforeach; ?>
             <?php if (!$summary): ?>

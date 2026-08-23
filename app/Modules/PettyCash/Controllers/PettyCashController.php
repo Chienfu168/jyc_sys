@@ -7,6 +7,7 @@ use App\Core\ApprovalFlow;
 use App\Core\Controller;
 use App\Core\Database;
 use App\Core\Validator;
+use App\Domain\PettyCash\PettyCashReport;
 use PDO;
 
 final class PettyCashController extends Controller
@@ -118,6 +119,7 @@ final class PettyCashController extends Controller
         $monthlyStmt->execute(['year' => $year]);
 
         $totals = $this->totals($entries);
+        $summary = PettyCashReport::summaryWithRatios($summary, $totals['income'], $totals['expense']);
 
         $this->render('petty-cash.report', [
             'title' => '零用金統計表',
@@ -570,22 +572,7 @@ final class PettyCashController extends Controller
 
     private function totals(array $entries): array
     {
-        $income = 0.0;
-        $expense = 0.0;
-
-        foreach ($entries as $entry) {
-            if ($entry['item_type'] === 'income') {
-                $income += (float) $entry['amount'];
-            } else {
-                $expense += (float) $entry['amount'];
-            }
-        }
-
-        return [
-            'income' => $income,
-            'expense' => $expense,
-            'balance' => $income - $expense,
-        ];
+        return PettyCashReport::totals($entries);
     }
 
     private function typeValue(): string
