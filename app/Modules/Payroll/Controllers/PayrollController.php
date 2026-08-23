@@ -506,11 +506,7 @@ final class PayrollController extends Controller
 
     private function bankAccounts(): array
     {
-        try {
-            return Database::pdo()->query('SELECT * FROM bank_accounts WHERE status = "active" ORDER BY bank_name, account_no')->fetchAll();
-        } catch (\Throwable) {
-            return [];
-        }
+        return \App\Core\Lookups::activeBankAccounts();
     }
 
     private function projects(): array
