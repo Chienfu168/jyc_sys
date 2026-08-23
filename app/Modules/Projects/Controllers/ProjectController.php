@@ -6,6 +6,7 @@ use App\Core\AuditLog;
 use App\Core\Controller;
 use App\Core\Database;
 use App\Core\Validator;
+use App\Domain\Projects\CostSummary;
 use PDO;
 
 final class ProjectController extends Controller
@@ -328,25 +329,13 @@ final class ProjectController extends Controller
             $projectId
         );
 
-        $actual = (float) $incomeExpense['amount']
-            + (float) $pettyCash['amount']
-            + (float) $lecturerExpense['amount']
-            + (float) $travelExpense['amount']
-            + (float) $payroll['amount'];
-
-        return [
-            'budget' => $budgetAmount,
-            'actual' => $actual,
-            'remaining' => $budgetAmount - $actual,
-            'execution_rate' => $budgetAmount > 0 ? round(($actual / $budgetAmount) * 100, 2) : 0,
-            'sources' => [
-                ['label' => '收支紀錄', 'count' => (int) $incomeExpense['count'], 'amount' => (float) $incomeExpense['amount']],
-                ['label' => '零用金', 'count' => (int) $pettyCash['count'], 'amount' => (float) $pettyCash['amount']],
-                ['label' => '講師費', 'count' => (int) $lecturerExpense['count'], 'amount' => (float) $lecturerExpense['amount']],
-                ['label' => '差旅費', 'count' => (int) $travelExpense['count'], 'amount' => (float) $travelExpense['amount']],
-                ['label' => '薪資', 'count' => (int) $payroll['count'], 'amount' => (float) $payroll['amount']],
-            ],
-        ];
+        return CostSummary::build($budgetAmount, [
+            ['label' => '收支紀錄', 'count' => $incomeExpense['count'], 'amount' => $incomeExpense['amount']],
+            ['label' => '零用金', 'count' => $pettyCash['count'], 'amount' => $pettyCash['amount']],
+            ['label' => '講師費', 'count' => $lecturerExpense['count'], 'amount' => $lecturerExpense['amount']],
+            ['label' => '差旅費', 'count' => $travelExpense['count'], 'amount' => $travelExpense['amount']],
+            ['label' => '薪資', 'count' => $payroll['count'], 'amount' => $payroll['amount']],
+        ]);
     }
 
     private function sourceCost(string $table, string $amountExpression, string $where, int $projectId): array
