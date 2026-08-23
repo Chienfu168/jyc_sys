@@ -137,6 +137,10 @@ $navWorkflow = array_values(array_filter(array_map(static function (array $group
                             </a>
                         <?php endif; ?>
                         <?php if (\App\Core\Permission::can('system_updates.manage')): ?>
+                            <a class="<?= $activeKey === 'system-security' ? 'active' : '' ?>" href="/system-security">
+                                <span class="nav-icon">安</span>
+                                <span>安全檢查</span>
+                            </a>
                             <a class="<?= $activeKey === 'system-update' ? 'active' : '' ?>" href="/system-update">
                                 <span class="nav-icon">更</span>
                                 <span>系統更新</span>
