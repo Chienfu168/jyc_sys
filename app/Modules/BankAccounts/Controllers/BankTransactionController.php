@@ -6,6 +6,7 @@ use App\Core\AuditLog;
 use App\Core\Controller;
 use App\Core\Database;
 use App\Core\Validator;
+use App\Domain\BankAccounts\ReconciliationSummary;
 use PDO;
 
 final class BankTransactionController extends Controller
@@ -476,52 +477,12 @@ final class BankTransactionController extends Controller
 
     private function totals(array $transactions): array
     {
-        $deposit = 0.0;
-        $withdrawal = 0.0;
-        $pettyCash = 0.0;
-
-        foreach ($transactions as $transaction) {
-            $amount = (float) $transaction['amount'];
-            if (in_array($transaction['transaction_type'], ['deposit', 'interest'], true)) {
-                $deposit += $amount;
-                continue;
-            }
-
-            $withdrawal += $amount;
-            if ($transaction['transaction_type'] === 'transfer_to_petty_cash') {
-                $pettyCash += $amount;
-            }
-        }
-
-        return compact('deposit', 'withdrawal', 'pettyCash');
+        return ReconciliationSummary::totals($transactions);
     }
 
     private function reconciliationTotals(array $transactions): array
     {
-        $deposit = 0.0;
-        $withdrawal = 0.0;
-        $reconciled = 0;
-        $unreconciled = 0;
-        $ignored = 0;
-
-        foreach ($transactions as $transaction) {
-            $amount = (float) $transaction['amount'];
-            if (in_array($transaction['transaction_type'], ['deposit', 'interest'], true)) {
-                $deposit += $amount;
-            } else {
-                $withdrawal += $amount;
-            }
-
-            if ($transaction['reconciliation_status'] === 'reconciled') {
-                $reconciled++;
-            } elseif ($transaction['reconciliation_status'] === 'ignored') {
-                $ignored++;
-            } else {
-                $unreconciled++;
-            }
-        }
-
-        return compact('deposit', 'withdrawal', 'reconciled', 'unreconciled', 'ignored');
+        return ReconciliationSummary::reconciliationTotals($transactions);
     }
 
     private function types(): array
