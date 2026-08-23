@@ -90,6 +90,25 @@ final class UpdateService
         if ($zip->open($packagePath) !== true) {
             throw new RuntimeException('無法開啟更新包');
         }
+
+        // 防止 Zip-Slip:逐一檢查壓縮檔內的路徑,拒絕絕對路徑或含 ".." 的目錄跳脫。
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $entryName = str_replace('\\', '/', (string) $zip->getNameIndex($i));
+
+            if (
+                $entryName === ''
+                || str_starts_with($entryName, '/')
+                || preg_match('#^[A-Za-z]:#', $entryName) === 1
+                || $entryName === '..'
+                || str_starts_with($entryName, '../')
+                || str_contains($entryName, '/../')
+                || str_ends_with($entryName, '/..')
+            ) {
+                $zip->close();
+                throw new RuntimeException('更新包含有不安全的檔案路徑,已中止解壓:' . $entryName);
+            }
+        }
+
         $zip->extractTo($target);
         $zip->close();
 

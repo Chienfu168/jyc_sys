@@ -99,17 +99,34 @@ final class Auth
     public function tooManyAttempts(string $email): bool
     {
         $minutes = config('security.login_lock_minutes', 15);
-        $max = config('security.max_login_attempts', 5);
+        $max = (int) config('security.max_login_attempts', 5);
         $since = date('Y-m-d H:i:s', time() - ($minutes * 60));
-        $stmt = Database::pdo()->prepare(
+        $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+
+        // 對單一 Email 鎖定,阻擋針對特定帳號的密碼猜測。
+        $byEmail = Database::pdo()->prepare(
             'SELECT COUNT(*) FROM login_attempts
              WHERE email = :email AND success = 0 AND created_at >= :since'
         );
-        $stmt->bindValue(':email', $email);
-        $stmt->bindValue(':since', $since);
-        $stmt->execute();
+        $byEmail->execute(['email' => $email, 'since' => $since]);
+        if ((int) $byEmail->fetchColumn() >= $max) {
+            return true;
+        }
 
-        return (int) $stmt->fetchColumn() >= $max;
+        // 對單一來源 IP 鎖定(較高門檻),阻擋輪替 Email 的暴力嘗試。
+        if ($ip !== '') {
+            $ipMax = $max * 4;
+            $byIp = Database::pdo()->prepare(
+                'SELECT COUNT(*) FROM login_attempts
+                 WHERE ip_address = :ip AND success = 0 AND created_at >= :since'
+            );
+            $byIp->execute(['ip' => $ip, 'since' => $since]);
+            if ((int) $byIp->fetchColumn() >= $ipMax) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function recordLoginAttempt(string $email, bool $success): void
