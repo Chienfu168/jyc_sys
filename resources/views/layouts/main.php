@@ -95,7 +95,7 @@ $canOperations = $currentUser && (
 
             <nav class="nav" aria-label="主選單">
                 <div class="nav-section">
-                    <span class="nav-section-title">主功能</span>
+                    <span class="nav-section-title">總覽</span>
                     <a class="<?= $activeKey === 'dashboard' ? 'active' : '' ?>" href="/">
                         <span class="nav-icon">總</span>
                         <span>總儀表板</span>
@@ -104,19 +104,25 @@ $canOperations = $currentUser && (
                         <span class="nav-icon">核</span>
                         <span>簽核中心</span>
                     </a>
-                    <?php if ($canFinance): ?>
-                        <a class="<?= $financeActive ? 'active' : '' ?>" href="/finance">
-                            <span class="nav-icon">財</span>
-                            <span>財務會計</span>
-                        </a>
-                    <?php endif; ?>
-                    <?php if ($canOperations): ?>
-                        <a class="<?= $operationsActive ? 'active' : '' ?>" href="/operations">
-                            <span class="nav-icon">業</span>
-                            <span>業務與人事</span>
-                        </a>
-                    <?php endif; ?>
                 </div>
+
+                <?php if ($canFinance || $canOperations): ?>
+                    <div class="nav-section">
+                        <span class="nav-section-title">功能模組</span>
+                        <?php if ($canFinance): ?>
+                            <a class="<?= $financeActive ? 'active' : '' ?>" href="/finance">
+                                <span class="nav-icon">財</span>
+                                <span>財務會計</span>
+                            </a>
+                        <?php endif; ?>
+                        <?php if ($canOperations): ?>
+                            <a class="<?= $operationsActive ? 'active' : '' ?>" href="/operations">
+                                <span class="nav-icon">業</span>
+                                <span>業務與人事</span>
+                            </a>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
 
                 <?php if (\App\Core\Permission::can('users.view') || \App\Core\Permission::can('roles.view')): ?>
                     <div class="nav-section">
