@@ -5,6 +5,7 @@ namespace App\Modules\Accounting\Controllers;
 use App\Core\AuditLog;
 use App\Core\Controller;
 use App\Core\Database;
+use App\Domain\Accounting\VoucherBalance;
 use PDO;
 
 final class VoucherController extends Controller
@@ -200,8 +201,7 @@ final class VoucherController extends Controller
             redirect('/accounting/vouchers/' . $id);
         }
 
-        $totals = $this->lineTotals($this->lines((int) $id));
-        if ($totals['debit'] <= 0 || round($totals['debit'], 2) !== round($totals['credit'], 2)) {
+        if (!VoucherBalance::isBalanced($this->lines((int) $id))) {
             flash('error', '借貸金額不平衡，無法過帳。');
             redirect('/accounting/vouchers/' . $id);
         }
@@ -267,8 +267,7 @@ final class VoucherController extends Controller
         }
 
         $lines = $this->validatedLines($path);
-        $totals = $this->lineTotals($lines);
-        if (count($lines) < 2 || $totals['debit'] <= 0 || round($totals['debit'], 2) !== round($totals['credit'], 2)) {
+        if (count($lines) < 2 || !VoucherBalance::isBalanced($lines)) {
             $this->backWithInput($path, $_POST, '傳票至少需要兩筆分錄，且借方與貸方金額必須相等。');
         }
 
@@ -315,7 +314,7 @@ final class VoucherController extends Controller
             if (!isset($validAccounts[$accountId])) {
                 $this->backWithInput($path, $_POST, '分錄含有無效的會計科目。');
             }
-            if ($debit < 0 || $credit < 0 || ($debit > 0 && $credit > 0) || ($debit <= 0 && $credit <= 0)) {
+            if (!VoucherBalance::lineIsValid($debit, $credit)) {
                 $this->backWithInput($path, $_POST, '每筆分錄只能填借方或貸方其中一邊，且金額需大於 0。');
             }
 
@@ -408,18 +407,7 @@ final class VoucherController extends Controller
 
     private function lineTotals(array $lines): array
     {
-        $debit = 0.0;
-        $credit = 0.0;
-        foreach ($lines as $line) {
-            $debit += (float) $line['debit'];
-            $credit += (float) $line['credit'];
-        }
-
-        return [
-            'debit' => $debit,
-            'credit' => $credit,
-            'balance' => $debit - $credit,
-        ];
+        return VoucherBalance::totals($lines);
     }
 
     private function totals(array $vouchers): array

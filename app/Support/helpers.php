@@ -21,7 +21,12 @@ function storage_path(string $path = ''): string
 
 function env(string $key, mixed $default = null): mixed
 {
-    return $_ENV[$key] ?? getenv($key) ?: $default;
+    $value = $_ENV[$key] ?? getenv($key);
+    if ($value === false || $value === null) {
+        return $default;
+    }
+
+    return $value;
 }
 
 function env_bool(string $key, bool $default = false): bool

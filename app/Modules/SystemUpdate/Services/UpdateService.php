@@ -29,6 +29,16 @@ final class UpdateService
             throw new RuntimeException('找不到更新包：' . $package['package_path']);
         }
 
+        // 完整性驗證:比對套用當下的檔案雜湊與下載時記錄的 SHA-256,
+        // 偵測下載後檔案損毀或遭竄改。
+        $expectedHash = (string) ($package['package_sha256'] ?? '');
+        if ($expectedHash !== '') {
+            $actualHash = hash_file('sha256', $packagePath) ?: '';
+            if (!hash_equals($expectedHash, $actualHash)) {
+                throw new RuntimeException('更新包雜湊不符,可能已損毀或遭竄改,已中止套用。');
+            }
+        }
+
         $maintenance = storage_path('maintenance.lock');
         $backup = null;
         $extractDir = null;
@@ -90,6 +100,25 @@ final class UpdateService
         if ($zip->open($packagePath) !== true) {
             throw new RuntimeException('無法開啟更新包');
         }
+
+        // 防止 Zip-Slip:逐一檢查壓縮檔內的路徑,拒絕絕對路徑或含 ".." 的目錄跳脫。
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $entryName = str_replace('\\', '/', (string) $zip->getNameIndex($i));
+
+            if (
+                $entryName === ''
+                || str_starts_with($entryName, '/')
+                || preg_match('#^[A-Za-z]:#', $entryName) === 1
+                || $entryName === '..'
+                || str_starts_with($entryName, '../')
+                || str_contains($entryName, '/../')
+                || str_ends_with($entryName, '/..')
+            ) {
+                $zip->close();
+                throw new RuntimeException('更新包含有不安全的檔案路徑,已中止解壓:' . $entryName);
+            }
+        }
+
         $zip->extractTo($target);
         $zip->close();
 
