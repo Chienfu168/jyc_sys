@@ -6,6 +6,7 @@ use App\Core\AuditLog;
 use App\Core\Controller;
 use App\Core\Database;
 use App\Core\Validator;
+use App\Domain\Payroll\PayrollCalculator;
 use PDO;
 
 final class PayrollController extends Controller
@@ -73,7 +74,7 @@ final class PayrollController extends Controller
                 'income_tax' => 0,
                 'leave_deduction' => 0,
                 'other_deduction' => 0,
-                'employer_pension' => isset($employee['base_salary'], $employee['pension_rate']) ? round((float) $employee['base_salary'] * (float) $employee['pension_rate'] / 100, 0) : 0,
+                'employer_pension' => isset($employee['base_salary'], $employee['pension_rate']) ? PayrollCalculator::employerPension((float) $employee['base_salary'], (float) $employee['pension_rate']) : 0,
                 'payment_method' => '匯款',
                 'payment_status' => 'draft',
                 'paid_on' => '',
@@ -409,15 +410,19 @@ final class PayrollController extends Controller
 
     private function payload(): array
     {
-        $gross = round($this->amountValue('base_salary') + $this->amountValue('allowance_total') + $this->amountValue('overtime_pay') + $this->amountValue('bonus'), 2);
-        $deduction = round(
-            $this->amountValue('labor_insurance_deduction')
-            + $this->amountValue('health_insurance_deduction')
-            + $this->amountValue('pension_self_deduction')
-            + $this->amountValue('income_tax')
-            + $this->amountValue('leave_deduction')
-            + $this->amountValue('other_deduction'),
-            2
+        $gross = PayrollCalculator::grossPay(
+            $this->amountValue('base_salary'),
+            $this->amountValue('allowance_total'),
+            $this->amountValue('overtime_pay'),
+            $this->amountValue('bonus')
+        );
+        $deduction = PayrollCalculator::deductionTotal(
+            $this->amountValue('labor_insurance_deduction'),
+            $this->amountValue('health_insurance_deduction'),
+            $this->amountValue('pension_self_deduction'),
+            $this->amountValue('income_tax'),
+            $this->amountValue('leave_deduction'),
+            $this->amountValue('other_deduction')
         );
         $bankAccountId = (int) ($_POST['bank_account_id'] ?? 0);
         $paidOn = trim((string) ($_POST['paid_on'] ?? ''));
@@ -438,7 +443,7 @@ final class PayrollController extends Controller
             'leave_deduction' => $this->amountValue('leave_deduction'),
             'other_deduction' => $this->amountValue('other_deduction'),
             'deduction_total' => $deduction,
-            'net_pay' => round($gross - $deduction, 2),
+            'net_pay' => PayrollCalculator::netPay($gross, $deduction),
             'employer_pension' => $this->amountValue('employer_pension'),
             'payment_method' => trim((string) ($_POST['payment_method'] ?? '')),
             'payment_status' => (string) ($_POST['payment_status'] ?? 'draft'),
