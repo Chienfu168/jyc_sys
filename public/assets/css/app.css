@@ -2541,3 +2541,30 @@ textarea:focus {
         width: 100%;
     }
 }
+
+/* 表單分區:基本資料常駐,其餘以 <details> 收合,減少一次顯示的欄位量。 */
+.form-section {
+    grid-column: 1 / -1;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 16px;
+    background: #fbfbfc;
+}
+.form-section > h3 {
+    margin: 0 0 12px;
+    font-size: 15px;
+}
+.form-section > .grid-form {
+    margin: 0;
+}
+details.form-section > summary {
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 15px;
+    list-style: none;
+    user-select: none;
+}
+details.form-section > summary::-webkit-details-marker { display: none; }
+details.form-section > summary::before { content: "▸"; color: #8a8a8a; margin-right: 8px; }
+details.form-section[open] > summary::before { content: "▾"; }
+details.form-section[open] > summary { margin-bottom: 14px; }
