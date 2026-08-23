@@ -29,6 +29,16 @@ final class UpdateService
             throw new RuntimeException('找不到更新包：' . $package['package_path']);
         }
 
+        // 完整性驗證:比對套用當下的檔案雜湊與下載時記錄的 SHA-256,
+        // 偵測下載後檔案損毀或遭竄改。
+        $expectedHash = (string) ($package['package_sha256'] ?? '');
+        if ($expectedHash !== '') {
+            $actualHash = hash_file('sha256', $packagePath) ?: '';
+            if (!hash_equals($expectedHash, $actualHash)) {
+                throw new RuntimeException('更新包雜湊不符,可能已損毀或遭竄改,已中止套用。');
+            }
+        }
+
         $maintenance = storage_path('maintenance.lock');
         $backup = null;
         $extractDir = null;
