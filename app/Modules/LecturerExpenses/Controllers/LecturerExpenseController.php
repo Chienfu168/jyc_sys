@@ -6,6 +6,7 @@ use App\Core\AuditLog;
 use App\Core\Controller;
 use App\Core\Database;
 use App\Core\Validator;
+use App\Domain\LecturerExpenses\LecturerFeeCalculator;
 use PDO;
 
 final class LecturerExpenseController extends Controller
@@ -372,12 +373,12 @@ final class LecturerExpenseController extends Controller
     {
         $hours = $this->amountValue('hours');
         $hourlyRate = $this->amountValue('hourly_rate');
-        $lectureFee = round($hours * $hourlyRate, 2);
+        $lectureFee = LecturerFeeCalculator::lectureFee($hours, $hourlyRate);
         $transportationFee = $this->amountValue('transportation_fee');
         $otherFee = $this->amountValue('other_fee');
         $withholdingTax = $this->amountValue('withholding_tax');
-        $grossTotal = round($lectureFee + $transportationFee + $otherFee, 2);
-        $netTotal = round($grossTotal - $withholdingTax, 2);
+        $grossTotal = LecturerFeeCalculator::grossTotal($lectureFee, $transportationFee, $otherFee);
+        $netTotal = LecturerFeeCalculator::netTotal($grossTotal, $withholdingTax);
         $bankAccountId = (int) ($_POST['bank_account_id'] ?? 0);
         $paidOn = trim((string) ($_POST['paid_on'] ?? ''));
 
