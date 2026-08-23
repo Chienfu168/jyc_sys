@@ -6,6 +6,7 @@ use App\Core\AuditLog;
 use App\Core\Controller;
 use App\Core\Database;
 use App\Core\Validator;
+use App\Domain\TravelExpenses\TravelExpenseCalculator;
 use PDO;
 
 final class TravelExpenseController extends Controller
@@ -357,8 +358,8 @@ final class TravelExpenseController extends Controller
         $meal = $this->amountValue('meal_fee');
         $misc = $this->amountValue('miscellaneous_fee');
         $advance = $this->amountValue('advance_amount');
-        $total = round($transportation + $accommodation + $meal + $misc, 2);
-        $reimbursable = round($total - $advance, 2);
+        $total = TravelExpenseCalculator::total($transportation, $accommodation, $meal, $misc);
+        $reimbursable = TravelExpenseCalculator::reimbursable($total, $advance);
         $bankAccountId = (int) ($_POST['bank_account_id'] ?? 0);
         $travelerUserId = (int) ($_POST['traveler_user_id'] ?? 0);
         $paidOn = trim((string) ($_POST['paid_on'] ?? ''));
@@ -458,23 +459,7 @@ final class TravelExpenseController extends Controller
 
     private function totals(array $expenses): array
     {
-        $total = 0.0;
-        $advance = 0.0;
-        $reimbursable = 0.0;
-        foreach ($expenses as $expense) {
-            if ($expense['payment_status'] === 'voided') {
-                continue;
-            }
-            $total += (float) $expense['total_amount'];
-            $advance += (float) $expense['advance_amount'];
-            $reimbursable += (float) $expense['reimbursable_amount'];
-        }
-
-        return [
-            'total' => $total,
-            'advance' => $advance,
-            'reimbursable' => $reimbursable,
-        ];
+        return TravelExpenseCalculator::summary($expenses);
     }
 
     private function statusValue(): string
