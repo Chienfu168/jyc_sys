@@ -5,6 +5,21 @@ $canChangeReceipt = $canManage && $donation['receipt_status'] === 'issued' && !e
 if (!$canChangeReceipt && !$receiptVoids) {
     return;
 }
+
+// 輔助函式須在下方 HTML 呼叫前定義(function_exists 條件式宣告不會被 hoisting)。
+if (!function_exists('donation_receipt_workflow_datetime')) {
+    function donation_receipt_workflow_datetime(?string $datetime): string
+    {
+        if (!$datetime) {
+            return '-';
+        }
+
+        $date = substr($datetime, 0, 10);
+        $time = substr($datetime, 11, 5);
+
+        return roc_date($date) . ($time !== '' ? ' ' . $time : '');
+    }
+}
 ?>
 <section class="panel no-print">
     <div class="panel-header">
@@ -69,17 +84,3 @@ if (!$canChangeReceipt && !$receiptVoids) {
         </table>
     </div>
 </section>
-<?php
-if (!function_exists('donation_receipt_workflow_datetime')) {
-    function donation_receipt_workflow_datetime(?string $datetime): string
-    {
-        if (!$datetime) {
-            return '-';
-        }
-
-        $date = substr($datetime, 0, 10);
-        $time = substr($datetime, 11, 5);
-
-        return roc_date($date) . ($time !== '' ? ' ' . $time : '');
-    }
-}

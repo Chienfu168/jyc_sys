@@ -6,6 +6,41 @@ if (!$canRecordDelivery && !$receiptDeliveries) {
     return;
 }
 $defaultDeliveredTo = $donation['donor_email'] ?: ($donation['donor_address'] ?: '');
+
+// 輔助函式須在下方 HTML 呼叫前定義(function_exists 條件式宣告不會被 hoisting)。
+if (!function_exists('donation_delivery_method_options')) {
+    function donation_delivery_method_options(): array
+    {
+        return [
+            'email' => '電子郵件',
+            'post' => '郵寄',
+            'in_person' => '親送',
+            'pickup' => '自取',
+            'other' => '其他',
+        ];
+    }
+}
+
+if (!function_exists('donation_delivery_method_label')) {
+    function donation_delivery_method_label(string $method): string
+    {
+        return donation_delivery_method_options()[$method] ?? $method;
+    }
+}
+
+if (!function_exists('donation_delivery_datetime')) {
+    function donation_delivery_datetime(?string $datetime): string
+    {
+        if (!$datetime) {
+            return '-';
+        }
+
+        $date = substr($datetime, 0, 10);
+        $time = substr($datetime, 11, 5);
+
+        return roc_date($date) . ($time !== '' ? ' ' . $time : '');
+    }
+}
 ?>
 <section class="panel no-print">
     <div class="panel-header">
@@ -78,37 +113,3 @@ $defaultDeliveredTo = $donation['donor_email'] ?: ($donation['donor_address'] ?:
         </table>
     </div>
 </section>
-<?php
-if (!function_exists('donation_delivery_method_options')) {
-    function donation_delivery_method_options(): array
-    {
-        return [
-            'email' => '電子郵件',
-            'post' => '郵寄',
-            'in_person' => '親送',
-            'pickup' => '自取',
-            'other' => '其他',
-        ];
-    }
-}
-
-if (!function_exists('donation_delivery_method_label')) {
-    function donation_delivery_method_label(string $method): string
-    {
-        return donation_delivery_method_options()[$method] ?? $method;
-    }
-}
-
-if (!function_exists('donation_delivery_datetime')) {
-    function donation_delivery_datetime(?string $datetime): string
-    {
-        if (!$datetime) {
-            return '-';
-        }
-
-        $date = substr($datetime, 0, 10);
-        $time = substr($datetime, 11, 5);
-
-        return roc_date($date) . ($time !== '' ? ' ' . $time : '');
-    }
-}
