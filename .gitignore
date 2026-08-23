@@ -4,6 +4,8 @@
 /.git_broken_*/
 /舊資料夾/
 /vendor/
+/.phpunit.cache/
+.phpunit.result.cache
 /.tools/
 /storage/logs/*.log
 /storage/cache/*
