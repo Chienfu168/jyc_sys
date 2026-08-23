@@ -1,3 +1,34 @@
+<?php
+// 輔助函式須在下方表格迴圈呼叫前定義。因以 function_exists 條件式宣告,
+// 不會被提前 hoisting,故置於檔案頂端,避免簽核歷史非空時呼叫到尚未定義的函式。
+if (!function_exists('shared_approval_action')) {
+    function shared_approval_action(string $action): string
+    {
+        return ['submit' => '送審', 'approved' => '核准', 'rejected' => '退回'][$action] ?? $action;
+    }
+}
+
+if (!function_exists('shared_approval_status')) {
+    function shared_approval_status(string $status): string
+    {
+        return ['pending' => '待審', 'approved' => '已核准', 'rejected' => '已退回', 'cancelled' => '已取消'][$status] ?? $status;
+    }
+}
+
+if (!function_exists('shared_approval_datetime')) {
+    function shared_approval_datetime(?string $datetime): string
+    {
+        if (!$datetime) {
+            return '-';
+        }
+
+        $date = substr($datetime, 0, 10);
+        $time = substr($datetime, 11, 5);
+
+        return roc_date($date) . ($time ? ' ' . $time : '');
+    }
+}
+?>
 <div class="section-title">
     <h3>簽核流程</h3>
     <p class="muted-text">送審後由具核准權限的人員核准或退回。</p>
@@ -46,32 +77,3 @@
         </tbody>
     </table>
 </div>
-
-<?php
-if (!function_exists('shared_approval_action')) {
-    function shared_approval_action(string $action): string
-    {
-        return ['submit' => '送審', 'approved' => '核准', 'rejected' => '退回'][$action] ?? $action;
-    }
-}
-
-if (!function_exists('shared_approval_status')) {
-    function shared_approval_status(string $status): string
-    {
-        return ['pending' => '待審', 'approved' => '已核准', 'rejected' => '已退回', 'cancelled' => '已取消'][$status] ?? $status;
-    }
-}
-
-if (!function_exists('shared_approval_datetime')) {
-    function shared_approval_datetime(?string $datetime): string
-    {
-        if (!$datetime) {
-            return '-';
-        }
-
-        $date = substr($datetime, 0, 10);
-        $time = substr($datetime, 11, 5);
-
-        return roc_date($date) . ($time ? ' ' . $time : '');
-    }
-}
