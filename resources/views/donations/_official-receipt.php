@@ -63,6 +63,9 @@ $rcProject = trim((string) ($donation['project_name'] ?? ''));
 
     <footer class="rc-footer">
         <div>會址：<?= e($rcProfile['address'] ?? '') ?>　電話：<?= e($rcProfile['phone'] ?? '') ?></div>
+        <?php if (!empty($rcProfile['mailing_address']) && $rcProfile['mailing_address'] !== ($rcProfile['address'] ?? '')): ?>
+            <div>通訊地址：<?= e($rcProfile['mailing_address']) ?></div>
+        <?php endif; ?>
         <div>統一編號：<?= e($rcProfile['tax_id'] ?? '') ?><?= $rcApprovalDoc !== '' ? '　' . e($rcApprovalDoc) : '' ?></div>
         <?php if (!empty($rcProfile['website']) || !empty($rcProfile['email'])): ?>
             <div>

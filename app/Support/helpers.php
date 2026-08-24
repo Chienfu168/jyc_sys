@@ -188,6 +188,7 @@ function foundation_profile(): array
         'email' => '',
         'website' => '',
         'address' => '',
+        'mailing_address' => '',
         'mission' => '',
         'service_area' => '',
         'fiscal_year_start_month' => 1,

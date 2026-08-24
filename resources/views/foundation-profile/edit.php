@@ -61,8 +61,12 @@ ob_start();
             <input type="text" name="website" value="<?= e((string) old('website', $profile['website'] ?? '')) ?>" placeholder="http://www.example.org">
         </label>
         <label class="span-2">
-            <span>地址</span>
+            <span>會址</span>
             <input type="text" name="address" value="<?= e((string) old('address', $profile['address'] ?? '')) ?>">
+        </label>
+        <label class="span-2">
+            <span>通訊地址</span>
+            <input type="text" name="mailing_address" value="<?= e((string) old('mailing_address', $profile['mailing_address'] ?? '')) ?>" placeholder="未填時文件將使用會址">
         </label>
         <label class="span-2">
             <span>宗旨 / 任務</span>
