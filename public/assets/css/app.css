@@ -2344,7 +2344,8 @@ textarea:focus {
     }
 
     .app-shell {
-        display: block;
+        display: block !important;
+        grid-template-columns: none !important;
         min-height: 0;
     }
 
@@ -2359,13 +2360,15 @@ textarea:focus {
     }
 
     .main {
-        width: 100%;
-        padding: 0;
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 0 !important;
         overflow: visible;
     }
 
     .content-area {
-        display: block;
+        display: block !important;
+        max-width: 100% !important;
     }
 
     .panel,
