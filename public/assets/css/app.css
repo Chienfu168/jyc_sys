@@ -1721,6 +1721,24 @@ textarea:focus {
     font-weight: 700;
 }
 
+/* 收支營運表:段落標題、合計與稅前/稅後賸餘列 */
+.operating-statement-table .os-section td {
+    font-weight: 700;
+    background: #f6f8f7;
+}
+
+.operating-statement-table .os-total td {
+    font-weight: 700;
+    border-top: 1px solid var(--line);
+}
+
+.operating-statement-table .os-grand td {
+    font-weight: 700;
+    background: #eef2f1;
+    border-top: 2px solid var(--line);
+    border-bottom: 1px solid var(--line);
+}
+
 .financial-statement-table .statement-section td,
 .financial-statement-table .statement-section {
     background: #f6f8f7;
