@@ -1509,6 +1509,129 @@ textarea:focus {
     page-break-before: always;
 }
 
+/* 陳報主管機關公文(函)列印版面 */
+.official-letter {
+    position: relative;
+    max-width: 18cm;
+    margin: 0 auto 24px;
+    padding: 14mm 20mm 16mm 16mm;
+    color: #000000;
+    background: #ffffff;
+    font-family: "PMingLiU", "MingLiU", "Noto Serif TC", "Songti TC", serif;
+    line-height: 2;
+}
+
+.official-letter .ol-org-seal {
+    position: absolute;
+    top: 12mm;
+    right: 4mm;
+    writing-mode: vertical-rl;
+    letter-spacing: 4px;
+    font-size: 13px;
+    color: #b00020;
+    border: 1px solid #b00020;
+    border-radius: 2px;
+    padding: 8px 4px;
+    opacity: 0.85;
+}
+
+.official-letter .ol-head {
+    text-align: center;
+    margin-bottom: 16px;
+}
+
+.official-letter .ol-org {
+    margin: 0 0 8px;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: 2px;
+}
+
+.official-letter .ol-address {
+    text-align: right;
+    font-size: 13px;
+    line-height: 1.7;
+    color: #222222;
+    margin: 0 44px 0 0;
+}
+
+.official-letter .ol-address p {
+    margin: 0;
+}
+
+.official-letter .ol-meta {
+    width: 100%;
+    border-collapse: collapse;
+    border-top: 1px solid #000000;
+    border-bottom: 1px solid #000000;
+    margin: 16px 0;
+    font-size: 15px;
+}
+
+.official-letter .ol-meta th,
+.official-letter .ol-meta td {
+    border: none;
+    padding: 6px 10px;
+    text-align: left;
+    font-weight: 400;
+    vertical-align: top;
+}
+
+.official-letter .ol-meta th {
+    width: 15%;
+    white-space: nowrap;
+    color: #333333;
+}
+
+.official-letter .ol-subject {
+    font-size: 16px;
+    margin: 16px 0;
+}
+
+.official-letter .ol-label {
+    font-weight: 700;
+}
+
+.official-letter .ol-body {
+    font-size: 16px;
+    margin: 16px 0 44px;
+}
+
+.official-letter .ol-basis {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+}
+
+.official-letter .ol-basis > li {
+    margin: 8px 0;
+}
+
+.official-letter .ol-attachments {
+    list-style: none;
+    margin: 4px 0 4px 2em;
+    padding: 0;
+}
+
+.official-letter .ol-attachments > li {
+    margin: 4px 0;
+}
+
+.official-letter .ol-signature {
+    text-align: right;
+    font-size: 16px;
+    margin-top: 44px;
+}
+
+.official-letter .ol-signer-name {
+    display: inline-block;
+    min-width: 90px;
+    font-weight: 700;
+    border-bottom: 1px solid #000000;
+    padding: 0 6px 3px;
+    margin-right: 10px;
+}
+
 .statement-table {
     min-width: 1180px;
     border-collapse: collapse;
@@ -2534,6 +2657,17 @@ textarea:focus {
         margin: 0 0 12px;
         padding: 0;
         break-inside: avoid;
+    }
+
+    .official-letter {
+        max-width: none;
+        margin: 0;
+        padding: 0;
+        break-inside: avoid;
+    }
+
+    .official-letter .ol-org-seal {
+        color: #cc3344;
     }
 
     .budget-statement {
