@@ -1632,6 +1632,46 @@ textarea:focus {
     margin-right: 10px;
 }
 
+/* 陳報公文表單:附件快速帶入器 */
+.doc-picker {
+    margin-top: 6px;
+    padding: 12px 14px;
+    border: 1px dashed var(--line);
+    border-radius: 8px;
+    background: var(--surface-muted, rgba(127, 127, 127, 0.06));
+}
+
+.doc-picker-title {
+    margin: 0 0 8px;
+    font-size: 13px;
+    color: var(--muted, #666666);
+}
+
+.doc-picker-group {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 6px 0;
+}
+
+.doc-picker-group-name {
+    flex: 0 0 auto;
+    min-width: 6.5em;
+    padding-top: 4px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.doc-picker-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.doc-picker-chips .doc-chip {
+    font-size: 12.5px;
+}
+
 .statement-table {
     min-width: 1180px;
     border-collapse: collapse;

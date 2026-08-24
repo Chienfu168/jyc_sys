@@ -47,6 +47,7 @@ final class OfficialLetterController extends Controller
             'section' => '會計與帳務',
             'active' => 'official-letters',
             'letter' => $this->blankLetter(),
+            'documents' => $this->availableDocuments(),
             'action' => '/official-letters',
         ]);
     }
@@ -99,6 +100,7 @@ final class OfficialLetterController extends Controller
             'section' => '會計與帳務',
             'active' => 'official-letters',
             'letter' => $letter,
+            'documents' => $this->availableDocuments(),
             'action' => '/official-letters/' . $id,
         ]);
     }
@@ -223,6 +225,69 @@ final class OfficialLetterController extends Controller
         }
 
         return $letter;
+    }
+
+    /**
+     * 供表單快速帶入附件清單:列出系統既有的工作計畫、經費預算表與董事會議紀錄,
+     * 依年度(民國)分組標示,方便使用者勾選帶入附件文字。
+     *
+     * @return array<int, array{group: string, label: string, year: ?int}>
+     */
+    private function availableDocuments(): array
+    {
+        $documents = [];
+        $pdo = Database::pdo();
+
+        try {
+            $plans = $pdo->query(
+                'SELECT fiscal_year, title FROM work_plans ORDER BY fiscal_year DESC, id DESC LIMIT 30'
+            )->fetchAll();
+            foreach ($plans as $plan) {
+                $documents[] = [
+                    'group' => '工作計畫',
+                    'label' => roc_year((int) $plan['fiscal_year']) . '年度' . (string) $plan['title'],
+                    'year' => (int) $plan['fiscal_year'],
+                ];
+            }
+        } catch (\Throwable) {
+            // 資料表尚未建立時略過。
+        }
+
+        try {
+            $budgets = $pdo->query(
+                'SELECT fiscal_year, title FROM annual_budgets ORDER BY fiscal_year DESC, id DESC LIMIT 30'
+            )->fetchAll();
+            foreach ($budgets as $budget) {
+                $documents[] = [
+                    'group' => '經費預算表',
+                    'label' => roc_year((int) $budget['fiscal_year']) . '年度' . (string) $budget['title'],
+                    'year' => (int) $budget['fiscal_year'],
+                ];
+            }
+        } catch (\Throwable) {
+            // 略過。
+        }
+
+        try {
+            $meetings = $pdo->query(
+                'SELECT term_no, session_no, meeting_date FROM board_meetings ORDER BY meeting_date DESC, id DESC LIMIT 30'
+            )->fetchAll();
+            foreach ($meetings as $meeting) {
+                $year = (int) substr((string) $meeting['meeting_date'], 0, 4);
+                $documents[] = [
+                    'group' => '董事會議紀錄',
+                    'label' => \App\Domain\BoardMeetings\MeetingLabel::sessionTitle(
+                        (int) $meeting['term_no'],
+                        (int) $meeting['session_no']
+                    ) . '紀錄（含簽到表）',
+                    'year' => $year > 0 ? $year : null,
+                ];
+            }
+        } catch (\Throwable) {
+            // 略過。
+        }
+
+        return $documents;
     }
 
     private function blankLetter(): array
