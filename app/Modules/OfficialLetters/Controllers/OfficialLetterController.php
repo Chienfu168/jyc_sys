@@ -59,9 +59,9 @@ final class OfficialLetterController extends Controller
 
         Database::pdo()->prepare(
             'INSERT INTO official_letters
-             (fiscal_year, letter_number, letter_date, recipient, urgency, confidentiality, attachment_note, subject, basis_lines, attachment_intro, attachment_items, signer_title, signer_name, status, created_by, created_at, updated_at)
+             (fiscal_year, letter_number, letter_date, recipient, urgency, confidentiality, attachment_note, subject, basis_lines, attachment_intro, attachment_items, main_copy, cc_copy, signer_title, signer_name, status, created_by, created_at, updated_at)
              VALUES
-             (:fiscal_year, :letter_number, :letter_date, :recipient, :urgency, :confidentiality, :attachment_note, :subject, :basis_lines, :attachment_intro, :attachment_items, :signer_title, :signer_name, :status, :created_by, :created_at, :updated_at)'
+             (:fiscal_year, :letter_number, :letter_date, :recipient, :urgency, :confidentiality, :attachment_note, :subject, :basis_lines, :attachment_intro, :attachment_items, :main_copy, :cc_copy, :signer_title, :signer_name, :status, :created_by, :created_at, :updated_at)'
         )->execute($this->payload() + [
             'created_by' => auth()->user()['id'] ?? null,
             'created_at' => now(),
@@ -86,6 +86,8 @@ final class OfficialLetterController extends Controller
             'letter' => $letter,
             'basisLines' => LetterFormat::lines($letter['basis_lines']),
             'attachmentItems' => LetterFormat::lines($letter['attachment_items']),
+            'mainCopyLines' => LetterFormat::lines($letter['main_copy'] ?? ''),
+            'ccCopyLines' => LetterFormat::lines($letter['cc_copy'] ?? ''),
             'profile' => foundation_profile(),
         ]);
     }
@@ -124,6 +126,8 @@ final class OfficialLetterController extends Controller
                  basis_lines = :basis_lines,
                  attachment_intro = :attachment_intro,
                  attachment_items = :attachment_items,
+                 main_copy = :main_copy,
+                 cc_copy = :cc_copy,
                  signer_title = :signer_title,
                  signer_name = :signer_name,
                  status = :status,
@@ -206,6 +210,8 @@ final class OfficialLetterController extends Controller
             'basis_lines' => trim((string) ($_POST['basis_lines'] ?? '')),
             'attachment_intro' => $this->nullableText('attachment_intro'),
             'attachment_items' => trim((string) ($_POST['attachment_items'] ?? '')),
+            'main_copy' => trim((string) ($_POST['main_copy'] ?? '')),
+            'cc_copy' => trim((string) ($_POST['cc_copy'] ?? '')),
             'signer_title' => trim((string) ($_POST['signer_title'] ?? '')) ?: '董事長',
             'signer_name' => $this->nullableText('signer_name'),
             'status' => in_array($_POST['status'] ?? '', ['draft', 'issued'], true) ? (string) $_POST['status'] : 'draft',
@@ -307,6 +313,8 @@ final class OfficialLetterController extends Controller
             'basis_lines' => "依據「財團法人法」辦理。\n本會" . roc_year($year) . '年度工作計畫、經費預算等業經本會董事會議審定通過。',
             'attachment_intro' => '檢附左列文件各 1 份：',
             'attachment_items' => roc_year($year) . "年度工作計畫。\n經費預算表。\n董事會議紀錄（含簽到表）。\n核定捐助章程。\n風險評估報告(工作計畫及經費預算與洗錢或資恐高風險國家或地區有關者，並應檢附風險評估報告。)",
+            'main_copy' => $profile['competent_authority'] ?: '',
+            'cc_copy' => '本會存查。',
             'signer_title' => '董事長',
             'signer_name' => $profile['representative'] ?: '',
             'status' => 'draft',

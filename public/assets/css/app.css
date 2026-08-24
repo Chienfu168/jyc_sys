@@ -1632,6 +1632,18 @@ textarea:focus {
     margin-right: 10px;
 }
 
+.official-letter .ol-copies {
+    margin-top: 28px;
+    padding-top: 10px;
+    border-top: 1px solid #000000;
+    font-size: 14px;
+    line-height: 1.9;
+}
+
+.official-letter .ol-copies p {
+    margin: 2px 0;
+}
+
 /* 陳報公文表單:附件快速帶入器 */
 .doc-picker {
     margin-top: 6px;
