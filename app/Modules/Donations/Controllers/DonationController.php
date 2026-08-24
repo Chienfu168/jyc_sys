@@ -7,6 +7,7 @@ use App\Core\Controller;
 use App\Core\Database;
 use App\Core\Permission;
 use App\Core\Validator;
+use App\Domain\Donations\DonationListSummary;
 use App\Domain\Donations\ReceiptNumber;
 use PDO;
 
@@ -155,6 +156,41 @@ final class DonationController extends Controller
 
         fclose($output);
         exit;
+    }
+
+    /**
+     * 捐贈收入清冊(主管機關核備用):依捐贈單位/人彙總年度捐贈金額,格式參考教育局範例。
+     */
+    public function incomeList(): void
+    {
+        $this->requirePermission('donations.view');
+
+        $year = $this->yearValue($_GET['year'] ?? date('Y'));
+        [$where, $params] = $this->reportDateScope($year, '');
+
+        $stmt = Database::pdo()->prepare(
+            'SELECT donors.name,
+                    donors.donor_type,
+                    COUNT(donations.id) AS donation_count,
+                    SUM(donations.amount) AS total_amount
+             FROM donations
+             INNER JOIN donors ON donors.id = donations.donor_id
+             WHERE ' . $where . ' AND donations.receipt_status != "voided"
+             GROUP BY donors.id, donors.name, donors.donor_type
+             ORDER BY total_amount DESC, donation_count DESC, donors.name'
+        );
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll();
+
+        $this->render('donations.income-list', [
+            'title' => '捐贈收入清冊',
+            'section' => '主管機關核備',
+            'active' => 'donations',
+            'year' => $year,
+            'rows' => $rows,
+            'totalAmount' => DonationListSummary::total($rows),
+            'profile' => foundation_profile(),
+        ]);
     }
 
     public function create(): void
