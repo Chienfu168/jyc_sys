@@ -73,6 +73,14 @@ ob_start();
                     <?php endforeach; ?>
                 </div>
             <?php endif; ?>
+            <label class="span-2">
+                <span>正本(每行一項)</span>
+                <textarea name="main_copy" rows="2"><?= e((string) old('main_copy', $letter['main_copy'] ?? '')) ?></textarea>
+            </label>
+            <label class="span-2">
+                <span>副本(每行一項)</span>
+                <textarea name="cc_copy" rows="2"><?= e((string) old('cc_copy', $letter['cc_copy'] ?? '')) ?></textarea>
+            </label>
             <label>
                 <span>具名職稱</span>
                 <input type="text" name="signer_title" value="<?= e((string) old('signer_title', $letter['signer_title'] ?? '董事長')) ?>">

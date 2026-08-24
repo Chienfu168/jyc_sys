@@ -81,6 +81,17 @@ ob_start();
         <span class="ol-signer-name"><?= e($letter['signer_name'] ?: '') ?></span>
         <span class="ol-signer-title"><?= e($letter['signer_title']) ?>（簽名或蓋章）</span>
     </div>
+
+    <?php if ($mainCopyLines || $ccCopyLines): ?>
+        <div class="ol-copies">
+            <?php if ($mainCopyLines): ?>
+                <p><span class="ol-label">正本：</span><?= e(implode('、', $mainCopyLines)) ?></p>
+            <?php endif; ?>
+            <?php if ($ccCopyLines): ?>
+                <p><span class="ol-label">副本：</span><?= e(implode('、', $ccCopyLines)) ?></p>
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
 </article>
 <?php
 $content = ob_get_clean();
