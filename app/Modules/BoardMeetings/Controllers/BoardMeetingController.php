@@ -41,7 +41,7 @@ final class BoardMeetingController extends Controller
 
         $this->render('board-meetings.index', [
             'title' => '董事會議',
-            'section' => '會計與帳務',
+            'section' => '主管機關核備',
             'active' => 'board-meetings',
             'meetings' => $meetings,
             'status' => $status,
@@ -54,7 +54,7 @@ final class BoardMeetingController extends Controller
 
         $this->render('board-meetings.form', [
             'title' => '新增董事會議',
-            'section' => '會計與帳務',
+            'section' => '主管機關核備',
             'active' => 'board-meetings',
             'meeting' => $this->blankMeeting(),
             'attendees' => [],
@@ -98,7 +98,7 @@ final class BoardMeetingController extends Controller
 
         $this->render('board-meetings.show', [
             'title' => MeetingLabel::sessionTitle((int) $meeting['term_no'], (int) $meeting['session_no']),
-            'section' => '會計與帳務',
+            'section' => '主管機關核備',
             'active' => 'board-meetings',
             'meeting' => $meeting,
             'attendees' => $this->attendees((int) $id),
@@ -115,7 +115,7 @@ final class BoardMeetingController extends Controller
 
         $this->render('board-meetings.form', [
             'title' => '編輯董事會議',
-            'section' => '會計與帳務',
+            'section' => '主管機關核備',
             'active' => 'board-meetings',
             'meeting' => $meeting,
             'attendees' => $this->attendees((int) $id),
@@ -187,7 +187,7 @@ final class BoardMeetingController extends Controller
 
         $this->render('board-meetings.print', [
             'title' => MeetingLabel::sessionTitle((int) $meeting['term_no'], (int) $meeting['session_no']),
-            'section' => '會計與帳務',
+            'section' => '主管機關核備',
             'active' => 'board-meetings',
             'meeting' => $meeting,
             'attendees' => $this->attendees((int) $id),
