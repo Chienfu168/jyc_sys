@@ -1267,6 +1267,182 @@ textarea:focus {
     margin-top: 12px;
 }
 
+/* 官方樣式捐贈收據(可列印後蓋大小章) */
+.official-receipt {
+    max-width: 18cm;
+    margin: 0 auto;
+    padding: 8mm 10mm;
+    color: #000000;
+    background: #ffffff;
+    font-family: "PMingLiU", "MingLiU", "Noto Serif TC", "Songti TC", serif;
+    line-height: 1.9;
+}
+
+.official-receipt .rc-head {
+    text-align: center;
+}
+
+.official-receipt .rc-org {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.official-receipt .rc-title {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: 12px;
+    margin: 4px 0 10px;
+}
+
+.official-receipt .rc-datno {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 1px solid #000000;
+    padding-bottom: 4px;
+    margin-bottom: 12px;
+    font-size: 15px;
+}
+
+.official-receipt .rc-no {
+    letter-spacing: 1px;
+}
+
+.official-receipt .rc-recital {
+    font-size: 16px;
+    margin: 8px 0 12px;
+}
+
+.official-receipt .rc-fill {
+    display: inline-block;
+    min-width: 180px;
+    border-bottom: 1px solid #000000;
+    text-align: center;
+    padding: 0 6px;
+    font-weight: 700;
+}
+
+.official-receipt .rc-fill-sm {
+    min-width: 110px;
+    font-weight: 400;
+}
+
+.official-receipt .rc-fill-long {
+    min-width: 60%;
+}
+
+.official-receipt .rc-body {
+    border: 1px solid #000000;
+    padding: 10px 14px;
+    margin: 10px 0;
+}
+
+.official-receipt .rc-row {
+    font-size: 16px;
+    margin: 4px 0;
+}
+
+.official-receipt .rc-check {
+    font-weight: 700;
+    margin-right: 2px;
+}
+
+.official-receipt .rc-amount-cn {
+    font-size: 17px;
+}
+
+.official-receipt .rc-cell {
+    display: inline-block;
+    text-align: center;
+    margin: 0 1px;
+}
+
+.official-receipt .rc-cell .rc-d {
+    display: inline-block;
+    min-width: 20px;
+    font-weight: 700;
+}
+
+.official-receipt .rc-cell .rc-u {
+    font-size: 11px;
+    color: #333333;
+    margin-left: 1px;
+}
+
+.official-receipt .rc-nt {
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.official-receipt .rc-thanks {
+    font-size: 16px;
+    margin: 12px 0 18px;
+}
+
+.official-receipt .rc-stamps {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 20px;
+    margin-top: 8px;
+}
+
+.official-receipt .rc-stamp-org {
+    text-align: center;
+}
+
+.official-receipt .rc-stamp-label {
+    display: block;
+    font-size: 14px;
+    margin-bottom: 6px;
+}
+
+.official-receipt .rc-stamp-box {
+    display: block;
+    width: 3.4cm;
+    height: 3.4cm;
+    border: 1px dashed #999999;
+    border-radius: 4px;
+}
+
+.official-receipt .rc-stamp-people {
+    font-size: 15px;
+    line-height: 2.6;
+    min-width: 42%;
+}
+
+.official-receipt .rc-stamp-line {
+    white-space: nowrap;
+}
+
+.official-receipt .rc-stamp-space {
+    display: inline-block;
+    min-width: 120px;
+    border-bottom: 1px solid #000000;
+}
+
+.official-receipt .rc-stamp-seal {
+    min-width: 70px;
+    border-bottom: 0;
+}
+
+.official-receipt .rc-chairman {
+    font-weight: 700;
+    padding: 0 6px;
+}
+
+.official-receipt .rc-footer {
+    margin-top: 16px;
+    padding-top: 8px;
+    border-top: 1px solid #000000;
+    font-size: 12.5px;
+    line-height: 1.7;
+    text-align: center;
+    color: #222222;
+}
+
 .statement-table {
     min-width: 1180px;
     border-collapse: collapse;
@@ -2243,6 +2419,17 @@ textarea:focus {
     .receipt-page:last-child {
         break-after: auto;
         page-break-after: auto;
+    }
+
+    .official-receipt {
+        max-width: none;
+        margin: 0;
+        padding: 0;
+        break-inside: avoid;
+    }
+
+    .official-receipt .rc-stamp-box {
+        border-color: #cccccc;
     }
 
     .budget-statement {
