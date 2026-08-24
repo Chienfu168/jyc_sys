@@ -71,3 +71,12 @@ MAIL_ENABLED=false
 ## Release 流程
 
 Push 到 `main` 後，GitHub Actions 會依 `.env.example` 的 `APP_VERSION` 自動建立對應 tag / release。每次要讓線上更新抓到新版本時，請先提高 `APP_VERSION`。
+
+## 分支保護
+
+`main` 已啟用分支保護，合併前必須通過 CI：
+
+- `Lint & Test (PHP 8.2)`
+- `Lint & Test (PHP 8.4)`
+
+所有變更請經由 Pull Request 合併，待兩項檢查綠燈後再合併。
