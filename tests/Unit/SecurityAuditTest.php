@@ -34,6 +34,10 @@ final class SecurityAuditTest extends TestCase
             'env_exists' => true,
             'htaccess_protects_env' => true,
             'htaccess_protects_storage' => true,
+            'htaccess_disables_indexes' => true,
+            'env_world_readable' => false,
+            'display_errors' => false,
+            'session_cookie_hardened' => true,
             'app_url' => 'https://sys.example.org',
         ];
     }
@@ -111,6 +115,47 @@ final class SecurityAuditTest extends TestCase
         $local = $prod;
         $local['app_env'] = 'local';
         $this->assertSame(SecurityAudit::PASS, $this->statusOf(SecurityAudit::evaluate($local), 'https'));
+    }
+
+    public function test_display_errors_fails_in_production_only(): void
+    {
+        $prod = $this->healthyFacts();
+        $prod['display_errors'] = true;
+        $this->assertSame(SecurityAudit::FAIL, $this->statusOf(SecurityAudit::evaluate($prod), 'display_errors'));
+
+        $local = $prod;
+        $local['app_env'] = 'local';
+        $this->assertSame(SecurityAudit::PASS, $this->statusOf(SecurityAudit::evaluate($local), 'display_errors'));
+    }
+
+    public function test_directory_indexes_not_disabled_warns(): void
+    {
+        $facts = $this->healthyFacts();
+        $facts['htaccess_disables_indexes'] = false;
+        $this->assertSame(SecurityAudit::WARN, $this->statusOf(SecurityAudit::evaluate($facts), 'directory_indexes'));
+    }
+
+    public function test_world_readable_env_warns(): void
+    {
+        $facts = $this->healthyFacts();
+        $facts['env_world_readable'] = true;
+        $this->assertSame(SecurityAudit::WARN, $this->statusOf(SecurityAudit::evaluate($facts), 'env_permissions'));
+    }
+
+    public function test_world_readable_env_ignored_when_absent(): void
+    {
+        // 沒有 .env 檔就沒有權限外洩風險。
+        $facts = $this->healthyFacts();
+        $facts['env_exists'] = false;
+        $facts['env_world_readable'] = true;
+        $this->assertSame(SecurityAudit::PASS, $this->statusOf(SecurityAudit::evaluate($facts), 'env_permissions'));
+    }
+
+    public function test_unhardened_session_cookie_warns(): void
+    {
+        $facts = $this->healthyFacts();
+        $facts['session_cookie_hardened'] = false;
+        $this->assertSame(SecurityAudit::WARN, $this->statusOf(SecurityAudit::evaluate($facts), 'session_cookie'));
     }
 
     public function test_inspect_upload_flags_script_extensions(): void
