@@ -178,6 +178,22 @@ final class ProjectController extends Controller
         redirect('/projects/' . $id);
     }
 
+    public function destroy(string $id): void
+    {
+        $this->requirePermission('projects.manage');
+        $project = $this->findProject((int) $id);
+
+        // 各支出/收入模組的 project_id 皆設定 ON DELETE SET NULL,刪除專案不會影響既有紀錄,僅解除歸屬。
+        Database::pdo()->prepare('DELETE FROM projects WHERE id = :id')
+            ->execute(['id' => (int) $id]);
+
+        AuditLog::write('delete', 'projects', 'projects', (int) $id, [
+            'name' => $project['name'],
+        ]);
+        flash('success', '專案已刪除。');
+        redirect('/projects');
+    }
+
     private function validateProject(string $path, ?int $ignoreId = null): void
     {
         if ($error = Validator::required($_POST, [

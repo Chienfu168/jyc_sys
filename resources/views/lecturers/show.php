@@ -19,6 +19,10 @@ ob_start();
                     <?= csrf_field() ?>
                     <button class="btn" type="submit"><?= e($lecturer['status'] === 'active' ? '停用' : '啟用') ?></button>
                 </form>
+                <form method="post" action="/lecturers/<?= e((string) $lecturer['id']) ?>/delete" onsubmit="return confirm('確定要刪除此講師資料？此操作無法復原。');">
+                    <?= csrf_field() ?>
+                    <button class="btn" type="submit">刪除</button>
+                </form>
             <?php endif; ?>
         </div>
     </div>

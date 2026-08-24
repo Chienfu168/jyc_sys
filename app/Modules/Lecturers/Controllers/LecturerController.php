@@ -189,6 +189,28 @@ final class LecturerController extends Controller
         redirect('/lecturers/' . $id);
     }
 
+    public function destroy(string $id): void
+    {
+        $this->requirePermission('lecturers.manage');
+        $lecturer = $this->findLecturer((int) $id);
+
+        $stmt = Database::pdo()->prepare('SELECT COUNT(*) FROM lecturer_expenses WHERE lecturer_id = :id');
+        $stmt->execute(['id' => (int) $id]);
+        if ((int) $stmt->fetchColumn() > 0) {
+            flash('error', '此講師已有支出費用紀錄，無法刪除；如需停用請改用「停用」狀態。');
+            redirect('/lecturers/' . $id);
+        }
+
+        Database::pdo()->prepare('DELETE FROM lecturers WHERE id = :id')
+            ->execute(['id' => (int) $id]);
+
+        AuditLog::write('delete', 'lecturers', 'lecturers', (int) $id, [
+            'name' => $lecturer['name'],
+        ]);
+        flash('success', '講師資料已刪除。');
+        redirect('/lecturers');
+    }
+
     private function validateLecturer(string $path): void
     {
         if ($error = Validator::required($_POST, [

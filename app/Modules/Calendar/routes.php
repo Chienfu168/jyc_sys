@@ -9,3 +9,4 @@ $router->get('/calendar/{id}', [CalendarController::class, 'show']);
 $router->get('/calendar/{id}/edit', [CalendarController::class, 'edit']);
 $router->post('/calendar/{id}', [CalendarController::class, 'update']);
 $router->post('/calendar/{id}/status', [CalendarController::class, 'updateStatus']);
+$router->post('/calendar/{id}/delete', [CalendarController::class, 'destroy']);

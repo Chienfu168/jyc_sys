@@ -9,3 +9,4 @@ $router->get('/lecturers/{id}', [LecturerController::class, 'show']);
 $router->get('/lecturers/{id}/edit', [LecturerController::class, 'edit']);
 $router->post('/lecturers/{id}', [LecturerController::class, 'update']);
 $router->post('/lecturers/{id}/toggle', [LecturerController::class, 'toggle']);
+$router->post('/lecturers/{id}/delete', [LecturerController::class, 'destroy']);

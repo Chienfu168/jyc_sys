@@ -76,6 +76,10 @@ ob_start();
                                     <button class="btn small primary" type="submit">送審</button>
                                 </form>
                             <?php endif; ?>
+                            <form method="post" action="/leave-requests/<?= e((string) $request['id']) ?>/delete" onsubmit="return confirm('確定要刪除此筆請假申請？此操作無法復原。');">
+                                <?= csrf_field() ?>
+                                <button class="btn small" type="submit">刪除</button>
+                            </form>
                         <?php endif; ?>
                         <?php if ($canApprove && $request['status'] === 'submitted'): ?>
                             <form method="post" action="/leave-requests/<?= e((string) $request['id']) ?>/approve">

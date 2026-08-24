@@ -170,6 +170,22 @@ final class VolunteerController extends Controller
         redirect('/volunteers/' . $id);
     }
 
+    public function destroy(string $id): void
+    {
+        $this->requirePermission('volunteers.manage');
+        $volunteer = $this->findVolunteer((int) $id);
+
+        // 刪除志工會一併刪除其服務時數紀錄(資料庫已設定串聯刪除)。
+        Database::pdo()->prepare('DELETE FROM volunteers WHERE id = :id')
+            ->execute(['id' => (int) $id]);
+
+        AuditLog::write('delete', 'volunteers', 'volunteers', (int) $id, [
+            'name' => $volunteer['name'],
+        ]);
+        flash('success', '志工資料已刪除。');
+        redirect('/volunteers');
+    }
+
     public function createServiceLog(string $id): void
     {
         $this->requirePermission('volunteers.manage');

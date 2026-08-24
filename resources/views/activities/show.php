@@ -25,6 +25,10 @@ ob_start();
                     </select>
                     <button class="btn" type="submit">更新狀態</button>
                 </form>
+                <form method="post" action="/activities/<?= e((string) $activity['id']) ?>/delete" onsubmit="return confirm('確定要刪除此活動？將一併刪除報名、成果與附件紀錄，此操作無法復原。');">
+                    <?= csrf_field() ?>
+                    <button class="btn" type="submit">刪除</button>
+                </form>
             <?php endif; ?>
         </div>
     </div>
