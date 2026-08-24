@@ -56,6 +56,10 @@ ob_start();
             <span>Email</span>
             <input type="email" name="email" value="<?= e((string) old('email', $profile['email'] ?? '')) ?>">
         </label>
+        <label>
+            <span>網址</span>
+            <input type="text" name="website" value="<?= e((string) old('website', $profile['website'] ?? '')) ?>" placeholder="http://www.example.org">
+        </label>
         <label class="span-2">
             <span>地址</span>
             <input type="text" name="address" value="<?= e((string) old('address', $profile['address'] ?? '')) ?>">
