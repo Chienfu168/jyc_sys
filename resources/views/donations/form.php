@@ -35,13 +35,13 @@
     <label>
         <span>收據狀態</span>
         <?php $receiptStatus = old('receipt_status', $donation['receipt_status'] ?? 'pending'); ?>
-        <select name="receipt_status">
+        <select name="receipt_status" id="donation-receipt-status">
             <?php foreach (['not_required' => '免開', 'pending' => '待處理', 'issued' => '已開立', 'voided' => '作廢'] as $value => $label): ?>
                 <option value="<?= e($value) ?>" <?= $receiptStatus === $value ? 'selected' : '' ?>><?= e($label) ?></option>
             <?php endforeach; ?>
         </select>
     </label>
-    <label>
+    <label data-receipt-field>
         <span>收據號碼</span>
         <input type="text" name="receipt_no" value="<?= e((string) old('receipt_no', $donation['receipt_no'] ?? '')) ?>">
     </label>
@@ -58,3 +58,23 @@
         <button class="btn primary" type="submit">儲存</button>
     </div>
 </form>
+
+<script>
+(function () {
+    const status = document.getElementById('donation-receipt-status');
+    function updateReceiptFields() {
+        const notRequired = status?.value === 'not_required';
+        document.querySelectorAll('[data-receipt-field]').forEach((field) => {
+            field.classList.toggle('hidden', notRequired);
+            if (notRequired) {
+                const input = field.querySelector('input');
+                if (input) {
+                    input.value = '';
+                }
+            }
+        });
+    }
+    status?.addEventListener('change', updateReceiptFields);
+    updateReceiptFields();
+})();
+</script>
