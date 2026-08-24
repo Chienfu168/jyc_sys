@@ -20,7 +20,7 @@ ob_start();
 <section class="panel">
     <div class="panel-header">
         <form class="search bank-filter" method="get" action="/income-expenses">
-            <input type="month" name="month" value="<?= e($month) ?>">
+            <?php require base_path('resources/views/shared/date-scope-filter.php'); ?>
             <select name="type">
                 <option value="">全部</option>
                 <option value="income" <?= $type === 'income' ? 'selected' : '' ?>>收入</option>

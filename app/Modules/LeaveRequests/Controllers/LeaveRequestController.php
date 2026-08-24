@@ -8,6 +8,7 @@ use App\Core\Controller;
 use App\Core\Database;
 use App\Core\Permission;
 use App\Core\Validator;
+use App\Support\DateScope;
 use DateTimeImmutable;
 use PDO;
 
@@ -20,10 +21,15 @@ final class LeaveRequestController extends Controller
         $month = preg_match('/^\d{4}-\d{2}$/', (string) ($_GET['month'] ?? ''))
             ? (string) $_GET['month']
             : date('Y-m');
+        $scope = DateScope::normalize($_GET['scope'] ?? null);
+        $year = normalize_fiscal_year($_GET['year'] ?? date('Y'));
+        if ($year < 1912 || $year > 2100) {
+            $year = (int) date('Y');
+        }
         $status = in_array(($_GET['status'] ?? ''), ['draft', 'submitted', 'approved', 'rejected', 'cancelled'], true) ? (string) $_GET['status'] : '';
 
-        $where = ['DATE_FORMAT(leave_requests.start_date, "%Y-%m") = :month'];
-        $params = ['month' => $month];
+        [$dateWhere, $params] = DateScope::condition('leave_requests.start_date', $scope, $month, $year);
+        $where = $dateWhere !== '' ? [$dateWhere] : [];
         if ($status !== '') {
             $where[] = 'leave_requests.status = :status';
             $params['status'] = $status;
@@ -35,8 +41,8 @@ final class LeaveRequestController extends Controller
                     leave_types.name AS leave_type_name
              FROM leave_requests
              INNER JOIN personnel_employees ON personnel_employees.id = leave_requests.employee_id
-             INNER JOIN leave_types ON leave_types.id = leave_requests.leave_type_id
-             WHERE ' . implode(' AND ', $where) . '
+             INNER JOIN leave_types ON leave_types.id = leave_requests.leave_type_id'
+            . ($where ? ' WHERE ' . implode(' AND ', $where) : '') . '
              ORDER BY leave_requests.start_date DESC, leave_requests.id DESC'
         );
         $stmt->execute($params);
@@ -47,6 +53,8 @@ final class LeaveRequestController extends Controller
             'section' => '業務與人事',
             'active' => 'leave-requests',
             'month' => $month,
+            'scope' => $scope,
+            'year' => $year,
             'status' => $status,
             'requests' => $requests,
             'totals' => $this->totals($requests),

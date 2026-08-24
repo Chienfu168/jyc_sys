@@ -8,6 +8,7 @@ use App\Core\Controller;
 use App\Core\Database;
 use App\Core\Validator;
 use App\Domain\PettyCash\PettyCashReport;
+use App\Support\DateScope;
 use PDO;
 
 final class PettyCashController extends Controller
@@ -19,7 +20,13 @@ final class PettyCashController extends Controller
         $month = preg_match('/^\d{4}-\d{2}$/', (string) ($_GET['month'] ?? ''))
             ? (string) $_GET['month']
             : date('Y-m');
+        $scope = DateScope::normalize($_GET['scope'] ?? null);
+        $year = normalize_fiscal_year($_GET['year'] ?? date('Y'));
+        if ($year < 1912 || $year > 2100) {
+            $year = (int) date('Y');
+        }
 
+        [$dateWhere, $params] = DateScope::condition('petty_cash_entries.occurred_on', $scope, $month, $year);
         $stmt = Database::pdo()->prepare(
             'SELECT petty_cash_entries.*, users.name AS created_by_name,
                     bank_accounts.bank_name, bank_accounts.account_no,
@@ -27,11 +34,11 @@ final class PettyCashController extends Controller
              FROM petty_cash_entries
              LEFT JOIN users ON users.id = petty_cash_entries.created_by
              LEFT JOIN bank_accounts ON bank_accounts.id = petty_cash_entries.bank_account_id
-             LEFT JOIN accounting_vouchers ON accounting_vouchers.id = petty_cash_entries.accounting_voucher_id
-             WHERE DATE_FORMAT(petty_cash_entries.occurred_on, "%Y-%m") = :month
+             LEFT JOIN accounting_vouchers ON accounting_vouchers.id = petty_cash_entries.accounting_voucher_id'
+            . ($dateWhere !== '' ? ' WHERE ' . $dateWhere : '') . '
              ORDER BY petty_cash_entries.occurred_on DESC, petty_cash_entries.id DESC'
         );
-        $stmt->execute(['month' => $month]);
+        $stmt->execute($params);
         $entries = $stmt->fetchAll();
 
         $this->render('petty-cash.index', [
@@ -40,6 +47,8 @@ final class PettyCashController extends Controller
             'active' => 'petty-cash',
             'entries' => $entries,
             'month' => $month,
+            'scope' => $scope,
+            'year' => $year,
             'totals' => $this->totals($entries),
         ]);
     }

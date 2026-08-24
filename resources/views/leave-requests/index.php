@@ -22,7 +22,7 @@ ob_start();
 <section class="panel">
     <div class="panel-header">
         <form class="search bank-filter" method="get" action="/leave-requests">
-            <input type="month" name="month" value="<?= e($month) ?>">
+            <?php require base_path('resources/views/shared/date-scope-filter.php'); ?>
             <select name="status">
                 <option value="">全部狀態</option>
                 <?php foreach (['draft' => '草稿', 'submitted' => '送審中', 'approved' => '已核准', 'rejected' => '已退回', 'cancelled' => '已取消'] as $value => $label): ?>

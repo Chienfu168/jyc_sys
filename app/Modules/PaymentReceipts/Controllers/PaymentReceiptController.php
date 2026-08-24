@@ -7,6 +7,7 @@ use App\Core\Controller;
 use App\Core\Database;
 use App\Core\Permission;
 use App\Core\Validator;
+use App\Support\DateScope;
 use PDO;
 
 final class PaymentReceiptController extends Controller
@@ -28,6 +29,8 @@ final class PaymentReceiptController extends Controller
             'active' => 'payment-receipts',
             'receipts' => $receipts,
             'month' => $filters['month'],
+            'scope' => $filters['scope'],
+            'year' => $filters['year'],
             'status' => $filters['status'],
             'keyword' => $filters['keyword'],
             'summary' => $this->summary($receipts),
@@ -641,13 +644,18 @@ final class PaymentReceiptController extends Controller
         $month = preg_match('/^\d{4}-\d{2}$/', (string) ($_GET['month'] ?? ''))
             ? (string) $_GET['month']
             : date('Y-m');
+        $scope = DateScope::normalize($_GET['scope'] ?? null);
+        $year = normalize_fiscal_year($_GET['year'] ?? date('Y'));
+        if ($year < 1912 || $year > 2100) {
+            $year = (int) date('Y');
+        }
         $status = in_array(($_GET['status'] ?? ''), ['draft', 'issued', 'voided'], true)
             ? (string) $_GET['status']
             : '';
         $keyword = trim((string) ($_GET['q'] ?? ''));
 
-        $where = ['DATE_FORMAT(payment_receipts.receipt_date, "%Y-%m") = :month'];
-        $params = ['month' => $month];
+        [$dateWhere, $params] = DateScope::condition('payment_receipts.receipt_date', $scope, $month, $year);
+        $where = $dateWhere !== '' ? [$dateWhere] : [];
         if ($status !== '') {
             $where[] = 'payment_receipts.status = :status';
             $params['status'] = $status;
@@ -663,6 +671,8 @@ final class PaymentReceiptController extends Controller
 
         return [
             'month' => $month,
+            'scope' => $scope,
+            'year' => $year,
             'status' => $status,
             'keyword' => $keyword,
             'where' => $where,
@@ -675,8 +685,8 @@ final class PaymentReceiptController extends Controller
         $stmt = Database::pdo()->prepare(
             'SELECT payment_receipts.*, users.name AS created_by_name
              FROM payment_receipts
-             LEFT JOIN users ON users.id = payment_receipts.created_by
-             WHERE ' . implode(' AND ', $where) . '
+             LEFT JOIN users ON users.id = payment_receipts.created_by'
+            . ($where ? ' WHERE ' . implode(' AND ', $where) : '') . '
              ORDER BY payment_receipts.receipt_date DESC, payment_receipts.id DESC'
         );
         $stmt->execute($params);

@@ -7,6 +7,7 @@ use App\Core\Controller;
 use App\Core\Database;
 use App\Core\Validator;
 use App\Domain\LecturerExpenses\LecturerFeeCalculator;
+use App\Support\DateScope;
 use PDO;
 
 final class LecturerExpenseController extends Controller
@@ -18,10 +19,15 @@ final class LecturerExpenseController extends Controller
         $month = preg_match('/^\d{4}-\d{2}$/', (string) ($_GET['month'] ?? ''))
             ? (string) $_GET['month']
             : date('Y-m');
+        $scope = DateScope::normalize($_GET['scope'] ?? null);
+        $year = normalize_fiscal_year($_GET['year'] ?? date('Y'));
+        if ($year < 1912 || $year > 2100) {
+            $year = (int) date('Y');
+        }
         $status = in_array(($_GET['status'] ?? ''), ['pending', 'paid', 'voided'], true) ? (string) $_GET['status'] : '';
 
-        $where = ['DATE_FORMAT(lecturer_expenses.expense_date, "%Y-%m") = :month'];
-        $params = ['month' => $month];
+        [$dateWhere, $params] = DateScope::condition('lecturer_expenses.expense_date', $scope, $month, $year);
+        $where = $dateWhere !== '' ? [$dateWhere] : [];
         if ($status !== '') {
             $where[] = 'lecturer_expenses.payment_status = :status';
             $params['status'] = $status;
@@ -34,8 +40,8 @@ final class LecturerExpenseController extends Controller
              FROM lecturer_expenses
              INNER JOIN lecturers ON lecturers.id = lecturer_expenses.lecturer_id
              LEFT JOIN bank_accounts ON bank_accounts.id = lecturer_expenses.bank_account_id
-             LEFT JOIN accounting_vouchers ON accounting_vouchers.id = lecturer_expenses.accounting_voucher_id
-             WHERE ' . implode(' AND ', $where) . '
+             LEFT JOIN accounting_vouchers ON accounting_vouchers.id = lecturer_expenses.accounting_voucher_id'
+            . ($where ? ' WHERE ' . implode(' AND ', $where) : '') . '
              ORDER BY lecturer_expenses.expense_date DESC, lecturer_expenses.id DESC'
         );
         $stmt->execute($params);
@@ -46,6 +52,8 @@ final class LecturerExpenseController extends Controller
             'section' => '財務會計',
             'active' => 'lecturer-expenses',
             'month' => $month,
+            'scope' => $scope,
+            'year' => $year,
             'status' => $status,
             'expenses' => $expenses,
             'totals' => $this->totals($expenses),

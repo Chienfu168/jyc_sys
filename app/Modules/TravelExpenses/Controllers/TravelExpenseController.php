@@ -7,6 +7,7 @@ use App\Core\Controller;
 use App\Core\Database;
 use App\Core\Validator;
 use App\Domain\TravelExpenses\TravelExpenseCalculator;
+use App\Support\DateScope;
 use PDO;
 
 final class TravelExpenseController extends Controller
@@ -18,10 +19,15 @@ final class TravelExpenseController extends Controller
         $month = preg_match('/^\d{4}-\d{2}$/', (string) ($_GET['month'] ?? ''))
             ? (string) $_GET['month']
             : date('Y-m');
+        $scope = DateScope::normalize($_GET['scope'] ?? null);
+        $year = normalize_fiscal_year($_GET['year'] ?? date('Y'));
+        if ($year < 1912 || $year > 2100) {
+            $year = (int) date('Y');
+        }
         $status = in_array(($_GET['status'] ?? ''), ['pending', 'paid', 'voided'], true) ? (string) $_GET['status'] : '';
 
-        $where = ['DATE_FORMAT(travel_start, "%Y-%m") = :month'];
-        $params = ['month' => $month];
+        [$dateWhere, $params] = DateScope::condition('travel_start', $scope, $month, $year);
+        $where = $dateWhere !== '' ? [$dateWhere] : [];
         if ($status !== '') {
             $where[] = 'payment_status = :status';
             $params['status'] = $status;
@@ -32,8 +38,8 @@ final class TravelExpenseController extends Controller
                     accounting_vouchers.voucher_no, accounting_vouchers.status AS voucher_status
              FROM travel_expenses
              LEFT JOIN bank_accounts ON bank_accounts.id = travel_expenses.bank_account_id
-             LEFT JOIN accounting_vouchers ON accounting_vouchers.id = travel_expenses.accounting_voucher_id
-             WHERE ' . implode(' AND ', $where) . '
+             LEFT JOIN accounting_vouchers ON accounting_vouchers.id = travel_expenses.accounting_voucher_id'
+            . ($where ? ' WHERE ' . implode(' AND ', $where) : '') . '
              ORDER BY travel_start DESC, id DESC'
         );
         $stmt->execute($params);
@@ -44,6 +50,8 @@ final class TravelExpenseController extends Controller
             'section' => '財務會計',
             'active' => 'travel-expenses',
             'month' => $month,
+            'scope' => $scope,
+            'year' => $year,
             'status' => $status,
             'expenses' => $expenses,
             'totals' => $this->totals($expenses),

@@ -7,6 +7,7 @@ use App\Core\Controller;
 use App\Core\Database;
 use App\Core\Validator;
 use App\Domain\Payroll\PayrollCalculator;
+use App\Support\DateScope;
 use PDO;
 
 final class PayrollController extends Controller
@@ -18,10 +19,15 @@ final class PayrollController extends Controller
         $month = preg_match('/^\d{4}-\d{2}$/', (string) ($_GET['month'] ?? ''))
             ? (string) $_GET['month']
             : date('Y-m');
+        $scope = DateScope::normalize($_GET['scope'] ?? null);
+        $year = normalize_fiscal_year($_GET['year'] ?? date('Y'));
+        if ($year < 1912 || $year > 2100) {
+            $year = (int) date('Y');
+        }
         $status = in_array(($_GET['status'] ?? ''), ['draft', 'confirmed', 'paid', 'voided'], true) ? (string) $_GET['status'] : '';
 
-        $where = ['payroll_records.payroll_month = :month'];
-        $params = ['month' => $month];
+        [$dateWhere, $params] = DateScope::conditionForMonthString('payroll_records.payroll_month', $scope, $month, $year);
+        $where = $dateWhere !== '' ? [$dateWhere] : [];
         if ($status !== '') {
             $where[] = 'payroll_records.payment_status = :status';
             $params['status'] = $status;
@@ -33,8 +39,8 @@ final class PayrollController extends Controller
                     accounting_vouchers.voucher_no, accounting_vouchers.status AS voucher_status
              FROM payroll_records
              INNER JOIN personnel_employees ON personnel_employees.id = payroll_records.employee_id
-             LEFT JOIN accounting_vouchers ON accounting_vouchers.id = payroll_records.accounting_voucher_id
-             WHERE ' . implode(' AND ', $where) . '
+             LEFT JOIN accounting_vouchers ON accounting_vouchers.id = payroll_records.accounting_voucher_id'
+            . ($where ? ' WHERE ' . implode(' AND ', $where) : '') . '
              ORDER BY personnel_employees.department, personnel_employees.name, payroll_records.id DESC'
         );
         $stmt->execute($params);
@@ -45,6 +51,8 @@ final class PayrollController extends Controller
             'section' => '財務會計',
             'active' => 'payroll',
             'month' => $month,
+            'scope' => $scope,
+            'year' => $year,
             'status' => $status,
             'records' => $records,
             'totals' => $this->totals($records),

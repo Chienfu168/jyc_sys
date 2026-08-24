@@ -6,6 +6,7 @@ use App\Core\AuditLog;
 use App\Core\Controller;
 use App\Core\Database;
 use App\Domain\Accounting\VoucherBalance;
+use App\Support\DateScope;
 use PDO;
 
 final class VoucherController extends Controller
@@ -17,15 +18,21 @@ final class VoucherController extends Controller
         $month = preg_match('/^\d{4}-\d{2}$/', (string) ($_GET['month'] ?? ''))
             ? (string) $_GET['month']
             : date('Y-m');
+        $scope = DateScope::normalize($_GET['scope'] ?? null);
+        $year = normalize_fiscal_year($_GET['year'] ?? date('Y'));
+        if ($year < 1912 || $year > 2100) {
+            $year = (int) date('Y');
+        }
         $status = in_array(($_GET['status'] ?? ''), ['draft', 'posted', 'voided'], true) ? (string) $_GET['status'] : '';
 
-        $where = ['DATE_FORMAT(accounting_vouchers.voucher_date, "%Y-%m") = :month'];
-        $params = ['month' => $month];
+        [$dateWhere, $params] = DateScope::condition('accounting_vouchers.voucher_date', $scope, $month, $year);
+        $where = $dateWhere !== '' ? [$dateWhere] : [];
         if ($status !== '') {
             $where[] = 'accounting_vouchers.status = :status';
             $params['status'] = $status;
         }
 
+        $whereSql = $where ? ' WHERE ' . implode(' AND ', $where) : '';
         $stmt = Database::pdo()->prepare(
             'SELECT accounting_vouchers.*,
                     users.name AS created_by_name,
@@ -33,8 +40,8 @@ final class VoucherController extends Controller
                     COALESCE(SUM(accounting_voucher_lines.credit), 0) AS credit_total
              FROM accounting_vouchers
              LEFT JOIN users ON users.id = accounting_vouchers.created_by
-             LEFT JOIN accounting_voucher_lines ON accounting_voucher_lines.voucher_id = accounting_vouchers.id
-             WHERE ' . implode(' AND ', $where) . '
+             LEFT JOIN accounting_voucher_lines ON accounting_voucher_lines.voucher_id = accounting_vouchers.id'
+            . $whereSql . '
              GROUP BY accounting_vouchers.id
              ORDER BY accounting_vouchers.voucher_date DESC, accounting_vouchers.id DESC'
         );
@@ -46,6 +53,8 @@ final class VoucherController extends Controller
             'section' => '財務會計',
             'active' => 'accounting',
             'month' => $month,
+            'scope' => $scope,
+            'year' => $year,
             'status' => $status,
             'vouchers' => $vouchers,
             'totals' => $this->totals($vouchers),

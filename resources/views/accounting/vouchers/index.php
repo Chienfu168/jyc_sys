@@ -20,7 +20,7 @@ ob_start();
 <section class="panel">
     <div class="panel-header">
         <form class="search bank-filter" method="get" action="/accounting/vouchers">
-            <input type="month" name="month" value="<?= e($month) ?>">
+            <?php require base_path('resources/views/shared/date-scope-filter.php'); ?>
             <select name="status">
                 <option value="">全部狀態</option>
                 <option value="draft" <?= $status === 'draft' ? 'selected' : '' ?>>草稿</option>

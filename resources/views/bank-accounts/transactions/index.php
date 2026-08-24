@@ -19,7 +19,7 @@ ob_start();
 <section class="panel">
     <div class="panel-header">
         <form class="search bank-filter" method="get" action="/bank-transactions">
-            <input type="month" name="month" value="<?= e($month) ?>">
+            <?php require base_path('resources/views/shared/date-scope-filter.php'); ?>
             <select name="bank_account_id">
                 <option value="0">全部帳戶</option>
                 <?php foreach ($accounts as $account): ?>
