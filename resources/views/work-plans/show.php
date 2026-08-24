@@ -51,6 +51,7 @@ ob_start();
                 <th>執行內容</th>
                 <th>預期產出</th>
                 <th class="amount">預算金額</th>
+                <th>備註</th>
             </tr>
             </thead>
             <tbody>
@@ -61,14 +62,15 @@ ob_start();
                     <td><?= e($item['description'] ?? '') ?></td>
                     <td><?= e($item['expected_output'] ?? '') ?></td>
                     <td class="amount"><?= e(number_format((float) $item['budget_amount'], 0)) ?></td>
+                    <td><?= e($item['notes'] ?? '') ?: '-' ?></td>
                 </tr>
             <?php endforeach; ?>
             <?php if (!$items): ?>
-                <tr><td colspan="5" class="empty-state">尚無工作項目</td></tr>
+                <tr><td colspan="6" class="empty-state">尚無工作項目</td></tr>
             <?php endif; ?>
             </tbody>
             <tfoot>
-            <tr><th colspan="4">預算總計</th><th class="amount"><?= e(number_format((float) $budgetTotal, 0)) ?></th></tr>
+            <tr><th colspan="4">預算總計</th><th class="amount"><?= e(number_format((float) $budgetTotal, 0)) ?></th><th></th></tr>
             </tfoot>
         </table>
     </div>

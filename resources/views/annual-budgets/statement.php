@@ -58,7 +58,7 @@ ob_start();
             </tr>
             <tr>
                 <th>(C)=(A)-(B)</th>
-                <th>(D)=(C)/(A)*100</th>
+                <th>(D)=(C)/(B)*100</th>
             </tr>
             </thead>
             <tbody>

@@ -82,4 +82,17 @@ final class BudgetSummary
 
         return $totals;
     }
+
+    /**
+     * 經費預算表的「增(減)比率」:依主管機關格式,以上年度數為分母
+     * (D)=(C)/(B)*100,其中 C=本年度-上年度、B=上年度數。上年度為 0 時無法計算比率。
+     */
+    public static function variancePercent(float $current, float $previous): float
+    {
+        if ($previous == 0.0) {
+            return 0.0;
+        }
+
+        return round((($current - $previous) / $previous) * 100, 2);
+    }
 }

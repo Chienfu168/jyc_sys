@@ -321,8 +321,8 @@ final class WorkPlanController extends Controller
 
         $stmt = Database::pdo()->prepare(
             'INSERT INTO work_plan_items
-             (work_plan_id, period_label, activity_name, description, expected_output, budget_amount, sort_order, created_at, updated_at)
-             VALUES (:work_plan_id, :period_label, :activity_name, :description, :expected_output, :budget_amount, :sort_order, :created_at, :updated_at)'
+             (work_plan_id, period_label, activity_name, description, expected_output, budget_amount, notes, sort_order, created_at, updated_at)
+             VALUES (:work_plan_id, :period_label, :activity_name, :description, :expected_output, :budget_amount, :notes, :sort_order, :created_at, :updated_at)'
         );
 
         $sort = 1;
@@ -341,6 +341,7 @@ final class WorkPlanController extends Controller
                 'description' => $description,
                 'expected_output' => trim((string) ($item['expected_output'] ?? '')),
                 'budget_amount' => max(0, $amount),
+                'notes' => trim((string) ($item['notes'] ?? '')),
                 'sort_order' => $sort++,
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -395,10 +396,10 @@ final class WorkPlanController extends Controller
     private function defaultItems(): array
     {
         return [
-            ['period_label' => '第 1 季', 'activity_name' => '', 'description' => '', 'expected_output' => '', 'budget_amount' => ''],
-            ['period_label' => '第 2 季', 'activity_name' => '', 'description' => '', 'expected_output' => '', 'budget_amount' => ''],
-            ['period_label' => '第 3 季', 'activity_name' => '', 'description' => '', 'expected_output' => '', 'budget_amount' => ''],
-            ['period_label' => '第 4 季', 'activity_name' => '', 'description' => '', 'expected_output' => '', 'budget_amount' => ''],
+            ['period_label' => '第 1 季', 'activity_name' => '', 'description' => '', 'expected_output' => '', 'budget_amount' => '', 'notes' => ''],
+            ['period_label' => '第 2 季', 'activity_name' => '', 'description' => '', 'expected_output' => '', 'budget_amount' => '', 'notes' => ''],
+            ['period_label' => '第 3 季', 'activity_name' => '', 'description' => '', 'expected_output' => '', 'budget_amount' => '', 'notes' => ''],
+            ['period_label' => '第 4 季', 'activity_name' => '', 'description' => '', 'expected_output' => '', 'budget_amount' => '', 'notes' => ''],
         ];
     }
 
