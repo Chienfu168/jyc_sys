@@ -44,6 +44,10 @@ ob_start();
                     </select>
                     <button class="btn" type="submit">更新狀態</button>
                 </form>
+                <form method="post" action="/projects/<?= e((string) $project['id']) ?>/delete" onsubmit="return confirm('確定要刪除此專案？此操作無法復原。');">
+                    <?= csrf_field() ?>
+                    <button class="btn" type="submit">刪除</button>
+                </form>
             <?php endif; ?>
         </div>
     </div>

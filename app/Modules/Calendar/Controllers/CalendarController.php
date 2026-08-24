@@ -164,6 +164,26 @@ final class CalendarController extends Controller
         redirect('/calendar/' . $id);
     }
 
+    public function destroy(string $id): void
+    {
+        $this->requirePermission('calendar.manage');
+        $event = $this->findEvent((int) $id);
+
+        if (!empty($event['source_module'])) {
+            flash('error', '此事件由其他模組自動同步產生，請至來源資料刪除或調整狀態。');
+            redirect('/calendar/' . $id);
+        }
+
+        Database::pdo()->prepare('DELETE FROM calendar_events WHERE id = :id')
+            ->execute(['id' => (int) $id]);
+
+        AuditLog::write('delete', 'calendar', 'calendar_events', (int) $id, [
+            'title' => $event['title'],
+        ]);
+        flash('success', '事件已刪除。');
+        redirect('/calendar');
+    }
+
     private function events(string $monthStart, string $monthEnd, string $type, string $status, string $keyword): array
     {
         $where = ['starts_at <= :month_end', '(ends_at IS NULL OR ends_at >= :month_start)'];

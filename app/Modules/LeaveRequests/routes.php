@@ -12,3 +12,4 @@ $router->post('/leave-requests/{id}/submit', [LeaveRequestController::class, 'su
 $router->post('/leave-requests/{id}/approve', [LeaveRequestController::class, 'approve']);
 $router->post('/leave-requests/{id}/reject', [LeaveRequestController::class, 'reject']);
 $router->post('/leave-requests/{id}/cancel', [LeaveRequestController::class, 'cancel']);
+$router->post('/leave-requests/{id}/delete', [LeaveRequestController::class, 'destroy']);

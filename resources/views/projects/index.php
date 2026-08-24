@@ -77,6 +77,10 @@ ob_start();
                         <a class="btn small" href="/projects/<?= e((string) $project['id']) ?>">檢視</a>
                         <?php if (\App\Core\Permission::can('projects.manage')): ?>
                             <a class="btn small" href="/projects/<?= e((string) $project['id']) ?>/edit">編輯</a>
+                            <form method="post" action="/projects/<?= e((string) $project['id']) ?>/delete" onsubmit="return confirm('確定要刪除此專案？此操作無法復原。');">
+                                <?= csrf_field() ?>
+                                <button class="btn small" type="submit">刪除</button>
+                            </form>
                         <?php endif; ?>
                     </td>
                 </tr>

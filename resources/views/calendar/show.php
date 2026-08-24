@@ -24,6 +24,12 @@ ob_start();
                     </select>
                     <button class="btn" type="submit">更新狀態</button>
                 </form>
+                <?php if (empty($event['source_module'])): ?>
+                    <form method="post" action="/calendar/<?= e((string) $event['id']) ?>/delete" onsubmit="return confirm('確定要刪除此事件？此操作無法復原。');">
+                        <?= csrf_field() ?>
+                        <button class="btn" type="submit">刪除</button>
+                    </form>
+                <?php endif; ?>
             <?php endif; ?>
         </div>
     </div>

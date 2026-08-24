@@ -63,6 +63,10 @@ ob_start();
                         <a class="btn small" href="/volunteers/<?= e((string) $volunteer['id']) ?>">檢視</a>
                         <?php if (\App\Core\Permission::can('volunteers.manage')): ?>
                             <a class="btn small" href="/volunteers/<?= e((string) $volunteer['id']) ?>/edit">編輯</a>
+                            <form method="post" action="/volunteers/<?= e((string) $volunteer['id']) ?>/delete" onsubmit="return confirm('確定要刪除此志工資料？將一併刪除其服務時數紀錄，此操作無法復原。');">
+                                <?= csrf_field() ?>
+                                <button class="btn small" type="submit">刪除</button>
+                            </form>
                         <?php endif; ?>
                     </td>
                 </tr>

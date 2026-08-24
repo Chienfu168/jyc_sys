@@ -227,6 +227,21 @@ final class LeaveRequestController extends Controller
         redirect('/leave-requests/' . $id);
     }
 
+    public function destroy(string $id): void
+    {
+        $this->requirePermission('leave_requests.manage');
+        $request = $this->findRequest((int) $id);
+
+        Database::pdo()->prepare('DELETE FROM leave_requests WHERE id = :id')
+            ->execute(['id' => (int) $id]);
+
+        AuditLog::write('delete', 'leave_requests', 'leave_requests', (int) $id, [
+            'employee_id' => $request['employee_id'],
+        ]);
+        flash('success', '請假申請已刪除。');
+        redirect('/leave-requests');
+    }
+
     private function review(int $id, string $status, string $message): void
     {
         $this->requirePermission('leave_requests.approve');

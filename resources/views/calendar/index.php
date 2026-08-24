@@ -118,6 +118,12 @@ ob_start();
                         <a class="btn small" href="/calendar/<?= e((string) $event['id']) ?>">檢視</a>
                         <?php if (\App\Core\Permission::can('calendar.manage')): ?>
                             <a class="btn small" href="/calendar/<?= e((string) $event['id']) ?>/edit">編輯</a>
+                            <?php if (empty($event['source_module'])): ?>
+                                <form method="post" action="/calendar/<?= e((string) $event['id']) ?>/delete" onsubmit="return confirm('確定要刪除此事件？此操作無法復原。');">
+                                    <?= csrf_field() ?>
+                                    <button class="btn small" type="submit">刪除</button>
+                                </form>
+                            <?php endif; ?>
                         <?php endif; ?>
                     </td>
                 </tr>

@@ -35,6 +35,10 @@ ob_start();
                     <?= csrf_field() ?>
                     <button class="btn" type="submit"><?= e($volunteer['status'] === 'active' ? '停用' : '啟用') ?></button>
                 </form>
+                <form method="post" action="/volunteers/<?= e((string) $volunteer['id']) ?>/delete" onsubmit="return confirm('確定要刪除此志工資料？將一併刪除其服務時數紀錄，此操作無法復原。');">
+                    <?= csrf_field() ?>
+                    <button class="btn" type="submit">刪除</button>
+                </form>
             <?php endif; ?>
         </div>
     </div>

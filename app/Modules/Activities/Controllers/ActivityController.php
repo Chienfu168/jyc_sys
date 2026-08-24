@@ -206,6 +206,33 @@ final class ActivityController extends Controller
         redirect('/activities/' . $id);
     }
 
+    public function destroy(string $id): void
+    {
+        $this->requirePermission('activities.manage');
+        $activity = $this->findActivity((int) $id);
+
+        // 報名、成果與附件紀錄皆已設定串聯刪除;附件實體檔案需另行清除。
+        foreach ($this->attachments((int) $id) as $attachment) {
+            $path = storage_path((string) $attachment['stored_path']);
+            if (is_file($path)) {
+                @unlink($path);
+            }
+        }
+
+        // 活動同步產生的行事曆事件沒有外鍵保護,刪除活動前一併清除,避免留下失效連結。
+        Database::pdo()->prepare('DELETE FROM calendar_events WHERE source_module = "activities" AND source_id = :id')
+            ->execute(['id' => (int) $id]);
+
+        Database::pdo()->prepare('DELETE FROM activities WHERE id = :id')
+            ->execute(['id' => (int) $id]);
+
+        AuditLog::write('delete', 'activities', 'activities', (int) $id, [
+            'title' => $activity['title'],
+        ]);
+        flash('success', '活動已刪除。');
+        redirect('/activities');
+    }
+
     public function storeParticipant(string $id): void
     {
         $this->requirePermission('activities.manage');

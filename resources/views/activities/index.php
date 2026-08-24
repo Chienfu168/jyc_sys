@@ -88,6 +88,10 @@ ob_start();
                         <a class="btn small" href="/activities/<?= e((string) $activity['id']) ?>">檢視</a>
                         <?php if (\App\Core\Permission::can('activities.manage')): ?>
                             <a class="btn small" href="/activities/<?= e((string) $activity['id']) ?>/edit">編輯</a>
+                            <form method="post" action="/activities/<?= e((string) $activity['id']) ?>/delete" onsubmit="return confirm('確定要刪除此活動？將一併刪除報名、成果與附件紀錄，此操作無法復原。');">
+                                <?= csrf_field() ?>
+                                <button class="btn small" type="submit">刪除</button>
+                            </form>
                         <?php endif; ?>
                     </td>
                 </tr>
