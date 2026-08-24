@@ -64,6 +64,10 @@ $navWorkflow = array_values(array_filter(array_map(static function (array $group
         .sidebar .nav-section-title { display: block !important; margin: 0 0 8px !important; padding: 0 10px !important; }
         .sidebar .nav a { display: flex !important; width: 100% !important; align-items: center !important; margin: 0 0 8px !important; white-space: nowrap !important; }
         .sidebar .nav a span:last-child { display: block !important; min-width: 0 !important; overflow: hidden !important; text-overflow: ellipsis !important; }
+        .sidebar .nav-section-title { display: flex !important; align-items: center !important; justify-content: space-between !important; cursor: pointer; user-select: none; }
+        .sidebar .nav-section-title::after { content: "\25BE"; font-size: 11px; opacity: 0.55; margin-left: 8px; }
+        .sidebar .nav-section.collapsed .nav-section-title::after { content: "\25B8"; }
+        .sidebar .nav-section.collapsed a { display: none !important; }
         .app-shell { max-width: 100vw !important; overflow-x: clip !important; }
         .main { min-width: 0 !important; max-width: 100% !important; overflow-x: hidden !important; }
         .content-area { min-width: 0 !important; max-width: 1280px !important; }
@@ -191,5 +195,59 @@ $navWorkflow = array_values(array_filter(array_map(static function (array $group
         </div>
     </main>
 </div>
+<?php if ($currentUser): ?>
+<script>
+(function () {
+    var nav = document.querySelector('.sidebar .nav');
+    if (!nav) {
+        return;
+    }
+    var KEY = 'nav-collapsed-groups';
+    var store = {};
+    try {
+        var raw = JSON.parse(localStorage.getItem(KEY) || '{}');
+        if (raw && typeof raw === 'object') {
+            store = raw;
+        }
+    } catch (e) {
+        store = {};
+    }
+
+    function setState(section, title, collapsed) {
+        section.classList.toggle('collapsed', collapsed);
+        title.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    }
+
+    nav.querySelectorAll('.nav-section').forEach(function (section) {
+        var title = section.querySelector('.nav-section-title');
+        if (!title) {
+            return;
+        }
+        var name = (title.textContent || '').trim();
+        var hasActive = !!section.querySelector('a.active');
+        title.setAttribute('role', 'button');
+        title.setAttribute('tabindex', '0');
+        setState(section, title, store[name] === true && !hasActive);
+
+        function toggle() {
+            var collapsed = !section.classList.contains('collapsed');
+            setState(section, title, collapsed);
+            store[name] = collapsed;
+            try {
+                localStorage.setItem(KEY, JSON.stringify(store));
+            } catch (e) {}
+        }
+
+        title.addEventListener('click', toggle);
+        title.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                toggle();
+            }
+        });
+    });
+})();
+</script>
+<?php endif; ?>
 </body>
 </html>
