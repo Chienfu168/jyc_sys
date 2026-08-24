@@ -65,6 +65,7 @@ ob_start();
         <div class="actions">
             <a class="btn" href="/donors">捐款人</a>
             <a class="btn" href="/donations/report?<?= e($reportQuery) ?>">捐款台帳</a>
+            <a class="btn" href="/donations/income-list?<?= e(http_build_query(['year' => $year])) ?>">捐贈收入清冊</a>
             <?php if ($canExport): ?>
                 <a class="btn" href="/donations/export?<?= e($query) ?>">匯出 CSV</a>
             <?php endif; ?>

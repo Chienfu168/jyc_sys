@@ -61,6 +61,7 @@ ob_start();
         </form>
         <div class="actions">
             <a class="btn" href="/donations?<?= e($listQuery) ?>">捐款紀錄</a>
+            <a class="btn" href="/donations/income-list?<?= e(http_build_query(['year' => $year])) ?>">捐贈收入清冊</a>
             <?php if ($canExport): ?>
                 <a class="btn" href="/donations/export?<?= e($exportQuery) ?>">匯出 CSV</a>
             <?php endif; ?>
