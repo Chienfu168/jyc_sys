@@ -9,46 +9,55 @@ if (!is_array($formLines) || !$formLines) {
 ?>
 <form class="form" method="post" action="<?= e($action) ?>">
     <?= csrf_field() ?>
-    <div class="grid-form">
-        <label>
-            <span>傳票號碼</span>
-            <input type="text" name="voucher_no" value="<?= e((string) old('voucher_no', $voucher['voucher_no'] ?? '')) ?>" required>
-        </label>
-        <label>
-            <span>傳票日期</span>
-            <input type="date" name="voucher_date" value="<?= e((string) old('voucher_date', $voucher['voucher_date'] ?? date('Y-m-d'))) ?>" required>
-        </label>
-        <label class="span-2">
-            <span>摘要</span>
-            <input type="text" name="summary" value="<?= e((string) old('summary', $voucher['summary'] ?? '')) ?>" required>
-        </label>
-        <label>
-            <span>資料來源</span>
-            <input type="text" name="source_type" list="accounting-source-types" value="<?= e((string) old('source_type', $voucher['source_type'] ?? '')) ?>">
-            <datalist id="accounting-source-types">
-                <option value="manual"></option>
-                <option value="income_expense"></option>
-                <option value="petty_cash"></option>
-                <option value="bank_transaction"></option>
-            </datalist>
-        </label>
-        <label>
-            <span>來源 ID</span>
-            <input type="number" min="0" step="1" name="source_id" value="<?= e((string) old('source_id', $voucher['source_id'] ?? '')) ?>">
-        </label>
-        <label>
-            <span>狀態</span>
-            <?php $status = old('status', $voucher['status'] ?? 'draft'); ?>
-            <select name="status">
-                <option value="draft" <?= $status === 'draft' ? 'selected' : '' ?>>草稿</option>
-                <option value="voided" <?= $status === 'voided' ? 'selected' : '' ?>>作廢</option>
-            </select>
-        </label>
-        <label class="span-2">
-            <span>備註</span>
-            <textarea name="notes"><?= e((string) old('notes', $voucher['notes'] ?? '')) ?></textarea>
-        </label>
+    <div class="form-section">
+        <h3>基本資料</h3>
+        <div class="grid-form">
+            <label>
+                <span>傳票號碼</span>
+                <input type="text" name="voucher_no" value="<?= e((string) old('voucher_no', $voucher['voucher_no'] ?? '')) ?>" required>
+            </label>
+            <label>
+                <span>傳票日期</span>
+                <input type="date" name="voucher_date" value="<?= e((string) old('voucher_date', $voucher['voucher_date'] ?? date('Y-m-d'))) ?>" required>
+            </label>
+            <label class="span-2">
+                <span>摘要</span>
+                <input type="text" name="summary" value="<?= e((string) old('summary', $voucher['summary'] ?? '')) ?>" required>
+            </label>
+        </div>
     </div>
+
+    <details class="form-section">
+        <summary>來源與備註(選填)</summary>
+        <div class="grid-form">
+            <label>
+                <span>資料來源</span>
+                <input type="text" name="source_type" list="accounting-source-types" value="<?= e((string) old('source_type', $voucher['source_type'] ?? '')) ?>">
+                <datalist id="accounting-source-types">
+                    <option value="manual"></option>
+                    <option value="income_expense"></option>
+                    <option value="petty_cash"></option>
+                    <option value="bank_transaction"></option>
+                </datalist>
+            </label>
+            <label>
+                <span>來源 ID</span>
+                <input type="number" min="0" step="1" name="source_id" value="<?= e((string) old('source_id', $voucher['source_id'] ?? '')) ?>">
+            </label>
+            <label>
+                <span>狀態</span>
+                <?php $status = old('status', $voucher['status'] ?? 'draft'); ?>
+                <select name="status">
+                    <option value="draft" <?= $status === 'draft' ? 'selected' : '' ?>>草稿</option>
+                    <option value="voided" <?= $status === 'voided' ? 'selected' : '' ?>>作廢</option>
+                </select>
+            </label>
+            <label class="span-2">
+                <span>備註</span>
+                <textarea name="notes"><?= e((string) old('notes', $voucher['notes'] ?? '')) ?></textarea>
+            </label>
+        </div>
+    </details>
 
     <div class="voucher-lines" id="voucher-lines">
         <div class="voucher-line voucher-line-head">
