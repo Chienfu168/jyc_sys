@@ -2013,6 +2013,8 @@ textarea:focus {
 }
 
 .purchase-form-table td {
+    white-space: normal;
+    overflow-wrap: anywhere;
     line-height: 1.7;
 }
 
@@ -2024,6 +2026,8 @@ textarea:focus {
 .purchase-print-lines th,
 .purchase-print-lines td {
     vertical-align: middle;
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 
 .purchase-print-lines th:first-child,
