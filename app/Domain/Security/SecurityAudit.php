@@ -35,6 +35,10 @@ final class SecurityAudit
      *     env_exists?: bool,
      *     htaccess_protects_env?: bool,
      *     htaccess_protects_storage?: bool,
+     *     htaccess_disables_indexes?: bool,
+     *     env_world_readable?: bool,
+     *     display_errors?: bool,
+     *     session_cookie_hardened?: bool,
      *     app_url?: string
      * } $facts
      * @return array<int, array{key: string, label: string, status: string, detail: string, recommendation: string}>
@@ -124,6 +128,47 @@ final class SecurityAudit
             'status' => $https ? self::PASS : ($isProduction ? self::WARN : self::PASS),
             'detail' => $https ? 'APP_URL 使用 HTTPS' : 'APP_URL 未使用 HTTPS',
             'recommendation' => $https ? '' : '正式環境建議啟用 HTTPS,並將 APP_URL 設為 https 網址。',
+        ];
+
+        // 錯誤訊息顯示(display_errors)
+        $displayErrors = (bool) ($facts['display_errors'] ?? false);
+        $badDisplay = $isProduction && $displayErrors;
+        $checks[] = [
+            'key' => 'display_errors',
+            'label' => '錯誤訊息顯示',
+            'status' => $badDisplay ? self::FAIL : self::PASS,
+            'detail' => $badDisplay ? '正式環境開啟 display_errors,錯誤細節可能顯示給訪客' : '錯誤訊息不會直接輸出給訪客',
+            'recommendation' => $badDisplay ? '請於主機 php.ini 或 .env 關閉 display_errors(僅寫入 log)。' : '',
+        ];
+
+        // 目錄列表(Directory Indexes)
+        $indexesDisabled = (bool) ($facts['htaccess_disables_indexes'] ?? false);
+        $checks[] = [
+            'key' => 'directory_indexes',
+            'label' => '目錄列表關閉',
+            'status' => $indexesDisabled ? self::PASS : self::WARN,
+            'detail' => $indexesDisabled ? '已停用目錄列表(Options -Indexes)' : '未偵測到停用目錄列表的設定',
+            'recommendation' => $indexesDisabled ? '' : '請於 .htaccess 加入 Options -Indexes,避免目錄內容被列出。',
+        ];
+
+        // .env 檔案權限
+        $envReadable = $envExists && (bool) ($facts['env_world_readable'] ?? false);
+        $checks[] = [
+            'key' => 'env_permissions',
+            'label' => '.env 檔案權限',
+            'status' => $envReadable ? self::WARN : self::PASS,
+            'detail' => $envReadable ? '.env 可被同群組或其他使用者讀取' : '.env 權限未對外開放',
+            'recommendation' => $envReadable ? '請將 .env 權限收斂為 600(僅擁有者可讀寫)。' : '',
+        ];
+
+        // Session Cookie 安全設定
+        $sessionHardened = (bool) ($facts['session_cookie_hardened'] ?? true);
+        $checks[] = [
+            'key' => 'session_cookie',
+            'label' => 'Session Cookie 設定',
+            'status' => $sessionHardened ? self::PASS : self::WARN,
+            'detail' => $sessionHardened ? 'Session Cookie 已設定 HttpOnly 與 SameSite' : 'Session Cookie 缺少 HttpOnly 或 SameSite 設定',
+            'recommendation' => $sessionHardened ? '' : '請確認 session cookie 設定 HttpOnly 與 SameSite=Lax。',
         ];
 
         return $checks;
