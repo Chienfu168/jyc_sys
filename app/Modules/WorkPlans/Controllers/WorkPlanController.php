@@ -38,7 +38,7 @@ final class WorkPlanController extends Controller
 
         $this->render('work-plans.index', [
             'title' => '工作計畫',
-            'section' => '業務與人事',
+            'section' => '主管機關核備',
             'active' => 'work-plans',
             'year' => $year,
             'plans' => $stmt->fetchAll(),
@@ -52,7 +52,7 @@ final class WorkPlanController extends Controller
 
         $this->render('work-plans.create', [
             'title' => '新增工作計畫',
-            'section' => '業務與人事',
+            'section' => '主管機關核備',
             'active' => 'work-plans',
             'plan' => [
                 'fiscal_year' => $year,
@@ -119,7 +119,7 @@ final class WorkPlanController extends Controller
 
         $this->render('work-plans.show', [
             'title' => $plan['title'],
-            'section' => '業務與人事',
+            'section' => '主管機關核備',
             'active' => 'work-plans',
             'plan' => $plan,
             'items' => $items,
@@ -141,7 +141,7 @@ final class WorkPlanController extends Controller
 
         $this->render('work-plans.edit', [
             'title' => '編輯工作計畫',
-            'section' => '業務與人事',
+            'section' => '主管機關核備',
             'active' => 'work-plans',
             'plan' => $plan,
             'items' => $this->items((int) $id),

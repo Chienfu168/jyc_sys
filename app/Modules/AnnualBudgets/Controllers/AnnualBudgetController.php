@@ -36,7 +36,7 @@ final class AnnualBudgetController extends Controller
 
         $this->render('annual-budgets.index', [
             'title' => '年度預算',
-            'section' => '財務會計',
+            'section' => '主管機關核備',
             'active' => 'annual-budgets',
             'budgets' => $stmt->fetchAll(),
         ]);
@@ -49,7 +49,7 @@ final class AnnualBudgetController extends Controller
         $year = (int) date('Y') + 1;
         $this->render('annual-budgets.create', [
             'title' => '新增年度預算',
-            'section' => '財務會計',
+            'section' => '主管機關核備',
             'active' => 'annual-budgets',
             'budget' => [
                 'fiscal_year' => $year,
@@ -113,7 +113,7 @@ final class AnnualBudgetController extends Controller
 
         $this->render('annual-budgets.show', [
             'title' => $budget['title'],
-            'section' => '財務會計',
+            'section' => '主管機關核備',
             'active' => 'annual-budgets',
             'budget' => $budget,
             'items' => $items,
@@ -131,7 +131,7 @@ final class AnnualBudgetController extends Controller
 
         $this->render('annual-budgets.statement', [
             'title' => '經費預算表',
-            'section' => '財務會計',
+            'section' => '主管機關核備',
             'active' => 'annual-budgets',
             'budget' => $budget,
             'items' => $items,
@@ -150,7 +150,7 @@ final class AnnualBudgetController extends Controller
 
         $this->render('annual-budgets.execution', [
             'title' => '預算執行報表',
-            'section' => '財務會計',
+            'section' => '主管機關核備',
             'active' => 'annual-budgets',
             'budget' => $budget,
             'startDate' => $start,
@@ -173,7 +173,7 @@ final class AnnualBudgetController extends Controller
 
         $this->render('annual-budgets.edit', [
             'title' => '編輯年度預算',
-            'section' => '財務會計',
+            'section' => '主管機關核備',
             'active' => 'annual-budgets',
             'budget' => $budget,
             'items' => $this->items((int) $id),

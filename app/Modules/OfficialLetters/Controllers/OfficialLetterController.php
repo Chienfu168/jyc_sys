@@ -31,7 +31,7 @@ final class OfficialLetterController extends Controller
 
         $this->render('official-letters.index', [
             'title' => '陳報公文',
-            'section' => '會計與帳務',
+            'section' => '主管機關核備',
             'active' => 'official-letters',
             'year' => $year,
             'letters' => $stmt->fetchAll(),
@@ -44,7 +44,7 @@ final class OfficialLetterController extends Controller
 
         $this->render('official-letters.form', [
             'title' => '新增陳報公文',
-            'section' => '會計與帳務',
+            'section' => '主管機關核備',
             'active' => 'official-letters',
             'letter' => $this->blankLetter(),
             'documents' => $this->availableDocuments(),
@@ -81,7 +81,7 @@ final class OfficialLetterController extends Controller
 
         $this->render('official-letters.show', [
             'title' => '陳報公文',
-            'section' => '會計與帳務',
+            'section' => '主管機關核備',
             'active' => 'official-letters',
             'letter' => $letter,
             'basisLines' => LetterFormat::lines($letter['basis_lines']),
@@ -99,7 +99,7 @@ final class OfficialLetterController extends Controller
 
         $this->render('official-letters.form', [
             'title' => '編輯陳報公文',
-            'section' => '會計與帳務',
+            'section' => '主管機關核備',
             'active' => 'official-letters',
             'letter' => $letter,
             'documents' => $this->availableDocuments(),
