@@ -18,4 +18,5 @@ $router->post('/donations/{id}/receipt-deliveries', [DonationController::class, 
 $router->post('/donations/{id}/void-receipt', [DonationController::class, 'voidReceipt']);
 $router->post('/donations/{id}/reissue-receipt', [DonationController::class, 'reissueReceipt']);
 $router->post('/donations/{id}/void', [DonationController::class, 'void']);
+$router->post('/donations/{id}/delete', [DonationController::class, 'destroy']);
 $router->post('/donations/{id}/voucher', [DonationController::class, 'createVoucher']);

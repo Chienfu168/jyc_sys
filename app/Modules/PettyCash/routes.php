@@ -13,6 +13,7 @@ $router->post('/petty-cash/{id}/reject', [PettyCashController::class, 'reject'])
 $router->post('/petty-cash/{id}/voucher', [PettyCashController::class, 'createVoucher']);
 $router->get('/petty-cash/{id}/edit', [PettyCashController::class, 'edit']);
 $router->post('/petty-cash/{id}', [PettyCashController::class, 'update']);
+$router->post('/petty-cash/{id}/delete', [PettyCashController::class, 'destroy']);
 $router->get('/petty-cash/{id}', [PettyCashController::class, 'show']);
 
 $router->get('/petty-cash-items', [PettyCashItemController::class, 'index']);
