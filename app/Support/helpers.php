@@ -186,6 +186,7 @@ function foundation_profile(): array
         'undertaker' => '',
         'phone' => '',
         'email' => '',
+        'website' => '',
         'address' => '',
         'mission' => '',
         'service_area' => '',

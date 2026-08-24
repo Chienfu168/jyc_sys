@@ -39,9 +39,9 @@ final class FoundationProfileController extends Controller
 
         Database::pdo()->prepare(
             'INSERT INTO foundation_profiles
-             (id, foundation_name, english_name, tax_id, registration_no, competent_authority, approval_date, approval_doc_no, representative, executive_director, undertaker, phone, email, address, mission, service_area, fiscal_year_start_month, updated_by, created_at, updated_at)
+             (id, foundation_name, english_name, tax_id, registration_no, competent_authority, approval_date, approval_doc_no, representative, executive_director, undertaker, phone, email, website, address, mission, service_area, fiscal_year_start_month, updated_by, created_at, updated_at)
              VALUES
-             (1, :foundation_name, :english_name, :tax_id, :registration_no, :competent_authority, :approval_date, :approval_doc_no, :representative, :executive_director, :undertaker, :phone, :email, :address, :mission, :service_area, :fiscal_year_start_month, :updated_by, :created_at, :updated_at)
+             (1, :foundation_name, :english_name, :tax_id, :registration_no, :competent_authority, :approval_date, :approval_doc_no, :representative, :executive_director, :undertaker, :phone, :email, :website, :address, :mission, :service_area, :fiscal_year_start_month, :updated_by, :created_at, :updated_at)
              ON DUPLICATE KEY UPDATE
                foundation_name = VALUES(foundation_name),
                english_name = VALUES(english_name),
@@ -55,6 +55,7 @@ final class FoundationProfileController extends Controller
                undertaker = VALUES(undertaker),
                phone = VALUES(phone),
                email = VALUES(email),
+               website = VALUES(website),
                address = VALUES(address),
                mission = VALUES(mission),
                service_area = VALUES(service_area),
@@ -74,6 +75,7 @@ final class FoundationProfileController extends Controller
             'undertaker' => trim((string) ($_POST['undertaker'] ?? '')),
             'phone' => trim((string) ($_POST['phone'] ?? '')),
             'email' => trim((string) ($_POST['email'] ?? '')),
+            'website' => trim((string) ($_POST['website'] ?? '')),
             'address' => trim((string) ($_POST['address'] ?? '')),
             'mission' => trim((string) ($_POST['mission'] ?? '')),
             'service_area' => trim((string) ($_POST['service_area'] ?? '')),
