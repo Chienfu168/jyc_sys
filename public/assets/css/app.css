@@ -1443,6 +1443,72 @@ textarea:focus {
     color: #222222;
 }
 
+/* 董事會議議程／紀錄列印版面 */
+.board-meeting-print {
+    max-width: 18cm;
+    margin: 0 auto 24px;
+    padding: 8mm 10mm;
+    color: #000000;
+    background: #ffffff;
+    font-family: "PMingLiU", "MingLiU", "Noto Serif TC", "Songti TC", serif;
+    line-height: 1.9;
+}
+
+.bm-doc-title {
+    margin: 0;
+    text-align: center;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.bm-doc-subtitle {
+    margin: 4px 0 0;
+    text-align: center;
+    font-size: 15px;
+    font-weight: 400;
+}
+
+.bm-body {
+    margin: 18px 0 0;
+    padding-left: 1.6em;
+    font-size: 16px;
+}
+
+.bm-body > li {
+    margin-bottom: 10px;
+}
+
+.bm-agenda-item {
+    margin: 6px 0 6px 1em;
+    padding: 8px 12px;
+    border-left: 2px solid #999999;
+}
+
+.bm-agenda-item p {
+    margin: 2px 0;
+}
+
+.bm-signatures {
+    margin-top: 28px;
+    text-align: right;
+    font-size: 16px;
+}
+
+.bm-signature-line {
+    margin: 6px 0;
+}
+
+.bm-signature-space {
+    display: inline-block;
+    min-width: 140px;
+    border-bottom: 1px solid #000000;
+}
+
+.bm-signin-sheet {
+    break-before: page;
+    page-break-before: always;
+}
+
 .statement-table {
     min-width: 1180px;
     border-collapse: collapse;
@@ -1520,6 +1586,30 @@ textarea:focus {
     display: grid;
     gap: 18px;
     align-content: start;
+}
+
+.board-meeting-lines {
+    display: grid;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.board-meeting-line {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px;
+    background: #fbfcfb;
+}
+
+.board-meeting-line-grid {
+    display: grid;
+    grid-template-columns: minmax(160px, 1.5fr) 160px 160px 64px;
+    gap: 10px;
+    align-items: end;
+}
+
+.board-meeting-agenda-grid {
+    grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr) 64px;
 }
 
 .purchase-detail-hero {
@@ -2437,6 +2527,13 @@ textarea:focus {
 
     .official-receipt .rc-stamp-box {
         border-color: #cccccc;
+    }
+
+    .board-meeting-print {
+        max-width: none;
+        margin: 0 0 12px;
+        padding: 0;
+        break-inside: avoid;
     }
 
     .budget-statement {

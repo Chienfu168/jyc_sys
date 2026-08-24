@@ -32,6 +32,7 @@ $navWorkflow = [
         ['perm' => 'payment_receipts.view', 'key' => 'payment-receipts', 'href' => '/payment-receipts', 'icon' => '領', 'label' => '領款收據'],
     ]],
     ['title' => '會計與帳務', 'items' => [
+        ['perm' => 'board_meetings.view', 'key' => 'board-meetings', 'href' => '/board-meetings', 'icon' => '董', 'label' => '董事會議'],
         ['perm' => 'annual_budgets.view', 'key' => 'annual-budgets', 'href' => '/annual-budgets', 'icon' => '預', 'label' => '年度預算'],
         ['perm' => 'accounting.view', 'key' => 'accounting', 'href' => '/accounting', 'icon' => '會', 'label' => '會計系統'],
         ['perm' => 'bank_accounts.view', 'key' => 'bank-accounts', 'href' => '/bank-accounts', 'icon' => '銀', 'label' => '銀行帳戶'],
