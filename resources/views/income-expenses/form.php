@@ -59,7 +59,7 @@
             </label>
             <label>
                 <span>付款方式</span>
-                <input type="text" name="payment_method" list="payment-methods" value="<?= e((string) old('payment_method', $record['payment_method'] ?? '')) ?>">
+                <input type="text" name="payment_method" list="payment-methods" data-payment-method value="<?= e((string) old('payment_method', $record['payment_method'] ?? '')) ?>">
                 <datalist id="payment-methods">
                     <option value="匯款"></option>
                     <option value="現金"></option>
@@ -68,7 +68,7 @@
                     <option value="轉帳"></option>
                 </datalist>
             </label>
-            <label>
+            <label data-bank-field>
                 <span>銀行帳戶</span>
                 <?php $selectedBank = (string) old('bank_account_id', $record['bank_account_id'] ?? ''); ?>
                 <select name="bank_account_id">
@@ -152,4 +152,13 @@ document.getElementById('income-expense-project')?.addEventListener('change', fu
         input.value = option.dataset.name || '';
     }
 });
+(function () {
+    const paymentMethod = document.querySelector('[data-payment-method]');
+    function updateBankFields() {
+        const cash = (paymentMethod?.value || '').trim() === '現金';
+        document.querySelectorAll('[data-bank-field]').forEach((field) => field.classList.toggle('hidden', cash));
+    }
+    paymentMethod?.addEventListener('input', updateBankFields);
+    updateBankFields();
+})();
 </script>
