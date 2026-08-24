@@ -83,6 +83,10 @@ ob_start();
                         <a class="btn small" href="/personnel/<?= e((string) $employee['id']) ?>">檢視</a>
                         <?php if (\App\Core\Permission::can('personnel.manage')): ?>
                             <a class="btn small" href="/personnel/<?= e((string) $employee['id']) ?>/edit">編輯</a>
+                            <form method="post" action="/personnel/<?= e((string) $employee['id']) ?>/delete" onsubmit="return confirm('確定要刪除此筆人事資料？此操作無法復原。');">
+                                <?= csrf_field() ?>
+                                <button class="btn small" type="submit">刪除</button>
+                            </form>
                         <?php endif; ?>
                     </td>
                 </tr>

@@ -9,3 +9,4 @@ $router->get('/personnel/{id}', [PersonnelController::class, 'show']);
 $router->get('/personnel/{id}/edit', [PersonnelController::class, 'edit']);
 $router->post('/personnel/{id}', [PersonnelController::class, 'update']);
 $router->post('/personnel/{id}/status', [PersonnelController::class, 'updateStatus']);
+$router->post('/personnel/{id}/delete', [PersonnelController::class, 'destroy']);

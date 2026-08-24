@@ -188,6 +188,39 @@ final class PersonnelController extends Controller
         redirect('/personnel/' . $id);
     }
 
+    public function destroy(string $id): void
+    {
+        $this->requirePermission('personnel.manage');
+        $employee = $this->findEmployee((int) $id);
+
+        if ($this->hasLinkedRecords((int) $id)) {
+            flash('error', '此人事資料已有請假或薪資紀錄，無法刪除；如需停用請改用狀態設為「離職」。');
+            redirect('/personnel/' . $id);
+        }
+
+        Database::pdo()->prepare('DELETE FROM personnel_employees WHERE id = :id')
+            ->execute(['id' => (int) $id]);
+
+        AuditLog::write('delete', 'personnel', 'personnel_employees', (int) $id, [
+            'name' => $employee['name'],
+        ]);
+        flash('success', '人事資料已刪除。');
+        redirect('/personnel');
+    }
+
+    /** 是否有請假或薪資紀錄關聯此人事資料(這兩個資料表以 ON DELETE RESTRICT 保護,刪除前先行檢查以提供友善訊息)。 */
+    private function hasLinkedRecords(int $employeeId): bool
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT
+                (SELECT COUNT(*) FROM leave_requests WHERE employee_id = :id1)
+                + (SELECT COUNT(*) FROM payroll_records WHERE employee_id = :id2) AS total'
+        );
+        $stmt->execute(['id1' => $employeeId, 'id2' => $employeeId]);
+
+        return ((int) $stmt->fetchColumn()) > 0;
+    }
+
     private function validateEmployee(string $path, ?int $ignoreId = null): void
     {
         if ($error = Validator::required($_POST, [
