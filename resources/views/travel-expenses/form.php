@@ -96,7 +96,7 @@
         <div class="grid-form">
             <label>
                 <span>付款方式</span>
-                <input type="text" name="payment_method" list="travel-expense-payment-methods" value="<?= e((string) old('payment_method', $expense['payment_method'] ?? '匯款')) ?>">
+                <input type="text" name="payment_method" list="travel-expense-payment-methods" data-payment-method value="<?= e((string) old('payment_method', $expense['payment_method'] ?? '匯款')) ?>">
                 <datalist id="travel-expense-payment-methods">
                     <option value="匯款"></option>
                     <option value="現金"></option>
@@ -116,7 +116,7 @@
                 <span>付款日期</span>
                 <input type="date" name="paid_on" value="<?= e((string) old('paid_on', $expense['paid_on'] ?? '')) ?>">
             </label>
-            <label>
+            <label data-bank-field>
                 <span>基金會付款銀行</span>
                 <?php $selectedBank = (string) old('bank_account_id', $expense['bank_account_id'] ?? ''); ?>
                 <select name="bank_account_id">
@@ -186,7 +186,15 @@
         }
     });
 
+    const paymentMethod = document.querySelector('[data-payment-method]');
+    function updateBankFields() {
+        const cash = (paymentMethod?.value || '').trim() === '現金';
+        document.querySelectorAll('[data-bank-field]').forEach((field) => field.classList.toggle('hidden', cash));
+    }
+    paymentMethod?.addEventListener('input', updateBankFields);
+
     fields.forEach((field) => field.addEventListener('input', calculate));
     calculate();
+    updateBankFields();
 })();
 </script>
