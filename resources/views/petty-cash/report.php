@@ -55,6 +55,28 @@ $periodLabel = $month === '' ? roc_year_label($year) : roc_year_label($year) . '
             <strong><?= e(report_money($totals['balance'])) ?></strong>
         </div>
     </section>
+
+    <?php if (isset($carry)): ?>
+        <section class="stats-grid budget-summary">
+            <div class="stat-card">
+                <span><?= e(roc_year_label($year)) ?> 期初結餘</span>
+                <strong><?= e(report_money($carry['opening'])) ?></strong>
+            </div>
+            <div class="stat-card">
+                <span>全年收入</span>
+                <strong><?= e(report_money($carry['income'])) ?></strong>
+            </div>
+            <div class="stat-card">
+                <span>全年支出</span>
+                <strong><?= e(report_money($carry['expense'])) ?></strong>
+            </div>
+            <div class="stat-card">
+                <span>年度期末結餘</span>
+                <strong><?= e(report_money($carry['closing'])) ?></strong>
+            </div>
+        </section>
+        <p class="muted-text no-print">期初結餘可於「會計與帳務 → 期初餘額」設定，年度期末結餘將自動結轉為下一年度期初。</p>
+    <?php endif; ?>
 </section>
 
 <section class="panel">

@@ -35,6 +35,7 @@ $navWorkflow = [
         ['perm' => 'annual_budgets.view', 'key' => 'annual-budgets', 'href' => '/annual-budgets', 'icon' => '預', 'label' => '年度預算'],
         ['perm' => 'accounting.view', 'key' => 'accounting', 'href' => '/accounting', 'icon' => '會', 'label' => '會計系統'],
         ['perm' => 'bank_accounts.view', 'key' => 'bank-accounts', 'href' => '/bank-accounts', 'icon' => '銀', 'label' => '銀行帳戶'],
+        ['perm' => 'opening_balances.view', 'key' => 'opening-balances', 'href' => '/opening-balances', 'icon' => '初', 'label' => '期初餘額'],
     ]],
 ];
 

@@ -121,6 +121,22 @@ final class PettyCashController extends Controller
         $totals = $this->totals($entries);
         $summary = PettyCashReport::summaryWithRatios($summary, $totals['income'], $totals['expense']);
 
+        // 年度期初餘額與結轉:期末 = 期初 + 全年收入 − 全年支出(不受月份篩選影響)。
+        $annualStmt = Database::pdo()->prepare(
+            'SELECT COALESCE(SUM(CASE WHEN item_type = "income" THEN amount ELSE 0 END), 0) AS income,
+                    COALESCE(SUM(CASE WHEN item_type = "expense" THEN amount ELSE 0 END), 0) AS expense
+             FROM petty_cash_entries
+             WHERE YEAR(occurred_on) = :year'
+        );
+        $annualStmt->execute(['year' => $year]);
+        $annual = $annualStmt->fetch() ?: ['income' => 0, 'expense' => 0];
+        $openingBalance = $this->openingBalance('petty_cash', $year);
+        $carry = \App\Domain\OpeningBalances\OpeningBalanceLedger::summary(
+            $openingBalance,
+            (float) $annual['income'],
+            (float) $annual['expense']
+        );
+
         $this->render('petty-cash.report', [
             'title' => '零用金統計表',
             'section' => '財務會計',
@@ -134,6 +150,8 @@ final class PettyCashController extends Controller
             'totals' => $totals,
             'expenseTotal' => $totals['expense'],
             'incomeTotal' => $totals['income'],
+            'openingBalance' => $openingBalance,
+            'carry' => $carry,
         ]);
     }
 
@@ -413,6 +431,20 @@ final class PettyCashController extends Controller
         AuditLog::write($approvalStatus, 'petty_cash', 'petty_cash_entries', $id);
         flash('success', $message);
         redirect('/petty-cash/' . $id);
+    }
+
+    /** 查詢某年度的零用金期初餘額;未設定回傳 0。 */
+    private function openingBalance(string $module, int $year): float
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT opening_balance FROM opening_balances
+             WHERE module = :module AND reference_id = 0 AND fiscal_year = :year
+             LIMIT 1'
+        );
+        $stmt->execute(['module' => $module, 'year' => $year]);
+        $value = $stmt->fetchColumn();
+
+        return $value === false ? 0.0 : (float) $value;
     }
 
     private function validateEntry(string $path): void
