@@ -50,8 +50,29 @@ ob_start();
             </label>
             <label class="span-2">
                 <span>附件清單(一)(二)... 每行一項</span>
-                <textarea name="attachment_items" rows="6"><?= e((string) old('attachment_items', $letter['attachment_items'] ?? '')) ?></textarea>
+                <textarea name="attachment_items" id="attachment-items" rows="6"><?= e((string) old('attachment_items', $letter['attachment_items'] ?? '')) ?></textarea>
             </label>
+            <?php if (!empty($documents)): ?>
+                <div class="span-2 doc-picker">
+                    <p class="doc-picker-title">快速帶入系統既有文件(點選加入附件清單):</p>
+                    <?php
+                    $grouped = [];
+                    foreach ($documents as $doc) {
+                        $grouped[$doc['group']][] = $doc;
+                    }
+                    ?>
+                    <?php foreach ($grouped as $groupName => $docs): ?>
+                        <div class="doc-picker-group">
+                            <span class="doc-picker-group-name"><?= e($groupName) ?></span>
+                            <div class="doc-picker-chips">
+                                <?php foreach ($docs as $doc): ?>
+                                    <button type="button" class="btn small doc-chip" data-label="<?= e($doc['label']) ?>">＋ <?= e($doc['label']) ?></button>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
             <label>
                 <span>具名職稱</span>
                 <input type="text" name="signer_title" value="<?= e((string) old('signer_title', $letter['signer_title'] ?? '董事長')) ?>">
@@ -76,6 +97,32 @@ ob_start();
         <button class="btn primary" type="submit">儲存</button>
     </div>
 </form>
+<script>
+(function () {
+    var textarea = document.getElementById('attachment-items');
+    if (!textarea) {
+        return;
+    }
+    document.querySelectorAll('.doc-chip').forEach(function (chip) {
+        chip.addEventListener('click', function () {
+            var label = chip.getAttribute('data-label') || '';
+            if (label === '') {
+                return;
+            }
+            var lines = textarea.value.split(/\r\n|\r|\n/).map(function (line) {
+                return line.trim();
+            }).filter(function (line) {
+                return line !== '';
+            });
+            if (lines.indexOf(label) !== -1) {
+                return;
+            }
+            lines.push(label);
+            textarea.value = lines.join('\n');
+        });
+    });
+})();
+</script>
 <?php
 $content = ob_get_clean();
 require base_path('resources/views/layouts/main.php');
