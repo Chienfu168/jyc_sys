@@ -88,4 +88,20 @@ final class BudgetSummaryTest extends TestCase
         $this->assertSame(0, $totals['income_rate']);
         $this->assertSame(0, $totals['expense_rate']);
     }
+
+    public function test_variance_percent_divides_by_previous_year_per_reference_format(): void
+    {
+        // 新北市教育局經費預算表範例:「增(減)比率(%) (D)=(C)/(B)*100」,B 為上年度數。
+        // 附屬作業組織收入:A=10,000,000 B=11,000,000 C=-1,000,000 → 範例列出 D=-9%。
+        $this->assertSame(-9.09, BudgetSummary::variancePercent(10_000_000, 11_000_000));
+        // 利息收入:A=972,138 B=446,707 C=525,431 → 範例列出 D=118%。
+        $this->assertSame(117.62, BudgetSummary::variancePercent(972138, 446707));
+        // 股利收入:A=10,251,950 B=8,251,950 C=2,000,000 → 範例列出 D=24%。
+        $this->assertSame(24.24, BudgetSummary::variancePercent(10251950, 8251950));
+    }
+
+    public function test_variance_percent_is_zero_when_previous_is_zero(): void
+    {
+        $this->assertSame(0.0, BudgetSummary::variancePercent(5000, 0));
+    }
 }

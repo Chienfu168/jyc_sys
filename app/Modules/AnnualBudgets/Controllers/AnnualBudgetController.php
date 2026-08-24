@@ -541,7 +541,7 @@ final class AnnualBudgetController extends Controller
             }
 
             $item['variance_amount'] = $current - $previous;
-            $item['variance_rate'] = $current > 0 ? round((($current - $previous) / $current) * 100, 2) : 0.0;
+            $item['variance_rate'] = BudgetSummary::variancePercent($current, $previous);
             $summary['groups'][$type][$groupKey]['current'] += $current;
             $summary['groups'][$type][$groupKey]['previous'] += $previous;
             $summary['groups'][$type][$groupKey]['items'][] = $item;
@@ -549,13 +549,11 @@ final class AnnualBudgetController extends Controller
 
         foreach (['income', 'expense'] as $type) {
             $summary[$type]['variance'] = $summary[$type]['current'] - $summary[$type]['previous'];
-            $summary[$type]['variance_rate'] = $summary[$type]['current'] > 0
-                ? round(($summary[$type]['variance'] / $summary[$type]['current']) * 100, 2)
-                : 0.0;
+            $summary[$type]['variance_rate'] = BudgetSummary::variancePercent($summary[$type]['current'], $summary[$type]['previous']);
 
             foreach ($summary['groups'][$type] as &$group) {
                 $group['variance'] = $group['current'] - $group['previous'];
-                $group['variance_rate'] = $group['current'] > 0 ? round(($group['variance'] / $group['current']) * 100, 2) : 0.0;
+                $group['variance_rate'] = BudgetSummary::variancePercent($group['current'], $group['previous']);
             }
             unset($group);
         }
@@ -565,9 +563,7 @@ final class AnnualBudgetController extends Controller
             'previous' => $summary['income']['previous'] - $summary['expense']['previous'],
         ];
         $summary['balance']['variance'] = $summary['balance']['current'] - $summary['balance']['previous'];
-        $summary['balance']['variance_rate'] = $summary['balance']['current'] != 0.0
-            ? round(($summary['balance']['variance'] / $summary['balance']['current']) * 100, 2)
-            : 0.0;
+        $summary['balance']['variance_rate'] = BudgetSummary::variancePercent($summary['balance']['current'], $summary['balance']['previous']);
 
         return $summary;
     }

@@ -102,6 +102,10 @@
                     <span>預算金額</span>
                     <input type="number" step="1" min="0" name="items[<?= e((string) $index) ?>][budget_amount]" value="<?= e((string) ($item['budget_amount'] ?? '')) ?>">
                 </label>
+                <label>
+                    <span>備註</span>
+                    <input type="text" name="items[<?= e((string) $index) ?>][notes]" value="<?= e((string) ($item['notes'] ?? '')) ?>">
+                </label>
                 <button class="btn" type="button" onclick="this.closest('.budget-line').remove()">刪除</button>
             </div>
         <?php endforeach; ?>
@@ -120,6 +124,7 @@
         <label class="span-wide"><span>執行內容</span><input type="text" data-name="description"></label>
         <label><span>預期產出</span><input type="text" data-name="expected_output"></label>
         <label><span>預算金額</span><input type="number" step="1" min="0" data-name="budget_amount"></label>
+        <label><span>備註</span><input type="text" data-name="notes"></label>
         <button class="btn" type="button" onclick="this.closest('.budget-line').remove()">刪除</button>
     </div>
 </template>
