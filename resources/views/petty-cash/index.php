@@ -22,7 +22,7 @@ ob_start();
 <section class="panel">
     <div class="panel-header">
         <form class="search" method="get" action="/petty-cash">
-            <input type="month" name="month" value="<?= e($month) ?>">
+            <?php require base_path('resources/views/shared/date-scope-filter.php'); ?>
             <button class="btn" type="submit">查詢</button>
         </form>
         <div class="actions">

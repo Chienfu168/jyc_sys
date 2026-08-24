@@ -6,6 +6,7 @@ use App\Core\AuditLog;
 use App\Core\Controller;
 use App\Core\Database;
 use App\Core\Validator;
+use App\Support\DateScope;
 use PDO;
 
 final class ActivityController extends Controller
@@ -17,12 +18,17 @@ final class ActivityController extends Controller
         $month = preg_match('/^\d{4}-\d{2}$/', (string) ($_GET['month'] ?? ''))
             ? (string) $_GET['month']
             : date('Y-m');
+        $scope = DateScope::normalize($_GET['scope'] ?? null);
+        $year = normalize_fiscal_year($_GET['year'] ?? date('Y'));
+        if ($year < 1912 || $year > 2100) {
+            $year = (int) date('Y');
+        }
         $status = in_array(($_GET['status'] ?? ''), ['draft', 'published', 'closed', 'cancelled'], true) ? (string) $_GET['status'] : '';
         $projectId = (int) ($_GET['project_id'] ?? 0);
         $keyword = trim((string) ($_GET['q'] ?? ''));
 
-        $where = ['DATE_FORMAT(activities.starts_at, "%Y-%m") = :month'];
-        $params = ['month' => $month];
+        [$dateWhere, $params] = DateScope::condition('activities.starts_at', $scope, $month, $year);
+        $where = $dateWhere !== '' ? [$dateWhere] : [];
         if ($status !== '') {
             $where[] = 'activities.status = :status';
             $params['status'] = $status;
@@ -57,8 +63,8 @@ final class ActivityController extends Controller
                        SUM(CASE WHEN status = "attended" THEN 1 ELSE 0 END) AS attended_count
                 FROM activity_participants
                 GROUP BY activity_id
-             ) AS participant_stats ON participant_stats.activity_id = activities.id
-             WHERE ' . implode(' AND ', $where) . '
+             ) AS participant_stats ON participant_stats.activity_id = activities.id'
+            . ($where ? ' WHERE ' . implode(' AND ', $where) : '') . '
              ORDER BY activities.starts_at DESC, activities.id DESC'
         );
         $stmt->execute($params);
@@ -69,6 +75,8 @@ final class ActivityController extends Controller
             'section' => '業務與人事',
             'active' => 'activities',
             'month' => $month,
+            'scope' => $scope,
+            'year' => $year,
             'status' => $status,
             'projectId' => $projectId,
             'keyword' => $keyword,

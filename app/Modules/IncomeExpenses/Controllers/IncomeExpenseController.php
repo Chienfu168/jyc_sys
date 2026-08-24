@@ -8,6 +8,7 @@ use App\Core\Controller;
 use App\Core\Database;
 use App\Core\Validator;
 use App\Domain\IncomeExpenses\IncomeExpenseReport;
+use App\Support\DateScope;
 use PDO;
 
 final class IncomeExpenseController extends Controller
@@ -19,10 +20,15 @@ final class IncomeExpenseController extends Controller
         $month = preg_match('/^\d{4}-\d{2}$/', (string) ($_GET['month'] ?? ''))
             ? (string) $_GET['month']
             : date('Y-m');
+        $scope = DateScope::normalize($_GET['scope'] ?? null);
+        $year = normalize_fiscal_year($_GET['year'] ?? date('Y'));
+        if ($year < 1912 || $year > 2100) {
+            $year = (int) date('Y');
+        }
         $type = in_array(($_GET['type'] ?? ''), ['income', 'expense'], true) ? (string) $_GET['type'] : '';
 
-        $where = ['DATE_FORMAT(income_expense_records.occurred_on, "%Y-%m") = :month'];
-        $params = ['month' => $month];
+        [$dateWhere, $params] = DateScope::condition('income_expense_records.occurred_on', $scope, $month, $year);
+        $where = $dateWhere !== '' ? [$dateWhere] : [];
         if ($type !== '') {
             $where[] = 'income_expense_records.item_type = :type';
             $params['type'] = $type;
@@ -38,8 +44,8 @@ final class IncomeExpenseController extends Controller
              FROM income_expense_records
              LEFT JOIN users ON users.id = income_expense_records.created_by
              LEFT JOIN bank_accounts ON bank_accounts.id = income_expense_records.bank_account_id
-             LEFT JOIN accounting_vouchers ON accounting_vouchers.id = income_expense_records.accounting_voucher_id
-             WHERE ' . implode(' AND ', $where) . '
+             LEFT JOIN accounting_vouchers ON accounting_vouchers.id = income_expense_records.accounting_voucher_id'
+            . ($where ? ' WHERE ' . implode(' AND ', $where) : '') . '
              ORDER BY income_expense_records.occurred_on DESC, income_expense_records.id DESC'
         );
         $stmt->execute($params);
@@ -50,6 +56,8 @@ final class IncomeExpenseController extends Controller
             'section' => '財務會計',
             'active' => 'income-expenses',
             'month' => $month,
+            'scope' => $scope,
+            'year' => $year,
             'type' => $type,
             'records' => $records,
             'totals' => $this->totals($records),

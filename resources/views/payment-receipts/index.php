@@ -25,7 +25,7 @@ ob_start();
 <section class="panel">
     <div class="panel-header">
         <form class="search bank-filter" method="get" action="/payment-receipts">
-            <input type="month" name="month" value="<?= e($month) ?>">
+            <?php require base_path('resources/views/shared/date-scope-filter.php'); ?>
             <select name="status">
                 <option value="">全部狀態</option>
                 <?php foreach (payment_receipt_status_options() as $value => $label): ?>

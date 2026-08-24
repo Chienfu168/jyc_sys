@@ -7,6 +7,7 @@ use App\Core\ApprovalFlow;
 use App\Core\Controller;
 use App\Core\Database;
 use App\Core\Validator;
+use App\Support\DateScope;
 use PDO;
 
 final class PurchaseRequestController extends Controller
@@ -24,6 +25,8 @@ final class PurchaseRequestController extends Controller
             'active' => 'purchase-requests',
             'requests' => $requests,
             'month' => $filters['month'],
+            'scope' => $filters['scope'],
+            'year' => $filters['year'],
             'status' => $filters['status'],
             'keyword' => $filters['keyword'],
             'summary' => $this->summary($requests),
@@ -459,11 +462,16 @@ final class PurchaseRequestController extends Controller
         $month = preg_match('/^\d{4}-\d{2}$/', (string) ($_GET['month'] ?? ''))
             ? (string) $_GET['month']
             : date('Y-m');
+        $scope = DateScope::normalize($_GET['scope'] ?? null);
+        $year = normalize_fiscal_year($_GET['year'] ?? date('Y'));
+        if ($year < 1912 || $year > 2100) {
+            $year = (int) date('Y');
+        }
         $status = in_array($_GET['status'] ?? '', $this->statuses(), true) ? (string) $_GET['status'] : '';
         $keyword = trim(is_scalar($_GET['q'] ?? null) ? (string) $_GET['q'] : '');
 
-        $where = ['DATE_FORMAT(purchase_requests.requested_on, "%Y-%m") = :month'];
-        $params = ['month' => $month];
+        [$dateWhere, $params] = DateScope::condition('purchase_requests.requested_on', $scope, $month, $year);
+        $where = $dateWhere !== '' ? [$dateWhere] : [];
         if ($status !== '') {
             $where[] = 'purchase_requests.status = :status';
             $params['status'] = $status;
@@ -481,6 +489,8 @@ final class PurchaseRequestController extends Controller
 
         return [
             'month' => $month,
+            'scope' => $scope,
+            'year' => $year,
             'status' => $status,
             'keyword' => $keyword,
             'where' => $where,
@@ -496,8 +506,8 @@ final class PurchaseRequestController extends Controller
                     reviewers.name AS reviewed_by_name
              FROM purchase_requests
              LEFT JOIN users AS creators ON creators.id = purchase_requests.created_by
-             LEFT JOIN users AS reviewers ON reviewers.id = purchase_requests.reviewed_by
-             WHERE ' . implode(' AND ', $where) . '
+             LEFT JOIN users AS reviewers ON reviewers.id = purchase_requests.reviewed_by'
+            . ($where ? ' WHERE ' . implode(' AND ', $where) : '') . '
              ORDER BY purchase_requests.requested_on DESC, purchase_requests.id DESC'
         );
         $stmt->execute($params);

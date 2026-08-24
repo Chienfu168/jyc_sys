@@ -20,7 +20,7 @@ ob_start();
 <section class="panel">
     <div class="panel-header">
         <form class="search bank-filter" method="get" action="/activities">
-            <input type="month" name="month" value="<?= e($month) ?>">
+            <?php require base_path('resources/views/shared/date-scope-filter.php'); ?>
             <input type="search" name="q" value="<?= e($keyword) ?>" placeholder="活動、地點、說明">
             <select name="project_id">
                 <option value="">全部專案</option>

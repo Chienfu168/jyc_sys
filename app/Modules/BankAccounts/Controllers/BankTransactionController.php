@@ -7,6 +7,7 @@ use App\Core\Controller;
 use App\Core\Database;
 use App\Core\Validator;
 use App\Domain\BankAccounts\ReconciliationSummary;
+use App\Support\DateScope;
 use PDO;
 
 final class BankTransactionController extends Controller
@@ -18,10 +19,15 @@ final class BankTransactionController extends Controller
         $month = preg_match('/^\d{4}-\d{2}$/', (string) ($_GET['month'] ?? ''))
             ? (string) $_GET['month']
             : date('Y-m');
+        $scope = DateScope::normalize($_GET['scope'] ?? null);
+        $year = normalize_fiscal_year($_GET['year'] ?? date('Y'));
+        if ($year < 1912 || $year > 2100) {
+            $year = (int) date('Y');
+        }
         $accountId = (int) ($_GET['bank_account_id'] ?? 0);
 
-        $where = ['DATE_FORMAT(bank_account_transactions.transacted_on, "%Y-%m") = :month'];
-        $params = ['month' => $month];
+        [$dateWhere, $params] = DateScope::condition('bank_account_transactions.transacted_on', $scope, $month, $year);
+        $where = $dateWhere !== '' ? [$dateWhere] : [];
         if ($accountId > 0) {
             $where[] = 'bank_account_transactions.bank_account_id = :bank_account_id';
             $params['bank_account_id'] = $accountId;
@@ -32,8 +38,8 @@ final class BankTransactionController extends Controller
                     accounting_vouchers.voucher_no, accounting_vouchers.status AS voucher_status
              FROM bank_account_transactions
              INNER JOIN bank_accounts ON bank_accounts.id = bank_account_transactions.bank_account_id
-             LEFT JOIN accounting_vouchers ON accounting_vouchers.id = bank_account_transactions.accounting_voucher_id
-             WHERE ' . implode(' AND ', $where) . '
+             LEFT JOIN accounting_vouchers ON accounting_vouchers.id = bank_account_transactions.accounting_voucher_id'
+            . ($where ? ' WHERE ' . implode(' AND ', $where) : '') . '
              ORDER BY bank_account_transactions.transacted_on DESC, bank_account_transactions.id DESC'
         );
         $stmt->execute($params);
@@ -46,6 +52,8 @@ final class BankTransactionController extends Controller
             'transactions' => $transactions,
             'accounts' => $this->accounts(false),
             'month' => $month,
+            'scope' => $scope,
+            'year' => $year,
             'accountId' => $accountId,
             'totals' => $this->totals($transactions),
         ]);
@@ -58,13 +66,18 @@ final class BankTransactionController extends Controller
         $month = preg_match('/^\d{4}-\d{2}$/', (string) ($_GET['month'] ?? ''))
             ? (string) $_GET['month']
             : date('Y-m');
+        $scope = DateScope::normalize($_GET['scope'] ?? null);
+        $year = normalize_fiscal_year($_GET['year'] ?? date('Y'));
+        if ($year < 1912 || $year > 2100) {
+            $year = (int) date('Y');
+        }
         $accountId = (int) ($_GET['bank_account_id'] ?? 0);
         $status = in_array(($_GET['status'] ?? ''), ['unreconciled', 'reconciled', 'ignored'], true)
             ? (string) $_GET['status']
             : '';
 
-        $where = ['DATE_FORMAT(bank_account_transactions.transacted_on, "%Y-%m") = :month'];
-        $params = ['month' => $month];
+        [$dateWhere, $params] = DateScope::condition('bank_account_transactions.transacted_on', $scope, $month, $year);
+        $where = $dateWhere !== '' ? [$dateWhere] : [];
         if ($accountId > 0) {
             $where[] = 'bank_account_transactions.bank_account_id = :bank_account_id';
             $params['bank_account_id'] = $accountId;
@@ -82,8 +95,8 @@ final class BankTransactionController extends Controller
                     users.name AS reconciled_by_name
              FROM bank_account_transactions
              INNER JOIN bank_accounts ON bank_accounts.id = bank_account_transactions.bank_account_id
-             LEFT JOIN users ON users.id = bank_account_transactions.reconciled_by
-             WHERE ' . implode(' AND ', $where) . '
+             LEFT JOIN users ON users.id = bank_account_transactions.reconciled_by'
+            . ($where ? ' WHERE ' . implode(' AND ', $where) : '') . '
              ORDER BY bank_account_transactions.transacted_on, bank_account_transactions.id'
         );
         $stmt->execute($params);
@@ -96,6 +109,8 @@ final class BankTransactionController extends Controller
             'transactions' => $transactions,
             'accounts' => $this->accounts(false),
             'month' => $month,
+            'scope' => $scope,
+            'year' => $year,
             'accountId' => $accountId,
             'status' => $status,
             'totals' => $this->reconciliationTotals($transactions),
