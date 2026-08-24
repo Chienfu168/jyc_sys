@@ -70,6 +70,21 @@ final class PersonnelController extends Controller
         ]);
     }
 
+    public function edit(string $id): void
+    {
+        $this->requirePermission('personnel.manage');
+        $employeeId = (int) $id;
+
+        $this->render('personnel.edit', [
+            'title' => '編輯人事資料',
+            'section' => '業務與人事',
+            'active' => 'personnel',
+            'employee' => $this->findEmployee($employeeId),
+            'users' => $this->users($employeeId),
+            'action' => '/personnel/' . $id,
+        ]);
+    }
+
     public function store(): void
     {
         $this->requirePermission('personnel.manage');
@@ -102,20 +117,6 @@ final class PersonnelController extends Controller
             'active' => 'personnel',
             'employee' => $this->findEmployee((int) $id),
             'profile' => foundation_profile(),
-        ]);
-    }
-
-    public function edit(string $id): void
-    {
-        $this->requirePermission('personnel.manage');
-
-        $this->render('personnel.edit', [
-            'title' => '編輯人事資料',
-            'section' => '業務與人事',
-            'active' => 'personnel',
-            'employee' => $this->findEmployee((int) $id),
-            'users' => $this->users(),
-            'action' => '/personnel/' . $id,
         ]);
     }
 
@@ -213,6 +214,22 @@ final class PersonnelController extends Controller
             }
         }
 
+        $userId = (int) ($_POST['user_id'] ?? 0);
+        if ($userId > 0) {
+            $sql = 'SELECT id FROM personnel_employees WHERE user_id = :user_id';
+            $params = ['user_id' => $userId];
+            if ($ignoreId !== null) {
+                $sql .= ' AND id != :ignore_id';
+                $params['ignore_id'] = $ignoreId;
+            }
+            $sql .= ' LIMIT 1';
+            $stmt = Database::pdo()->prepare($sql);
+            $stmt->execute($params);
+            if ($stmt->fetchColumn()) {
+                $this->backWithInput($path, $_POST, '此系統帳號已連結其他人事資料。');
+            }
+        }
+
         foreach (['birth_date', 'hire_date', 'leave_date'] as $key) {
             $date = trim((string) ($_POST[$key] ?? ''));
             if ($date !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
@@ -305,9 +322,25 @@ final class PersonnelController extends Controller
         return $employee;
     }
 
-    private function users(): array
+    /**
+     * 可連結的系統帳號:排除已連結其他人事資料的帳號,避免 user_id 唯一鍵衝突。
+     * 編輯時傳入目前人事資料 id,讓該筆原本連結的帳號仍可選取。
+     */
+    private function users(?int $ignoreEmployeeId = null): array
     {
-        return Database::pdo()->query('SELECT id, name, email FROM users WHERE status = "active" ORDER BY name')->fetchAll();
+        $sql = 'SELECT id, name, email FROM users
+                WHERE status = "active"
+                  AND id NOT IN (
+                        SELECT user_id FROM personnel_employees
+                        WHERE user_id IS NOT NULL'
+                        . ($ignoreEmployeeId !== null ? ' AND id != :ignore_id' : '') . '
+                  )
+                ORDER BY name';
+
+        $stmt = Database::pdo()->prepare($sql);
+        $stmt->execute($ignoreEmployeeId !== null ? ['ignore_id' => $ignoreEmployeeId] : []);
+
+        return $stmt->fetchAll();
     }
 
     private function departments(): array
