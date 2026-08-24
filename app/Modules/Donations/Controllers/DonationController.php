@@ -636,6 +636,30 @@ final class DonationController extends Controller
         redirect('/donations/' . $id);
     }
 
+    /**
+     * 硬刪除整筆捐款紀錄(含收據作廢/寄送等關聯,以外鍵 CASCADE 一併移除)。
+     * 一般作業請用「作廢」保留軌跡;刪除為不可復原動作,僅限具 donations.delete 權限者。
+     */
+    public function destroy(string $id): void
+    {
+        $this->requirePermission('donations.delete');
+        $donation = $this->findDonation((int) $id);
+
+        if (!empty($donation['accounting_voucher_id'])) {
+            flash('error', '已建立會計傳票的捐款紀錄不可直接刪除，請先處理相關傳票。');
+            redirect('/donations/' . $id);
+        }
+
+        Database::pdo()->prepare('DELETE FROM donations WHERE id = :id')->execute(['id' => (int) $id]);
+
+        AuditLog::write('delete', 'donations', 'donations', (int) $id, [
+            'amount' => $donation['amount'] ?? null,
+            'receipt_no' => trim((string) ($donation['receipt_no'] ?? '')) ?: null,
+        ]);
+        flash('success', '捐款紀錄已刪除。');
+        redirect('/donations');
+    }
+
     public function createVoucher(string $id): void
     {
         $this->requirePermission('accounting.manage');

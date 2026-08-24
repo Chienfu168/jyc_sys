@@ -274,6 +274,35 @@ final class PettyCashController extends Controller
         redirect('/petty-cash?month=' . substr((string) $_POST['occurred_on'], 0, 7));
     }
 
+    /**
+     * 硬刪除零用金明細。已建立會計傳票或已連結銀行交易者不可刪除,
+     * 避免破壞帳務/對帳關聯。刪除為不可復原動作,僅限具 petty_cash.delete 權限者。
+     */
+    public function destroy(string $id): void
+    {
+        $this->requirePermission('petty_cash.delete');
+        $entry = $this->findEntry((int) $id);
+
+        if (!empty($entry['accounting_voucher_id'])) {
+            flash('error', '已建立會計傳票的零用金紀錄不可直接刪除，請先處理相關傳票。');
+            redirect('/petty-cash/' . $id);
+        }
+
+        if (!empty($entry['bank_account_transaction_id'])) {
+            flash('error', '已連結銀行交易的零用金紀錄不可直接刪除，請先解除銀行交易關聯。');
+            redirect('/petty-cash/' . $id);
+        }
+
+        Database::pdo()->prepare('DELETE FROM petty_cash_entries WHERE id = :id')->execute(['id' => (int) $id]);
+
+        AuditLog::write('delete', 'petty_cash', 'petty_cash_entries', (int) $id, [
+            'item_name' => $entry['item_name'] ?? null,
+            'amount' => $entry['amount'] ?? null,
+        ]);
+        flash('success', '零用金紀錄已刪除。');
+        redirect('/petty-cash?month=' . substr((string) $entry['occurred_on'], 0, 7));
+    }
+
     public function submit(string $id): void
     {
         $this->requirePermission('petty_cash.manage');

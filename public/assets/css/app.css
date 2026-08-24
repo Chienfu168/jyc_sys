@@ -463,6 +463,17 @@ th {
     font-size: 14px;
 }
 
+.btn.danger {
+    border-color: #c0392b;
+    color: #c0392b;
+    background: transparent;
+}
+
+.btn.danger:hover {
+    background: #c0392b;
+    color: #fff;
+}
+
 .btn.full {
     width: 100%;
 }
