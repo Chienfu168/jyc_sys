@@ -191,6 +191,44 @@ final class UserController extends Controller
         redirect('/users');
     }
 
+    public function destroy(string $id): void
+    {
+        $this->requirePermission('users.delete');
+        $user = $this->findUser((int) $id);
+
+        $currentId = (int) (auth()->user()['id'] ?? 0);
+        if ((int) $user['id'] === $currentId) {
+            flash('error', '無法刪除目前登入的帳號。');
+            redirect('/users');
+        }
+
+        // 系統管理員(role_id = 1)至少需保留一位可用帳號。
+        if ((int) $user['role_id'] === 1) {
+            $stmt = Database::pdo()->prepare(
+                'SELECT COUNT(*) FROM users WHERE role_id = 1 AND status = "active" AND id != :id'
+            );
+            $stmt->execute(['id' => (int) $user['id']]);
+            if ((int) $stmt->fetchColumn() === 0) {
+                flash('error', '系統至少需保留一位可用的系統管理員帳號，無法刪除。');
+                redirect('/users');
+            }
+        }
+
+        try {
+            Database::pdo()->prepare('DELETE FROM users WHERE id = :id')->execute(['id' => (int) $user['id']]);
+        } catch (\PDOException) {
+            flash('error', '此帳號已有關聯紀錄（如建立、審核紀錄等），無法刪除，請改用「停用」。');
+            redirect('/users');
+        }
+
+        AuditLog::write('delete', 'users', 'users', (int) $user['id'], [
+            'name' => $user['name'] ?? null,
+            'email' => $user['email'] ?? null,
+        ]);
+        flash('success', '使用者已刪除。');
+        redirect('/users');
+    }
+
     private function roles(): array
     {
         return Database::pdo()->query('SELECT id, name FROM roles ORDER BY id')->fetchAll();

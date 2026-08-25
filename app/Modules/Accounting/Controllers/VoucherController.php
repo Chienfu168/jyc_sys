@@ -247,6 +247,54 @@ final class VoucherController extends Controller
         redirect('/accounting/vouchers/' . $id);
     }
 
+    public function destroy(string $id): void
+    {
+        $this->requirePermission('accounting.delete');
+        $voucher = $this->findVoucher((int) $id);
+
+        $pdo = Database::pdo();
+        $pdo->beginTransaction();
+        try {
+            // 解除各來源紀錄對此傳票的連結,使其可重新建立傳票或編輯/刪除。
+            foreach (self::VOUCHER_SOURCE_TABLES as $table) {
+                try {
+                    $pdo->prepare("UPDATE {$table} SET accounting_voucher_id = NULL WHERE accounting_voucher_id = :id")
+                        ->execute(['id' => (int) $voucher['id']]);
+                } catch (\PDOException) {
+                    // 該來源資料表在此安裝可能尚未建立,略過即可。
+                }
+            }
+
+            $pdo->prepare('DELETE FROM accounting_voucher_lines WHERE voucher_id = :id')
+                ->execute(['id' => (int) $voucher['id']]);
+            $pdo->prepare('DELETE FROM accounting_vouchers WHERE id = :id')
+                ->execute(['id' => (int) $voucher['id']]);
+            $pdo->commit();
+        } catch (\Throwable) {
+            $pdo->rollBack();
+            flash('error', '會計傳票刪除失敗，可能仍有關聯資料。');
+            redirect('/accounting/vouchers/' . $id);
+        }
+
+        AuditLog::write('delete', 'accounting', 'accounting_vouchers', (int) $voucher['id'], [
+            'voucher_no' => $voucher['voucher_no'] ?? null,
+            'status' => $voucher['status'] ?? null,
+        ]);
+        flash('success', '會計傳票已刪除，來源紀錄的傳票連結已解除。');
+        redirect('/accounting/vouchers');
+    }
+
+    /** 具有 accounting_voucher_id 連結、刪除傳票時需解除連結的來源資料表。 */
+    private const VOUCHER_SOURCE_TABLES = [
+        'donations',
+        'income_expense_records',
+        'petty_cash_entries',
+        'bank_account_transactions',
+        'travel_expenses',
+        'payroll_records',
+        'lecturer_expenses',
+    ];
+
     private function validatedPayload(string $path, ?int $ignoreId = null): array
     {
         $voucherNo = trim((string) ($_POST['voucher_no'] ?? ''));

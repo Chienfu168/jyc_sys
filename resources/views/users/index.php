@@ -42,6 +42,12 @@ ob_start();
                                 <button class="btn small ghost" type="submit"><?= $user['status'] === 'active' ? '停用' : '啟用' ?></button>
                             </form>
                         <?php endif; ?>
+                        <?php if (\App\Core\Permission::can('users.delete')): ?>
+                            <form method="post" action="/users/<?= e((string) $user['id']) ?>/delete" onsubmit="return confirm('確定要「刪除」此使用者帳號？刪除後無法復原，若僅需暫停請改用「停用」。');">
+                                <?= csrf_field() ?>
+                                <button class="btn small danger" type="submit">刪除</button>
+                            </form>
+                        <?php endif; ?>
                     </td>
                 </tr>
             <?php endforeach; ?>

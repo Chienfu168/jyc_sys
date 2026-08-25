@@ -87,6 +87,34 @@ final class OpeningBalanceController extends Controller
         redirect('/opening-balances?year=' . $year);
     }
 
+    public function destroy(): void
+    {
+        $this->requirePermission('opening_balances.delete');
+
+        $module = (string) ($_POST['module'] ?? '');
+        if (!OpeningBalanceLedger::isLedgerModule($module)) {
+            redirect('/opening-balances');
+        }
+
+        $year = normalize_fiscal_year($_POST['year'] ?? date('Y'));
+        if ($year < 1912 || $year > 2100) {
+            redirect('/opening-balances');
+        }
+
+        Database::pdo()->prepare(
+            'DELETE FROM opening_balances
+             WHERE module = :module AND reference_id = 0 AND fiscal_year = :year'
+        )->execute(['module' => $module, 'year' => $year]);
+
+        AuditLog::write('opening_balance_delete', 'opening_balances', null, null, [
+            'module' => $module,
+            'year' => $year,
+        ]);
+
+        flash('success', self::LEDGER_LABELS[$module] . ' ' . $year . ' 年度期初餘額已刪除。');
+        redirect('/opening-balances?year=' . $year);
+    }
+
     /** 查詢某模組某年度的期初餘額;未設定回傳 null。 */
     private function openingBalance(string $module, int $referenceId, int $year): ?float
     {

@@ -28,6 +28,12 @@ ob_start();
                     <button class="btn" type="submit">作廢</button>
                 </form>
             <?php endif; ?>
+            <?php if (\App\Core\Permission::can('accounting.delete')): ?>
+                <form method="post" action="/accounting/vouchers/<?= e((string) $voucher['id']) ?>/delete" onsubmit="return confirm('確定要「刪除」整張會計傳票？將一併刪除所有分錄，並解除來源紀錄的傳票連結，刪除後無法復原。若僅需保留軌跡請改用「作廢」。');">
+                    <?= csrf_field() ?>
+                    <button class="btn danger" type="submit">刪除</button>
+                </form>
+            <?php endif; ?>
         </div>
     </div>
 
