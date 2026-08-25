@@ -201,6 +201,25 @@ final class PayrollController extends Controller
         $this->setStatus((int) $id, 'paid', date('Y-m-d'), '薪資紀錄已標記為已付款。');
     }
 
+    public function destroy(string $id): void
+    {
+        $this->requirePermission('payroll.delete');
+        $record = $this->findRecord((int) $id);
+
+        if (!empty($record['accounting_voucher_id'])) {
+            flash('error', '已建立會計傳票的薪資紀錄不可直接刪除，請先處理相關傳票。');
+            redirect('/payroll/' . $id);
+        }
+
+        Database::pdo()->prepare('DELETE FROM payroll_records WHERE id = :id')->execute(['id' => (int) $id]);
+
+        AuditLog::write('delete', 'payroll', 'payroll_records', (int) $id, [
+            'net_pay' => $record['net_pay'] ?? null,
+        ]);
+        flash('success', '薪資紀錄已刪除。');
+        redirect('/payroll');
+    }
+
     public function void(string $id): void
     {
         $this->setStatus((int) $id, 'voided', null, '薪資紀錄已作廢。');

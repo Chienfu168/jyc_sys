@@ -11,3 +11,4 @@ $router->post('/travel-expenses/{id}', [TravelExpenseController::class, 'update'
 $router->post('/travel-expenses/{id}/voucher', [TravelExpenseController::class, 'createVoucher']);
 $router->post('/travel-expenses/{id}/mark-paid', [TravelExpenseController::class, 'markPaid']);
 $router->post('/travel-expenses/{id}/void', [TravelExpenseController::class, 'void']);
+$router->post('/travel-expenses/{id}/delete', [TravelExpenseController::class, 'destroy']);

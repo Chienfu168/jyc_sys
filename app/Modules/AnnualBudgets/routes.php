@@ -13,3 +13,4 @@ $router->post('/annual-budgets/{id}', [AnnualBudgetController::class, 'update'])
 $router->post('/annual-budgets/{id}/submit', [AnnualBudgetController::class, 'submit']);
 $router->post('/annual-budgets/{id}/approve', [AnnualBudgetController::class, 'approve']);
 $router->post('/annual-budgets/{id}/reject', [AnnualBudgetController::class, 'reject']);
+$router->post('/annual-budgets/{id}/delete', [AnnualBudgetController::class, 'destroy']);

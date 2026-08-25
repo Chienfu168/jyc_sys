@@ -11,3 +11,4 @@ $router->post('/lecturer-expenses/{id}', [LecturerExpenseController::class, 'upd
 $router->post('/lecturer-expenses/{id}/voucher', [LecturerExpenseController::class, 'createVoucher']);
 $router->post('/lecturer-expenses/{id}/mark-paid', [LecturerExpenseController::class, 'markPaid']);
 $router->post('/lecturer-expenses/{id}/void', [LecturerExpenseController::class, 'void']);
+$router->post('/lecturer-expenses/{id}/delete', [LecturerExpenseController::class, 'destroy']);

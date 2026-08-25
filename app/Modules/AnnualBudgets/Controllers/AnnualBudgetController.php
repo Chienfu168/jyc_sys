@@ -296,6 +296,18 @@ final class AnnualBudgetController extends Controller
         redirect('/annual-budgets/' . $id);
     }
 
+    public function destroy(string $id): void
+    {
+        $this->requirePermission('annual_budgets.delete');
+        $budget = $this->findBudget((int) $id);
+
+        Database::pdo()->prepare('DELETE FROM annual_budgets WHERE id = :id')->execute(['id' => (int) $id]);
+
+        AuditLog::write('delete', 'annual_budgets', 'annual_budgets', (int) $id, ['title' => $budget['title'] ?? null]);
+        flash('success', '年度預算已刪除。');
+        redirect('/annual-budgets');
+    }
+
     private function validateBudget(string $path): void
     {
         if ($error = Validator::required($_POST, [

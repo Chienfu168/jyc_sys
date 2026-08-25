@@ -9,3 +9,4 @@ $router->get('/foundation-assets/{id}', [FoundationAssetController::class, 'show
 $router->get('/foundation-assets/{id}/edit', [FoundationAssetController::class, 'edit']);
 $router->post('/foundation-assets/{id}', [FoundationAssetController::class, 'update']);
 $router->post('/foundation-assets/{id}/dispose', [FoundationAssetController::class, 'dispose']);
+$router->post('/foundation-assets/{id}/delete', [FoundationAssetController::class, 'destroy']);

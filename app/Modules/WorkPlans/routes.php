@@ -11,3 +11,4 @@ $router->post('/work-plans/{id}', [WorkPlanController::class, 'update']);
 $router->post('/work-plans/{id}/submit', [WorkPlanController::class, 'submit']);
 $router->post('/work-plans/{id}/approve', [WorkPlanController::class, 'approve']);
 $router->post('/work-plans/{id}/reject', [WorkPlanController::class, 'reject']);
+$router->post('/work-plans/{id}/delete', [WorkPlanController::class, 'destroy']);

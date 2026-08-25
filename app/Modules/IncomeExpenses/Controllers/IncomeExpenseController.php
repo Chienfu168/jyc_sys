@@ -278,6 +278,26 @@ final class IncomeExpenseController extends Controller
         $this->review((int) $id, 'rejected', 'draft', '收支紀錄已退回。');
     }
 
+    public function destroy(string $id): void
+    {
+        $this->requirePermission('income_expenses.delete');
+        $record = $this->findRecord((int) $id);
+
+        if (!empty($record['accounting_voucher_id'])) {
+            flash('error', '已建立會計傳票的收支紀錄不可直接刪除，請先處理相關傳票。');
+            redirect('/income-expenses/' . $id);
+        }
+
+        Database::pdo()->prepare('DELETE FROM income_expense_records WHERE id = :id')->execute(['id' => (int) $id]);
+
+        AuditLog::write('delete', 'income_expenses', 'income_expense_records', (int) $id, [
+            'summary' => $record['summary'] ?? null,
+            'amount' => $record['amount'] ?? null,
+        ]);
+        flash('success', '收支紀錄已刪除。');
+        redirect('/income-expenses');
+    }
+
     public function void(string $id): void
     {
         $this->requirePermission('income_expenses.manage');

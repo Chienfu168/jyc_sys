@@ -163,6 +163,18 @@ final class FoundationAssetController extends Controller
         redirect('/foundation-assets/' . $id);
     }
 
+    public function destroy(string $id): void
+    {
+        $this->requirePermission('foundation_assets.delete');
+        $asset = $this->findAsset((int) $id);
+
+        Database::pdo()->prepare('DELETE FROM foundation_assets WHERE id = :id')->execute(['id' => (int) $id]);
+
+        AuditLog::write('delete', 'foundation_assets', 'foundation_assets', (int) $id, ['asset_name' => $asset['asset_name'] ?? null]);
+        flash('success', '財產已刪除。');
+        redirect('/foundation-assets');
+    }
+
     private function validateAsset(string $path): void
     {
         if ($error = Validator::required($_POST, [

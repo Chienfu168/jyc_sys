@@ -37,6 +37,12 @@ ob_start();
                     </form>
                 <?php endif; ?>
             <?php endif; ?>
+            <?php if (\App\Core\Permission::can('travel_expenses.delete')): ?>
+                <form method="post" action="/travel-expenses/<?= e((string) $expense['id']) ?>/delete" onsubmit="return confirm('確定要刪除此出差費用？此操作無法復原（已建立會計傳票者無法刪除）。');">
+                    <?= csrf_field() ?>
+                    <button class="btn danger" type="submit">刪除</button>
+                </form>
+            <?php endif; ?>
         </div>
     </div>
 

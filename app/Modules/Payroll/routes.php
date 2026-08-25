@@ -12,3 +12,4 @@ $router->post('/payroll/{id}/voucher', [PayrollController::class, 'createVoucher
 $router->post('/payroll/{id}/confirm', [PayrollController::class, 'confirm']);
 $router->post('/payroll/{id}/mark-paid', [PayrollController::class, 'markPaid']);
 $router->post('/payroll/{id}/void', [PayrollController::class, 'void']);
+$router->post('/payroll/{id}/delete', [PayrollController::class, 'destroy']);

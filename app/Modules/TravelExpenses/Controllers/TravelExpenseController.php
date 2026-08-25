@@ -207,6 +207,25 @@ final class TravelExpenseController extends Controller
         redirect('/travel-expenses/' . $id);
     }
 
+    public function destroy(string $id): void
+    {
+        $this->requirePermission('travel_expenses.delete');
+        $expense = $this->findExpense((int) $id);
+
+        if (!empty($expense['accounting_voucher_id'])) {
+            flash('error', '已建立會計傳票的出差費用不可直接刪除，請先處理相關傳票。');
+            redirect('/travel-expenses/' . $id);
+        }
+
+        Database::pdo()->prepare('DELETE FROM travel_expenses WHERE id = :id')->execute(['id' => (int) $id]);
+
+        AuditLog::write('delete', 'travel_expenses', 'travel_expenses', (int) $id, [
+            'amount' => $expense['amount'] ?? null,
+        ]);
+        flash('success', '出差費用已刪除。');
+        redirect('/travel-expenses');
+    }
+
     public function void(string $id): void
     {
         $this->requirePermission('travel_expenses.manage');

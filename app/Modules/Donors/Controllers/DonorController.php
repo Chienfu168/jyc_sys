@@ -184,6 +184,25 @@ final class DonorController extends Controller
         redirect('/donors/' . $id);
     }
 
+    public function destroy(string $id): void
+    {
+        $this->requirePermission('donors.delete');
+        $donor = $this->findDonor((int) $id);
+
+        $stmt = Database::pdo()->prepare('SELECT COUNT(*) FROM donations WHERE donor_id = :id');
+        $stmt->execute(['id' => (int) $id]);
+        if ((int) $stmt->fetchColumn() > 0) {
+            flash('error', '此捐款人尚有捐款紀錄，無法刪除；可改為封存。');
+            redirect('/donors/' . $id);
+        }
+
+        Database::pdo()->prepare('DELETE FROM donors WHERE id = :id')->execute(['id' => (int) $id]);
+
+        AuditLog::write('delete', 'donors', 'donors', (int) $id, ['name' => $donor['name'] ?? null]);
+        flash('success', '捐款人已刪除。');
+        redirect('/donors');
+    }
+
     private function validateDonor(string $path): void
     {
         if ($error = Validator::required($_POST, [
