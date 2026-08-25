@@ -8,51 +8,58 @@ use App\Domain\Donations\AmountInWords;
 use PHPUnit\Framework\TestCase;
 
 /**
- * 收據國字大寫分位格式的測試。
+ * 收據國字大寫金額的測試。
  */
 final class AmountInWordsTest extends TestCase
 {
-    public function test_six_million_matches_foundation_receipt(): void
+    public function test_three_million(): void
     {
-        // 基金會實體收據:6,000,000 → 零仟陸佰零拾零萬零仟零佰零拾零元。
-        $this->assertSame('零仟陸佰零拾零萬零仟零佰零拾零元', AmountInWords::text(6000000));
+        $this->assertSame('參佰萬', AmountInWords::formal(3000000));
     }
 
-    public function test_pads_to_eight_positions_for_small_amounts(): void
+    public function test_leading_zero_in_group_gets_zero(): void
     {
-        $grid = AmountInWords::grid(1234);
-        $this->assertCount(8, $grid);
-        // 高位補零,低四位為 壹仟 貳佰 參拾 肆元。
-        $this->assertSame('壹', $grid[4]['digit']);
-        $this->assertSame('仟', $grid[4]['unit']);
-        $this->assertSame('肆', $grid[7]['digit']);
-        $this->assertSame('元', $grid[7]['unit']);
+        // 1,050,000 → 壹佰零伍萬(萬級 105,個級 0)。
+        $this->assertSame('壹佰零伍萬', AmountInWords::formal(1050000));
     }
 
-    public function test_units_follow_fixed_positions(): void
+    public function test_zero_between_groups(): void
     {
-        // 由高位到低位單位固定:仟 佰 拾 萬 仟 佰 拾 元。
-        $units = array_column(AmountInWords::grid(0), 'unit');
-        $this->assertSame(['仟', '佰', '拾', '萬', '仟', '佰', '拾', '元'], $units);
+        // 10,001 → 壹萬零壹(跨組零)。
+        $this->assertSame('壹萬零壹', AmountInWords::formal(10001));
     }
 
-    public function test_zero_is_all_zero_digits(): void
+    public function test_internal_zero_within_group(): void
     {
-        $this->assertSame('零仟零佰零拾零萬零仟零佰零拾零元', AmountInWords::text(0));
-    }
-
-    public function test_extends_beyond_ten_million_into_yi(): void
-    {
-        // 1 億(100,000,000)需 9 位,最高位單位為 億。
-        $grid = AmountInWords::grid(100000000);
-        $this->assertCount(9, $grid);
-        $this->assertSame('壹', $grid[0]['digit']);
-        $this->assertSame('億', $grid[0]['unit']);
+        // 1,005 → 壹仟零伍(組內零)。
+        $this->assertSame('壹仟零伍', AmountInWords::formal(1005));
     }
 
     public function test_full_number_maps_each_digit(): void
     {
-        // 12,345,678 → 壹仟貳佰參拾肆萬伍仟陸佰柒拾捌元。
-        $this->assertSame('壹仟貳佰參拾肆萬伍仟陸佰柒拾捌元', AmountInWords::text(12345678));
+        $this->assertSame('壹仟貳佰參拾肆萬伍仟陸佰柒拾捌', AmountInWords::formal(12345678));
+    }
+
+    public function test_hundred_million(): void
+    {
+        $this->assertSame('壹億', AmountInWords::formal(100000000));
+    }
+
+    public function test_hundred_million_with_gap(): void
+    {
+        // 100,050,000 → 壹億零伍萬。
+        $this->assertSame('壹億零伍萬', AmountInWords::formal(100050000));
+    }
+
+    public function test_zero_and_negative(): void
+    {
+        $this->assertSame('零', AmountInWords::formal(0));
+        $this->assertSame('零', AmountInWords::formal(-100));
+    }
+
+    public function test_text_appends_yuan(): void
+    {
+        $this->assertSame('參佰萬元整', AmountInWords::text(3000000));
+        $this->assertSame('零元整', AmountInWords::text(0));
     }
 }

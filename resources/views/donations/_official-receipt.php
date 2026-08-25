@@ -12,9 +12,11 @@ if ($rcDonor === '') {
 }
 $rcTaxId = trim((string) ($donation['tax_id'] ?? ''));
 $rcAmount = (int) round((float) ($donation['amount'] ?? 0));
-$rcGrid = \App\Domain\Donations\AmountInWords::grid($rcAmount);
+$rcAmountCn = \App\Domain\Donations\AmountInWords::formal($rcAmount);
 $rcChairman = trim((string) ($rcProfile['representative'] ?? ''));
+$rcRegistrationNo = trim((string) ($rcProfile['registration_no'] ?? ''));
 $rcApprovalDoc = trim((string) ($rcProfile['approval_doc_no'] ?? ''));
+$rcApprovalDate = trim((string) ($rcProfile['approval_date'] ?? ''));
 $rcProject = trim((string) ($donation['project_name'] ?? ''));
 $rcInKind = ($donation['donation_kind'] ?? 'cash') === 'in_kind';
 $rcInKindItem = trim((string) ($donation['in_kind_item'] ?? '')) ?: ($rcProject !== '' && $rcProject !== '一般捐款' ? $rcProject : '');
@@ -40,9 +42,7 @@ $rcInKindItem = trim((string) ($donation['in_kind_item'] ?? '')) ?: ($rcProject 
         <div class="rc-row">
             <span class="rc-check"><?= $rcInKind ? '□' : '■' ?></span>樂捐款：
             <?php if (!$rcInKind): ?>
-                <span class="rc-amount-cn">新台幣
-                    <?php foreach ($rcGrid as $cell): ?><span class="rc-cell"><span class="rc-d"><?= e($cell['digit']) ?></span><span class="rc-u"><?= e($cell['unit']) ?></span></span><?php endforeach; ?>整
-                </span>
+                <span class="rc-amount-cn">新台幣 <?= e($rcAmountCn) ?> 元整</span>
             <?php endif; ?>
         </div>
         <?php if (!$rcInKind): ?>
@@ -76,7 +76,22 @@ $rcInKindItem = trim((string) ($donation['in_kind_item'] ?? '')) ?: ($rcProject 
         <?php if (!empty($rcProfile['mailing_address']) && $rcProfile['mailing_address'] !== ($rcProfile['address'] ?? '')): ?>
             <div>通訊地址：<?= e($rcProfile['mailing_address']) ?></div>
         <?php endif; ?>
-        <div>統一編號：<?= e($rcProfile['tax_id'] ?? '') ?><?= $rcApprovalDoc !== '' ? '　' . e($rcApprovalDoc) : '' ?></div>
+        <div>統一編號：<?= e($rcProfile['tax_id'] ?? '') ?></div>
+        <?php
+        $rcRegParts = [];
+        if ($rcRegistrationNo !== '') {
+            $rcRegParts[] = '登記字號：' . e($rcRegistrationNo);
+        }
+        if ($rcApprovalDoc !== '') {
+            $rcRegParts[] = '核准文號：' . e($rcApprovalDoc);
+        }
+        if ($rcApprovalDate !== '') {
+            $rcRegParts[] = '核准日期：' . e(roc_date($rcApprovalDate));
+        }
+        ?>
+        <?php if ($rcRegParts !== []): ?>
+            <div><?= implode('　', $rcRegParts) ?></div>
+        <?php endif; ?>
         <?php if (!empty($rcProfile['website']) || !empty($rcProfile['email'])): ?>
             <div>
                 <?php if (!empty($rcProfile['website'])): ?>網址：<?= e($rcProfile['website']) ?><?php endif; ?>
