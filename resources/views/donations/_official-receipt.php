@@ -25,7 +25,8 @@ $rcProject = trim((string) ($donation['project_name'] ?? ''));
 
     <div class="rc-datno">
         <span class="rc-date"><?= e(roc_date($donation['donated_at'] ?? null)) ?></span>
-        <span class="rc-no">No.<?= e((string) ($donation['receipt_no'] ?? '')) ?></span>
+        <?php $rcNo = trim((string) ($donation['receipt_no'] ?? '')) ?: trim((string) ($donation['donation_no'] ?? '')); ?>
+        <span class="rc-no">No.<?= e($rcNo) ?></span>
     </div>
 
     <p class="rc-recital">
