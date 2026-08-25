@@ -22,8 +22,20 @@
         <input type="date" name="donated_at" value="<?= e((string) old('donated_at', $donation['donated_at'] ?? date('Y-m-d'))) ?>" required>
     </label>
     <label>
-        <span>金額</span>
+        <span>捐贈類別</span>
+        <?php $donationKind = old('donation_kind', $donation['donation_kind'] ?? 'cash'); ?>
+        <select name="donation_kind" id="donation-kind">
+            <option value="cash" <?= $donationKind === 'cash' ? 'selected' : '' ?>>樂捐款（現金）</option>
+            <option value="in_kind" <?= $donationKind === 'in_kind' ? 'selected' : '' ?>>樂捐實物</option>
+        </select>
+    </label>
+    <label>
+        <span id="amount-label"><?= $donationKind === 'in_kind' ? '估計價值' : '金額' ?></span>
         <input type="number" step="1" min="1" name="amount" value="<?= e((string) old('amount', $donation['amount'] ?? '')) ?>" required>
+    </label>
+    <label class="span-2 <?= $donationKind === 'in_kind' ? '' : 'hidden' ?>" data-in-kind-field>
+        <span>實物名稱／說明</span>
+        <input type="text" name="in_kind_item" value="<?= e((string) old('in_kind_item', $donation['in_kind_item'] ?? '')) ?>" placeholder="例：白米 100 公斤、電腦 2 台">
     </label>
     <label>
         <span>捐款方式</span>
@@ -81,5 +93,19 @@
     }
     status?.addEventListener('change', updateReceiptFields);
     updateReceiptFields();
+
+    const kind = document.getElementById('donation-kind');
+    const amountLabel = document.getElementById('amount-label');
+    function updateKindFields() {
+        const inKind = kind?.value === 'in_kind';
+        document.querySelectorAll('[data-in-kind-field]').forEach((field) => {
+            field.classList.toggle('hidden', !inKind);
+        });
+        if (amountLabel) {
+            amountLabel.textContent = inKind ? '估計價值' : '金額';
+        }
+    }
+    kind?.addEventListener('change', updateKindFields);
+    updateKindFields();
 })();
 </script>

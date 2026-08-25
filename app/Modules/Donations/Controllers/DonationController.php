@@ -208,6 +208,8 @@ final class DonationController extends Controller
                 'donor_id' => (int) ($_GET['donor_id'] ?? 0),
                 'donated_at' => date('Y-m-d'),
                 'amount' => '',
+                'donation_kind' => 'cash',
+                'in_kind_item' => '',
                 'payment_method' => '',
                 'receipt_no' => '',
                 'receipt_status' => 'pending',
@@ -232,9 +234,9 @@ final class DonationController extends Controller
             $donationNo = $this->nextDonationNo($pdo, $payload['donated_at']);
             $pdo->prepare(
                 'INSERT INTO donations
-                 (donor_id, donated_at, donation_no, amount, payment_method, receipt_no, receipt_status, project_name, notes, created_by, created_at, updated_at)
+                 (donor_id, donated_at, donation_no, amount, donation_kind, in_kind_item, payment_method, receipt_no, receipt_status, project_name, notes, created_by, created_at, updated_at)
                  VALUES
-                 (:donor_id, :donated_at, :donation_no, :amount, :payment_method, :receipt_no, :receipt_status, :project_name, :notes, :created_by, :created_at, :updated_at)'
+                 (:donor_id, :donated_at, :donation_no, :amount, :donation_kind, :in_kind_item, :payment_method, :receipt_no, :receipt_status, :project_name, :notes, :created_by, :created_at, :updated_at)'
             )->execute($payload + [
                 'donation_no' => $donationNo,
                 'created_by' => auth()->user()['id'] ?? null,
@@ -632,6 +634,8 @@ final class DonationController extends Controller
              SET donor_id = :donor_id,
                  donated_at = :donated_at,
                  amount = :amount,
+                 donation_kind = :donation_kind,
+                 in_kind_item = :in_kind_item,
                  payment_method = :payment_method,
                  receipt_no = :receipt_no,
                  receipt_status = :receipt_status,
@@ -850,6 +854,8 @@ final class DonationController extends Controller
             'donor_id' => (int) $_POST['donor_id'],
             'donated_at' => (string) $_POST['donated_at'],
             'amount' => $this->amountValue(),
+            'donation_kind' => ($_POST['donation_kind'] ?? '') === 'in_kind' ? 'in_kind' : 'cash',
+            'in_kind_item' => trim((string) ($_POST['in_kind_item'] ?? '')),
             'payment_method' => trim((string) $_POST['payment_method']),
             'receipt_no' => trim((string) ($_POST['receipt_no'] ?? '')),
             'receipt_status' => (string) ($_POST['receipt_status'] ?? 'pending'),

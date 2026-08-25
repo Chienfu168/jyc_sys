@@ -1389,14 +1389,14 @@ textarea:focus {
 
 .official-receipt .rc-thanks {
     font-size: 16px;
-    margin: 12px 0 18px;
+    margin: 14px 0 22px;
 }
 
 .official-receipt .rc-stamps {
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
-    gap: 20px;
+    gap: 24px;
     margin-top: 8px;
 }
 
@@ -1406,14 +1406,15 @@ textarea:focus {
 
 .official-receipt .rc-stamp-label {
     display: block;
-    font-size: 14px;
-    margin-bottom: 6px;
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 8px;
 }
 
 .official-receipt .rc-stamp-box {
     display: block;
-    width: 3.4cm;
-    height: 3.4cm;
+    width: 4.8cm;
+    height: 4.8cm;
     border: 1px dashed #999999;
     border-radius: 4px;
 }

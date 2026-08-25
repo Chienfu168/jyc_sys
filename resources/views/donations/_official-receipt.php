@@ -16,6 +16,8 @@ $rcGrid = \App\Domain\Donations\AmountInWords::grid($rcAmount);
 $rcChairman = trim((string) ($rcProfile['representative'] ?? ''));
 $rcApprovalDoc = trim((string) ($rcProfile['approval_doc_no'] ?? ''));
 $rcProject = trim((string) ($donation['project_name'] ?? ''));
+$rcInKind = ($donation['donation_kind'] ?? 'cash') === 'in_kind';
+$rcInKindItem = trim((string) ($donation['in_kind_item'] ?? '')) ?: ($rcProject !== '' && $rcProject !== '一般捐款' ? $rcProject : '');
 ?>
 <article class="official-receipt">
     <header class="rc-head">
@@ -36,16 +38,23 @@ $rcProject = trim((string) ($donation['project_name'] ?? ''));
 
     <div class="rc-body">
         <div class="rc-row">
-            <span class="rc-check">■</span>樂捐款：
-            <span class="rc-amount-cn">新台幣
-                <?php foreach ($rcGrid as $cell): ?><span class="rc-cell"><span class="rc-d"><?= e($cell['digit']) ?></span><span class="rc-u"><?= e($cell['unit']) ?></span></span><?php endforeach; ?>整
-            </span>
+            <span class="rc-check"><?= $rcInKind ? '□' : '■' ?></span>樂捐款：
+            <?php if (!$rcInKind): ?>
+                <span class="rc-amount-cn">新台幣
+                    <?php foreach ($rcGrid as $cell): ?><span class="rc-cell"><span class="rc-d"><?= e($cell['digit']) ?></span><span class="rc-u"><?= e($cell['unit']) ?></span></span><?php endforeach; ?>整
+                </span>
+            <?php endif; ?>
         </div>
-        <div class="rc-row rc-nt">NT：<?= e(number_format($rcAmount)) ?> 元整</div>
+        <?php if (!$rcInKind): ?>
+            <div class="rc-row rc-nt">NT：<?= e(number_format($rcAmount)) ?> 元整</div>
+        <?php endif; ?>
         <div class="rc-row">
-            <span class="rc-check">□</span>樂捐實物：
-            <span class="rc-fill rc-fill-long"><?= e($rcProject !== '' && $rcProject !== '一般捐款' ? $rcProject : '') ?></span>
+            <span class="rc-check"><?= $rcInKind ? '■' : '□' ?></span>樂捐實物：
+            <span class="rc-fill rc-fill-long"><?= e($rcInKind ? $rcInKindItem : '') ?></span>
         </div>
+        <?php if ($rcInKind && $rcAmount > 0): ?>
+            <div class="rc-row rc-nt">估計價值 NT：<?= e(number_format($rcAmount)) ?> 元整</div>
+        <?php endif; ?>
     </div>
 
     <p class="rc-thanks">上列經如數收訖，承蒙台端關懷贊助，特此敬致謝忱！</p>
