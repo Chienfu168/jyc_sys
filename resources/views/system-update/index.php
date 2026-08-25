@@ -27,6 +27,7 @@ ob_start();
         <p class="muted-text">依序檢查 GitHub Release、下載更新包，已下載後即可套用更新。</p>
     </div>
     <div class="ops-actions">
+        <a class="btn" href="/system-update/database">資料庫更新與檢查</a>
         <form method="post" action="/system-update/check">
             <?= csrf_field() ?>
             <button class="btn primary" type="submit">檢查更新</button>

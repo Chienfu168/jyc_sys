@@ -5,6 +5,7 @@ namespace App\Modules\SystemUpdate\Controllers;
 use App\Core\AuditLog;
 use App\Core\Controller;
 use App\Modules\SystemUpdate\Services\GithubReleaseService;
+use App\Modules\SystemUpdate\Services\MigrationService;
 use App\Modules\SystemUpdate\Services\UpdateService;
 use App\Modules\SystemUpdate\Services\UpdateLogService;
 use Throwable;
@@ -25,6 +26,49 @@ final class SystemUpdateController extends Controller
             'logs' => (new UpdateLogService())->latest(),
             'latestPackage' => (new UpdateLogService())->latestSuccessfulDownload(),
         ]);
+    }
+
+    public function database(): void
+    {
+        $this->requirePermission('system_updates.manage');
+
+        $status = ['applied' => [], 'pending' => [], 'total' => 0, 'appliedCount' => 0];
+        $error = null;
+        try {
+            $status = (new MigrationService())->status();
+        } catch (Throwable $e) {
+            $error = $e->getMessage();
+        }
+
+        $this->render('system-update.database', [
+            'title' => '資料庫更新與檢查',
+            'section' => '系統設定',
+            'active' => 'system-update-db',
+            'version' => config('app.version', '0.1.0'),
+            'status' => $status,
+            'error' => $error,
+        ]);
+    }
+
+    public function migrate(): void
+    {
+        $this->requirePermission('system_updates.manage');
+
+        try {
+            $executed = (new MigrationService())->applyPending();
+            (new UpdateLogService())->create('migrate', 'success', [
+                'message' => $executed ? '套用 ' . count($executed) . ' 個 migration' : '沒有待套用的 migration',
+            ]);
+            AuditLog::write('migrate', 'system_update', 'schema_migrations', null, ['executed' => $executed]);
+            flash('success', $executed
+                ? '已套用 ' . count($executed) . ' 個資料庫更新：' . implode('、', $executed)
+                : '資料庫已是最新，沒有待套用的更新。');
+        } catch (Throwable $e) {
+            (new UpdateLogService())->create('migrate', 'failed', ['message' => $e->getMessage()]);
+            flash('error', '資料庫更新失敗：' . $e->getMessage());
+        }
+
+        redirect('/system-update/database');
     }
 
     public function check(): void

@@ -41,6 +41,7 @@ PHP + MySQL 的內部管理系統，目標是部署在一般租用主機 / cPane
 - 建構流程工具：環境檢查、PHP lint、發布前檢查
 - 主要功能頁支援列印，並可透過瀏覽器列印視窗另存 PDF
 - GitHub Release 線上更新
+- 資料庫更新與檢查：後台可檢視 migration 套用狀態（已套用／待套用清單），並一鍵套用尚未執行的資料庫更新（不重複執行、建議先備份）
 - cPanel 安裝程序 `install.php`，完成安裝後以 `storage/installed.lock` 鎖定
 
 ## 環境需求
@@ -68,7 +69,7 @@ https://你的網域/install.php
 `.env` 主要設定：
 
 ```env
-APP_VERSION=0.6.66
+APP_VERSION=0.6.67
 GITHUB_REPO=Chienfu168/jyc_sys
 GITHUB_TOKEN=
 UPDATE_CHANNEL=stable
