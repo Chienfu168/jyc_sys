@@ -52,6 +52,7 @@ ob_start();
 
     <table class="meta-table">
         <tbody>
+        <tr><th>捐款編號</th><td colspan="3" class="mono"><?= e($donation['donation_no'] ?? '') ?: '-' ?></td></tr>
         <tr><th>捐款日期</th><td><?= e(roc_date($donation['donated_at'])) ?></td><th>金額</th><td><?= e(donation_show_money($donation['amount'])) ?></td></tr>
         <tr><th>捐款人</th><td><?= e($donation['donor_name']) ?></td><th>捐款方式</th><td><?= e($donation['payment_method']) ?></td></tr>
         <tr><th>收據抬頭</th><td><?= e($donation['receipt_title'] ?: $donation['donor_name']) ?></td><th>統編 / 身分證字號</th><td><?= e($donation['tax_id'] ?: '-') ?></td></tr>

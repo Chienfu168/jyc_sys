@@ -92,6 +92,7 @@ ob_start();
         <table>
             <thead>
             <tr>
+                <th>捐款編號</th>
                 <th>日期</th>
                 <th>捐款人</th>
                 <th>方式</th>
@@ -105,6 +106,7 @@ ob_start();
             <tbody>
             <?php foreach ($donations as $donation): ?>
                 <tr>
+                    <td class="mono"><?= e($donation['donation_no'] ?? '') ?: '-' ?></td>
                     <td><?= e(roc_date($donation['donated_at'])) ?></td>
                     <td><a class="text-link" href="/donors/<?= e((string) $donation['donor_id']) ?>"><?= e($donation['donor_name']) ?></a></td>
                     <td><?= e($donation['payment_method']) ?></td>
@@ -144,7 +146,7 @@ ob_start();
                 </tr>
             <?php endforeach; ?>
             <?php if (!$donations): ?>
-                <tr><td colspan="8" class="empty">本年度尚無捐款紀錄。</td></tr>
+                <tr><td colspan="9" class="empty">本年度尚無捐款紀錄。</td></tr>
             <?php endif; ?>
             </tbody>
         </table>
