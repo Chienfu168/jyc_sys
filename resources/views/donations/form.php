@@ -13,6 +13,11 @@
         </select>
     </label>
     <label>
+        <span>捐款編號</span>
+        <input type="text" value="<?= e((string) ($donation['donation_no'] ?? '')) ?>" placeholder="儲存後依日期自動產生" readonly>
+        <small class="muted-text">格式 YYYYMMDD-當日流水號，由系統自動產生。</small>
+    </label>
+    <label>
         <span>捐款日期</span>
         <input type="date" name="donated_at" value="<?= e((string) old('donated_at', $donation['donated_at'] ?? date('Y-m-d'))) ?>" required>
     </label>

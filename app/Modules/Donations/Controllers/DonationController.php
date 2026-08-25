@@ -8,6 +8,7 @@ use App\Core\Database;
 use App\Core\Permission;
 use App\Core\Validator;
 use App\Domain\Donations\DonationListSummary;
+use App\Domain\Donations\DonationNumber;
 use App\Domain\Donations\ReceiptNumber;
 use PDO;
 
@@ -113,6 +114,7 @@ final class DonationController extends Controller
         }
 
         fputcsv($output, [
+            '捐款編號',
             '捐款日期',
             '捐款人',
             '捐款人類型',
@@ -134,6 +136,7 @@ final class DonationController extends Controller
 
         foreach ($donations as $donation) {
             fputcsv($output, [
+                $donation['donation_no'] ?? '',
                 $donation['donated_at'],
                 $donation['donor_name'],
                 $this->donorTypeLabel((string) $donation['donor_type']),
@@ -221,18 +224,32 @@ final class DonationController extends Controller
         $this->requirePermission('donations.manage');
         $this->validateDonation('/donations/create');
 
-        Database::pdo()->prepare(
-            'INSERT INTO donations
-             (donor_id, donated_at, amount, payment_method, receipt_no, receipt_status, project_name, notes, created_by, created_at, updated_at)
-             VALUES
-             (:donor_id, :donated_at, :amount, :payment_method, :receipt_no, :receipt_status, :project_name, :notes, :created_by, :created_at, :updated_at)'
-        )->execute($this->payload() + [
-            'created_by' => auth()->user()['id'] ?? null,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        $pdo = Database::pdo();
+        $payload = $this->payload();
 
-        $id = (int) Database::pdo()->lastInsertId();
+        $pdo->beginTransaction();
+        try {
+            $donationNo = $this->nextDonationNo($pdo, $payload['donated_at']);
+            $pdo->prepare(
+                'INSERT INTO donations
+                 (donor_id, donated_at, donation_no, amount, payment_method, receipt_no, receipt_status, project_name, notes, created_by, created_at, updated_at)
+                 VALUES
+                 (:donor_id, :donated_at, :donation_no, :amount, :payment_method, :receipt_no, :receipt_status, :project_name, :notes, :created_by, :created_at, :updated_at)'
+            )->execute($payload + [
+                'donation_no' => $donationNo,
+                'created_by' => auth()->user()['id'] ?? null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            $id = (int) $pdo->lastInsertId();
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            $this->backWithInput('/donations/create', $_POST, '捐款紀錄建立失敗：' . $e->getMessage());
+        }
+
         AuditLog::write('create', 'donations', 'donations', $id);
         flash('success', '捐款紀錄已建立。');
         redirect('/donations/' . $id);
@@ -1264,6 +1281,27 @@ final class DonationController extends Controller
         $stmt->execute(['prefix' => $prefix . '%']);
 
         return $prefix . str_pad((string) ((int) $stmt->fetchColumn() + 1), 3, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * 依捐款日期產生下一個捐款編號「YYYYMMDD-NNN」;以當日既有編號的最大序號 +1,
+     * 遇唯一鍵衝突時往後遞增,避免重複。
+     */
+    private function nextDonationNo(PDO $pdo, string $date): string
+    {
+        $prefix = DonationNumber::prefix($date);
+        $stmt = $pdo->prepare('SELECT donation_no FROM donations WHERE donation_no LIKE :prefix');
+        $stmt->execute(['prefix' => $prefix . '%']);
+        $current = DonationNumber::maxSequence($stmt->fetchAll(PDO::FETCH_COLUMN), $date);
+
+        do {
+            $current++;
+            $donationNo = DonationNumber::format($date, $current);
+            $check = $pdo->prepare('SELECT 1 FROM donations WHERE donation_no = :donation_no LIMIT 1');
+            $check->execute(['donation_no' => $donationNo]);
+        } while ($check->fetchColumn());
+
+        return $donationNo;
     }
 
     private function nextReceiptNo(PDO $pdo, string $date): string
