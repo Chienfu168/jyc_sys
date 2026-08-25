@@ -56,8 +56,10 @@ ob_start();
     <table class="meta-table">
         <tbody>
         <tr><th>捐款編號</th><td colspan="3" class="mono"><?= e($donation['donation_no'] ?? '') ?: '-' ?></td></tr>
-        <tr><th>捐款日期</th><td><?= e(roc_date($donation['donated_at'])) ?></td><th>金額</th><td><?= e(donation_show_money($donation['amount'])) ?></td></tr>
-        <tr><th>捐款人</th><td><?= e($donation['donor_name']) ?></td><th>捐款方式</th><td><?= e($donation['payment_method']) ?></td></tr>
+        <?php $isInKind = ($donation['donation_kind'] ?? 'cash') === 'in_kind'; ?>
+        <tr><th>捐款日期</th><td><?= e(roc_date($donation['donated_at'])) ?></td><th><?= $isInKind ? '估計價值' : '金額' ?></th><td><?= e(donation_show_money($donation['amount'])) ?></td></tr>
+        <tr><th>捐贈類別</th><td><?= $isInKind ? '樂捐實物' : '樂捐款' ?></td><th><?= $isInKind ? '實物名稱' : '捐款方式' ?></th><td><?= e($isInKind ? ($donation['in_kind_item'] ?? '') : $donation['payment_method']) ?></td></tr>
+        <tr><th>捐款人</th><td colspan="3"><?= e($donation['donor_name']) ?></td></tr>
         <tr><th>收據抬頭</th><td><?= e($donation['receipt_title'] ?: $donation['donor_name']) ?></td><th>統編 / 身分證字號</th><td><?= e($donation['tax_id'] ?: '-') ?></td></tr>
         <tr><th>收據狀態</th><td><?= e(donation_show_receipt_label($donation['receipt_status'])) ?></td><th>收據號碼</th><td><?= e($donation['receipt_no'] ?: '-') ?></td></tr>
         <tr><th>指定專案 / 用途</th><td colspan="3"><?= e($donation['project_name'] ?: '-') ?></td></tr>
