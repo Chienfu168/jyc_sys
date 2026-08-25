@@ -208,3 +208,65 @@ function foundation_name(): string
 {
     return foundation_profile()['foundation_name'] ?: config('app.name');
 }
+
+/**
+ * 依模組屬性回傳列印文件下方的簽核鏈。
+ *
+ * 每個模組的核章關係不同:人事類經人事主管、財務類經會計、採購類經總務等,
+ * 一律以「承辦／經手 → 單位主管 → 執行長 → 董事長」的層級呈現。
+ * 已於基金會基本資料設定者(執行長、董事長、承辦)自動帶入姓名,
+ * 其餘職務留白供實體簽章。$context 通常帶入頁面的 $active 模組鍵。
+ *
+ * @return array<int, array{label: string, name: string}>
+ */
+function signature_chain(?string $context = null): array
+{
+    $profile = foundation_profile();
+    $exec = (string) ($profile['executive_director'] ?? '');
+    $rep = (string) ($profile['representative'] ?? '');
+    $undertaker = (string) ($profile['undertaker'] ?? '');
+
+    $finance = [['製表', ''], ['會計', ''], ['執行長', $exec], ['董事長', $rep]];
+    $affairs = [['承辦', $undertaker], ['單位主管', ''], ['執行長', $exec], ['董事長', $rep]];
+
+    $chains = [
+        // 人事差勤:經人事主管。
+        'leave-requests' => [['申請人', ''], ['人事主管', ''], ['執行長', $exec], ['董事長', $rep]],
+        'personnel' => [['承辦', $undertaker], ['人事主管', ''], ['執行長', $exec], ['董事長', $rep]],
+        'volunteers' => [['承辦', $undertaker], ['人事主管', ''], ['執行長', $exec], ['董事長', $rep]],
+        'payroll' => [['製表', ''], ['會計', ''], ['執行長', $exec], ['董事長', $rep]],
+        // 採購:經總務。
+        'purchase-requests' => [['申請人', ''], ['總務', ''], ['執行長', $exec], ['董事長', $rep]],
+        // 支出核銷:經會計。
+        'travel-expenses' => [['申請人', ''], ['會計', ''], ['執行長', $exec], ['董事長', $rep]],
+        'lecturer-expenses' => [['承辦', $undertaker], ['會計', ''], ['執行長', $exec], ['董事長', $rep]],
+        'income-expenses' => $finance,
+        'petty-cash' => [['經手人', ''], ['會計', ''], ['執行長', $exec], ['董事長', $rep]],
+        // 財務會計與決算報表:經會計。
+        'accounting' => $finance,
+        'reconciliation' => [['對帳', ''], ['會計', ''], ['執行長', $exec], ['董事長', $rep]],
+        'annual-budgets' => [['編製', ''], ['會計', ''], ['執行長', $exec], ['董事長', $rep]],
+        'operating-statements' => $finance,
+        'balance-sheets' => $finance,
+        'cash-flow-statements' => $finance,
+        'net-asset-statements' => $finance,
+        // 財產:經保管人與會計。
+        'foundation-assets' => [['保管人', ''], ['會計', ''], ['執行長', $exec], ['董事長', $rep]],
+        // 捐款:經經手人與會計。
+        'donations' => [['經手人', ''], ['會計', ''], ['執行長', $exec], ['董事長', $rep]],
+        // 業務推動:經單位主管。
+        'work-plans' => $affairs,
+        'activities' => $affairs,
+        'projects' => $affairs,
+        'calendar' => $affairs,
+        'lecturers' => $affairs,
+        'board-meetings' => $affairs,
+    ];
+
+    $chain = $chains[$context] ?? [['承辦', $undertaker], ['會計人員', ''], ['執行長', $exec], ['董事長', $rep]];
+
+    return array_map(
+        static fn (array $role): array => ['label' => $role[0], 'name' => $role[1]],
+        $chain
+    );
+}

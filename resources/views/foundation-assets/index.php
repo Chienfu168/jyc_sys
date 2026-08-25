@@ -89,6 +89,7 @@ ob_start();
         </table>
     </div>
 
+    <?php $signatureContext = 'foundation-assets'; ?>
     <?php require base_path('resources/views/shared/signatures.php'); ?>
 </section>
 <?php
