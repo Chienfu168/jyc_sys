@@ -1282,7 +1282,7 @@ textarea:focus {
 .official-receipt {
     max-width: 18cm;
     margin: 0 auto;
-    padding: 8mm 10mm;
+    padding: 16mm 10mm 10mm;
     color: #000000;
     background: #ffffff;
     font-family: "PMingLiU", "MingLiU", "Noto Serif TC", "Songti TC", serif;
@@ -1291,6 +1291,7 @@ textarea:focus {
 
 .official-receipt .rc-head {
     text-align: center;
+    margin-bottom: 10px;
 }
 
 .official-receipt .rc-org {
@@ -1362,24 +1363,8 @@ textarea:focus {
 
 .official-receipt .rc-amount-cn {
     font-size: 17px;
-}
-
-.official-receipt .rc-cell {
-    display: inline-block;
-    text-align: center;
-    margin: 0 1px;
-}
-
-.official-receipt .rc-cell .rc-d {
-    display: inline-block;
-    min-width: 20px;
     font-weight: 700;
-}
-
-.official-receipt .rc-cell .rc-u {
-    font-size: 11px;
-    color: #333333;
-    margin-left: 1px;
+    letter-spacing: 1px;
 }
 
 .official-receipt .rc-nt {
@@ -2726,7 +2711,7 @@ textarea:focus {
     .official-receipt {
         max-width: none;
         margin: 0;
-        padding: 0;
+        padding: 14mm 0 0;
         break-inside: avoid;
     }
 

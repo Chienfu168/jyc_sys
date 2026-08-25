@@ -3,65 +3,87 @@
 namespace App\Domain\Donations;
 
 /**
- * 將金額轉為收據用的國字大寫「分位」格式(純邏輯,不依賴資料庫)。
+ * 將金額轉為收據用的國字大寫金額(純邏輯,不依賴資料庫)。
  *
- * 依基金會實體收據格式,每個數位獨立填寫國字大寫並標註單位,
- * 例如 6,000,000 → 零仟 陸佰 零拾 零萬 零仟 零佰 零拾 零元。
- * 單位以四位一組循環:個位群為 元/拾/佰/仟,萬位群標記 萬,億位群標記 億。
+ * 採一般法定金額寫法,四位一組並正確處理中間與跨組的零,例如:
+ *   3,000,000  → 參佰萬
+ *   1,050,000  → 壹佰零伍萬
+ *   10,001     → 壹萬零壹
+ *   12,345,678 → 壹仟貳佰參拾肆萬伍仟陸佰柒拾捌
+ * 呼叫端通常在前面加「新台幣」、後面加「元整」。
  */
 final class AmountInWords
 {
     private const DIGITS = ['零', '壹', '貳', '參', '肆', '伍', '陸', '柒', '捌', '玖'];
-
-    /** 依位置(由低到高)的單位:個位群 元拾佰仟,群組邊界標 萬/億/兆。 */
-    private const GROUP_MARKS = ['元', '萬', '億', '兆'];
     private const MINOR_MARKS = ['', '拾', '佰', '仟'];
+    private const GROUP_MARKS = ['', '萬', '億', '兆'];
 
     /**
-     * 產生分位格,由高位到低位。至少補足 8 位(千萬),金額更大時自動延伸。
-     *
-     * @return array<int, array{digit: string, unit: string}>
+     * 金額轉國字大寫(不含「元整」),0 或負數回傳「零」。
      */
-    public static function grid(int $amount): array
+    public static function formal(int $amount): string
     {
         $amount = max(0, $amount);
-        $digitsStr = (string) $amount;
-        $length = max(8, strlen($digitsStr));
-        $padded = str_pad($digitsStr, $length, '0', STR_PAD_LEFT);
-
-        $cells = [];
-        for ($i = 0; $i < $length; $i++) {
-            $position = $length - 1 - $i; // 該數位對應的 10 的次方
-            $digit = (int) $padded[$i];
-            $cells[] = [
-                'digit' => self::DIGITS[$digit],
-                'unit' => self::unit($position),
-            ];
+        if ($amount === 0) {
+            return '零';
         }
 
-        return $cells;
-    }
-
-    /** 位置(10 的次方)對應的國字單位。 */
-    private static function unit(int $position): string
-    {
-        $minor = $position % 4;
-        if ($minor === 0) {
-            $group = intdiv($position, 4);
-            return self::GROUP_MARKS[$group] ?? self::GROUP_MARKS[count(self::GROUP_MARKS) - 1];
+        // 由低位到高位切成四位一組:個級、萬級、億級、兆級。
+        $groups = [];
+        $n = $amount;
+        while ($n > 0) {
+            $groups[] = $n % 10000;
+            $n = intdiv($n, 10000);
         }
 
-        return self::MINOR_MARKS[$minor];
+        $result = '';
+        for ($g = count($groups) - 1; $g >= 0; $g--) {
+            $val = $groups[$g];
+            if ($val === 0) {
+                continue;
+            }
+
+            // 此組不是最高組且本身不足四位(有前導零),需補一個「零」承接。
+            if ($result !== '' && $val < 1000 && !str_ends_with($result, '零')) {
+                $result .= '零';
+            }
+
+            $result .= self::belowTenThousand($val) . self::GROUP_MARKS[$g];
+        }
+
+        return $result;
     }
 
-    /** 分位格串接為一行文字(不含「整」)。 */
+    /** 收據金額文字:新台幣 … 元整(0 顯示「零元整」)。 */
     public static function text(int $amount): string
     {
-        $parts = array_map(
-            static fn (array $cell): string => $cell['digit'] . $cell['unit'],
-            self::grid($amount)
-        );
+        return self::formal($amount) . '元整';
+    }
 
-        return implode('', $parts);
+    /** 轉換 0..9999 的整數,處理內部零(不含前導/尾端多餘的零)。 */
+    private static function belowTenThousand(int $value): string
+    {
+        $result = '';
+        $started = false;
+        $zeroPending = false;
+
+        for ($pos = 3; $pos >= 0; $pos--) {
+            $digit = intdiv($value, 10 ** $pos) % 10;
+            if ($digit === 0) {
+                if ($started) {
+                    $zeroPending = true;
+                }
+                continue;
+            }
+
+            if ($zeroPending) {
+                $result .= self::DIGITS[0];
+                $zeroPending = false;
+            }
+            $result .= self::DIGITS[$digit] . self::MINOR_MARKS[$pos];
+            $started = true;
+        }
+
+        return $result;
     }
 }
