@@ -1,3 +1,16 @@
+<?php
+$active = $active ?? 'board-meetings';
+ob_start();
+?>
+<section class="panel">
+    <div class="panel-header no-print">
+        <div>
+            <p class="eyebrow">董事會議</p>
+            <h2><?= e($title ?? '董事會議') ?></h2>
+        </div>
+        <a class="btn" href="/board-meetings">返回列表</a>
+    </div>
+
 <form class="form" method="post" action="<?= e($action) ?>">
     <?= csrf_field() ?>
 
@@ -158,3 +171,7 @@
     setupRepeater('agenda-lines', 'agenda-line-template', 'add-agenda', 1);
 })();
 </script>
+</section>
+<?php
+$content = ob_get_clean();
+require base_path('resources/views/layouts/main.php');
