@@ -32,6 +32,12 @@ ob_start();
                     <?php if (\App\Core\Permission::can('roles.manage')): ?>
                         <td class="actions">
                             <a class="btn small" href="/roles/<?= e((string) $role['id']) ?>/edit">編輯權限</a>
+                            <?php if ((int) $role['id'] !== 1 && \App\Core\Permission::can('roles.delete')): ?>
+                                <form method="post" action="/roles/<?= e((string) $role['id']) ?>/delete" onsubmit="return confirm('確定要「刪除」此角色？刪除後無法復原，且需先確認沒有帳號使用此角色。');">
+                                    <?= csrf_field() ?>
+                                    <button class="btn small danger" type="submit">刪除</button>
+                                </form>
+                            <?php endif; ?>
                         </td>
                     <?php endif; ?>
                 </tr>

@@ -133,6 +133,35 @@ final class AccountController extends Controller
         redirect('/accounting/accounts');
     }
 
+    public function destroy(string $id): void
+    {
+        $this->requirePermission('accounting.delete');
+        $account = $this->findAccount((int) $id);
+
+        $usage = Database::pdo()->prepare('SELECT COUNT(*) FROM accounting_voucher_lines WHERE account_id = :id');
+        $usage->execute(['id' => (int) $account['id']]);
+        if ((int) $usage->fetchColumn() > 0) {
+            flash('error', '此會計科目已用於傳票分錄，無法刪除，可改為「停用」。');
+            redirect('/accounting/accounts');
+        }
+
+        $children = Database::pdo()->prepare('SELECT COUNT(*) FROM accounting_accounts WHERE parent_id = :id');
+        $children->execute(['id' => (int) $account['id']]);
+        if ((int) $children->fetchColumn() > 0) {
+            flash('error', '此會計科目仍有子科目，請先調整子科目後再刪除。');
+            redirect('/accounting/accounts');
+        }
+
+        Database::pdo()->prepare('DELETE FROM accounting_accounts WHERE id = :id')->execute(['id' => (int) $account['id']]);
+
+        AuditLog::write('delete', 'accounting', 'accounting_accounts', (int) $account['id'], [
+            'code' => $account['code'] ?? null,
+            'name' => $account['name'] ?? null,
+        ]);
+        flash('success', '會計科目已刪除。');
+        redirect('/accounting/accounts');
+    }
+
     private function validateAccount(string $path, ?int $ignoreId = null): void
     {
         if ($error = Validator::required($_POST, [

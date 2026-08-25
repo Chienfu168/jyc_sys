@@ -146,6 +146,40 @@ final class RoleController extends Controller
         redirect('/roles');
     }
 
+    public function destroy(string $id): void
+    {
+        $this->requirePermission('roles.delete');
+        $role = $this->findRole((int) $id);
+
+        if ((int) $role['id'] === 1) {
+            flash('error', '系統管理員角色不可刪除。');
+            redirect('/roles');
+        }
+
+        $stmt = Database::pdo()->prepare('SELECT COUNT(*) FROM users WHERE role_id = :id');
+        $stmt->execute(['id' => (int) $role['id']]);
+        if ((int) $stmt->fetchColumn() > 0) {
+            flash('error', '仍有使用者屬於此角色，請先調整這些帳號的角色後再刪除。');
+            redirect('/roles');
+        }
+
+        $pdo = Database::pdo();
+        $pdo->beginTransaction();
+        try {
+            $pdo->prepare('DELETE FROM role_permissions WHERE role_id = :id')->execute(['id' => (int) $role['id']]);
+            $pdo->prepare('DELETE FROM roles WHERE id = :id')->execute(['id' => (int) $role['id']]);
+            $pdo->commit();
+        } catch (\Throwable) {
+            $pdo->rollBack();
+            flash('error', '角色刪除失敗，可能仍有關聯資料。');
+            redirect('/roles');
+        }
+
+        AuditLog::write('delete', 'roles', 'roles', (int) $role['id'], ['name' => $role['name'] ?? null]);
+        flash('success', '角色已刪除。');
+        redirect('/roles');
+    }
+
     private function findRole(int $id): array
     {
         $stmt = Database::pdo()->prepare('SELECT * FROM roles WHERE id = :id LIMIT 1');

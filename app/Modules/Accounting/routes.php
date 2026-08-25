@@ -20,6 +20,7 @@ $router->post('/accounting/accounts', [AccountController::class, 'store']);
 $router->get('/accounting/accounts/{id}/edit', [AccountController::class, 'edit']);
 $router->post('/accounting/accounts/{id}', [AccountController::class, 'update']);
 $router->post('/accounting/accounts/{id}/toggle', [AccountController::class, 'toggle']);
+$router->post('/accounting/accounts/{id}/delete', [AccountController::class, 'destroy']);
 
 $router->get('/accounting/vouchers', [VoucherController::class, 'index']);
 $router->get('/accounting/vouchers/create', [VoucherController::class, 'create']);
@@ -29,3 +30,4 @@ $router->get('/accounting/vouchers/{id}/edit', [VoucherController::class, 'edit'
 $router->post('/accounting/vouchers/{id}', [VoucherController::class, 'update']);
 $router->post('/accounting/vouchers/{id}/post', [VoucherController::class, 'post']);
 $router->post('/accounting/vouchers/{id}/void', [VoucherController::class, 'void']);
+$router->post('/accounting/vouchers/{id}/delete', [VoucherController::class, 'destroy']);

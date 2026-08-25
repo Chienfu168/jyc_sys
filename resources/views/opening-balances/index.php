@@ -58,6 +58,14 @@ ob_start();
                                 <button class="btn small" type="button" data-carry="<?= e((string) (int) $ledger['previous_closing']) ?>">帶入前年度結餘</button>
                                 <button class="btn small primary" type="submit">儲存</button>
                             </form>
+                            <?php if ($ledger['has_opening'] && \App\Core\Permission::can('opening_balances.delete')): ?>
+                                <form class="inline-opening-form" method="post" action="/opening-balances/delete" onsubmit="return confirm('確定要「刪除」此帳本本年度的期初餘額設定？刪除後此年度將回到「未設定」狀態。');">
+                                    <?= csrf_field() ?>
+                                    <input type="hidden" name="module" value="<?= e($ledger['module']) ?>">
+                                    <input type="hidden" name="year" value="<?= e((string) roc_year($year)) ?>">
+                                    <button class="btn small danger" type="submit">刪除</button>
+                                </form>
+                            <?php endif; ?>
                         </td>
                     <?php endif; ?>
                 </tr>

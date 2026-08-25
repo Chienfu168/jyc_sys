@@ -8,3 +8,4 @@ $router->post('/users', [UserController::class, 'store']);
 $router->get('/users/{id}/edit', [UserController::class, 'edit']);
 $router->post('/users/{id}', [UserController::class, 'update']);
 $router->post('/users/{id}/toggle', [UserController::class, 'toggle']);
+$router->post('/users/{id}/delete', [UserController::class, 'destroy']);

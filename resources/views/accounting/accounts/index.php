@@ -48,6 +48,12 @@ ob_start();
                                 <button class="btn small" type="submit"><?= e($account['status'] === 'active' ? '停用' : '啟用') ?></button>
                             </form>
                         <?php endif; ?>
+                        <?php if (\App\Core\Permission::can('accounting.delete')): ?>
+                            <form method="post" action="/accounting/accounts/<?= e((string) $account['id']) ?>/delete" onsubmit="return confirm('確定要「刪除」此會計科目？僅未用於任何傳票分錄的科目可刪除，刪除後無法復原。');">
+                                <?= csrf_field() ?>
+                                <button class="btn small danger" type="submit">刪除</button>
+                            </form>
+                        <?php endif; ?>
                     </td>
                 </tr>
             <?php endforeach; ?>
