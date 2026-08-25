@@ -63,6 +63,15 @@ $navWorkflow = array_values(array_filter(array_map(static function (array $group
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= e(($title ?? '') . ' | ' . config('app.name')) ?></title>
     <?php $assetVersion = asset_version(); ?>
+    <link rel="manifest" href="<?= e(asset_url('manifest.webmanifest')) ?>">
+    <meta name="theme-color" content="#1f7a5b">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="基金會">
+    <meta name="application-name" content="基金會管理系統">
+    <link rel="icon" type="image/png" sizes="192x192" href="<?= e(asset_url('assets/img/icon-192.png')) ?>">
+    <link rel="apple-touch-icon" href="<?= e(asset_url('assets/img/apple-touch-icon.png')) ?>">
     <link rel="stylesheet" href="<?= e(asset_url('assets/css/app.css')) ?>?v=<?= e($assetVersion) ?>">
     <?php if (asset_url('assets/css/app.css') !== '/assets/css/app.css'): ?>
         <link rel="stylesheet" href="/assets/css/app.css?v=<?= e($assetVersion) ?>">
@@ -263,5 +272,15 @@ $navWorkflow = array_values(array_filter(array_map(static function (array $group
 })();
 </script>
 <?php endif; ?>
+<script>
+    // 註冊 Service Worker 以啟用 PWA(可安裝、離線提示、靜態資源快取)。
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+            navigator.serviceWorker.register('<?= e(asset_url('service-worker.js')) ?>').catch(function () {
+                // 註冊失敗(例如非 HTTPS 或不支援)時忽略,不影響一般使用。
+            });
+        });
+    }
+</script>
 </body>
 </html>
