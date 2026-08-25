@@ -37,6 +37,33 @@ final class MigrationService
         return $executed;
     }
 
+    /**
+     * 資料庫 migration 現況:已套用清單、待套用清單與檔案總數。
+     *
+     * @return array{applied: array<int, string>, pending: array<int, string>, total: int, appliedCount: int}
+     */
+    public function status(): array
+    {
+        $this->ensureTable();
+
+        $applied = $this->applied();
+        $dir = base_path('database/migrations');
+        $files = is_dir($dir) ? (glob($dir . DIRECTORY_SEPARATOR . '*.sql') ?: []) : [];
+        $names = array_map('basename', $files);
+        sort($names);
+
+        $pending = array_values(array_diff($names, $applied));
+        sort($pending);
+        sort($applied);
+
+        return [
+            'applied' => $applied,
+            'pending' => $pending,
+            'total' => count($names),
+            'appliedCount' => count($applied),
+        ];
+    }
+
     private function ensureTable(): void
     {
         Database::pdo()->exec(

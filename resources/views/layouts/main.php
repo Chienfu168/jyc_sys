@@ -159,6 +159,10 @@ $navWorkflow = array_values(array_filter(array_map(static function (array $group
                                 <span class="nav-icon">更</span>
                                 <span>系統更新</span>
                             </a>
+                            <a class="<?= $activeKey === 'system-update-db' ? 'active' : '' ?>" href="/system-update/database">
+                                <span class="nav-icon">庫</span>
+                                <span>資料庫更新與檢查</span>
+                            </a>
                         <?php endif; ?>
                     </div>
                 <?php endif; ?>
