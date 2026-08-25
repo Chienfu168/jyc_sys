@@ -40,6 +40,7 @@ ob_start();
         </tbody>
     </table>
 
+    <?php $signatureContext = 'foundation-assets'; ?>
     <?php require base_path('resources/views/shared/signatures.php'); ?>
 </section>
 <?php

@@ -119,6 +119,7 @@ ob_start();
         </table>
     </div>
 
+    <?php $signatureContext = 'reconciliation'; ?>
     <?php require base_path('resources/views/shared/signatures.php'); ?>
 </section>
 <?php
