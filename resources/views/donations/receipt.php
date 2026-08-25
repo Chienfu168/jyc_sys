@@ -10,7 +10,10 @@ ob_start();
     <div class="panel-header no-print">
         <div>
             <p class="eyebrow">捐款收據</p>
-            <h2><?= e($donation['receipt_no'] ?: '未填收據號碼') ?></h2>
+            <h2><?= e($donation['receipt_no'] ?: ($donation['donation_no'] ?? '') ?: '未填收據號碼') ?></h2>
+            <?php if (empty($donation['receipt_no']) && !empty($donation['donation_no'])): ?>
+                <p class="muted-text">尚未開立正式收據號碼，暫以捐款編號列印；點「開立收據」可產生正式收據號碼。</p>
+            <?php endif; ?>
             <p class="muted-text"><?= e($donation['donor_name']) ?> / <?= e(roc_date($donation['donated_at'])) ?></p>
         </div>
         <div class="actions">
