@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>離線中 | 基金會管理系統</title>
+    <style>
+        :root { color-scheme: light; }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+            background: #f3f6f4;
+            color: #18201c;
+        }
+        .card {
+            max-width: 420px;
+            width: 100%;
+            text-align: center;
+            background: #ffffff;
+            border: 1px solid #dfe6e2;
+            border-radius: 16px;
+            padding: 40px 28px;
+            box-shadow: 0 12px 32px rgba(21, 95, 71, 0.08);
+        }
+        .mark {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 20px;
+            border-radius: 16px;
+            background: #1f7a5b;
+            color: #ffffff;
+            font-size: 32px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        h1 { font-size: 20px; margin: 0 0 8px; }
+        p { margin: 0 0 20px; color: #66736c; line-height: 1.7; }
+        button {
+            appearance: none;
+            border: 0;
+            border-radius: 10px;
+            background: #1f7a5b;
+            color: #ffffff;
+            font-size: 15px;
+            font-weight: 600;
+            padding: 11px 24px;
+            cursor: pointer;
+        }
+        button:hover { background: #155f47; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="mark">基</div>
+        <h1>目前無法連線</h1>
+        <p>系統需要連線才能載入最新資料。<br>請確認網路連線後再試一次。</p>
+        <button type="button" onclick="location.reload()">重新載入</button>
+    </div>
+</body>
+</html>
