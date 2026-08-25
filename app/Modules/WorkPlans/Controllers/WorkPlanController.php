@@ -269,6 +269,18 @@ final class WorkPlanController extends Controller
         redirect('/work-plans/' . $id);
     }
 
+    public function destroy(string $id): void
+    {
+        $this->requirePermission('work_plans.delete');
+        $plan = $this->findPlan((int) $id);
+
+        Database::pdo()->prepare('DELETE FROM work_plans WHERE id = :id')->execute(['id' => (int) $id]);
+
+        AuditLog::write('delete', 'work_plans', 'work_plans', (int) $id, ['title' => $plan['title'] ?? null]);
+        flash('success', '工作計畫已刪除。');
+        redirect('/work-plans');
+    }
+
     private function validatePlan(string $path): void
     {
         if ($error = Validator::required($_POST, [

@@ -12,4 +12,5 @@ $router->get('/payment-receipts/{id}/edit', [PaymentReceiptController::class, 'e
 $router->post('/payment-receipts/{id}', [PaymentReceiptController::class, 'update']);
 $router->post('/payment-receipts/{id}/issue', [PaymentReceiptController::class, 'issue']);
 $router->post('/payment-receipts/{id}/void', [PaymentReceiptController::class, 'void']);
+$router->post('/payment-receipts/{id}/delete', [PaymentReceiptController::class, 'destroy']);
 $router->get('/payment-receipts/{id}', [PaymentReceiptController::class, 'show']);

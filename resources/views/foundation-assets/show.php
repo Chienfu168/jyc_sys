@@ -19,6 +19,12 @@ ob_start();
                     <button class="btn" type="submit"><?= $asset['status'] === 'active' ? '標示除帳' : '恢復使用' ?></button>
                 </form>
             <?php endif; ?>
+            <?php if (\App\Core\Permission::can('foundation_assets.delete')): ?>
+                <form method="post" action="/foundation-assets/<?= e((string) $asset['id']) ?>/delete" onsubmit="return confirm('確定要刪除此財產？此操作無法復原。');">
+                    <?= csrf_field() ?>
+                    <button class="btn danger" type="submit">刪除</button>
+                </form>
+            <?php endif; ?>
         </div>
     </div>
 

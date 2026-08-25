@@ -13,4 +13,5 @@ $router->post('/income-expenses/{id}/submit', [IncomeExpenseController::class, '
 $router->post('/income-expenses/{id}/approve', [IncomeExpenseController::class, 'approve']);
 $router->post('/income-expenses/{id}/reject', [IncomeExpenseController::class, 'reject']);
 $router->post('/income-expenses/{id}/void', [IncomeExpenseController::class, 'void']);
+$router->post('/income-expenses/{id}/delete', [IncomeExpenseController::class, 'destroy']);
 $router->post('/income-expenses/{id}/voucher', [IncomeExpenseController::class, 'createVoucher']);

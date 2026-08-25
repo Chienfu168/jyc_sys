@@ -191,6 +191,20 @@ final class PaymentReceiptController extends Controller
         redirect('/payment-receipts/' . $id);
     }
 
+    public function destroy(string $id): void
+    {
+        $this->requirePermission('payment_receipts.delete');
+        $receipt = $this->findReceipt((int) $id);
+
+        Database::pdo()->prepare('DELETE FROM payment_receipts WHERE id = :id')->execute(['id' => (int) $id]);
+
+        AuditLog::write('delete', 'payment_receipts', 'payment_receipts', (int) $id, [
+            'receipt_no' => $receipt['receipt_no'] ?? null,
+        ]);
+        flash('success', '領款收據已刪除。');
+        redirect('/payment-receipts');
+    }
+
     public function void(string $id): void
     {
         $this->requirePermission('payment_receipts.manage');

@@ -148,6 +148,28 @@ final class BankAccountController extends Controller
         redirect('/bank-accounts');
     }
 
+    public function destroy(string $id): void
+    {
+        $this->requirePermission('bank_accounts.delete');
+        $account = $this->findAccount((int) $id);
+
+        $stmt = Database::pdo()->prepare('SELECT COUNT(*) FROM bank_account_transactions WHERE bank_account_id = :id');
+        $stmt->execute(['id' => (int) $id]);
+        if ((int) $stmt->fetchColumn() > 0) {
+            flash('error', '此銀行帳戶尚有交易紀錄，無法刪除；可改為停用。');
+            redirect('/bank-accounts');
+        }
+
+        Database::pdo()->prepare('DELETE FROM bank_accounts WHERE id = :id')->execute(['id' => (int) $id]);
+
+        AuditLog::write('delete', 'bank_accounts', 'bank_accounts', (int) $id, [
+            'bank_name' => $account['bank_name'] ?? null,
+            'account_no' => $account['account_no'] ?? null,
+        ]);
+        flash('success', '銀行帳戶已刪除。');
+        redirect('/bank-accounts');
+    }
+
     private function validateAccount(string $path): void
     {
         if ($error = Validator::required($_POST, [

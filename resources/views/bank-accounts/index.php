@@ -77,6 +77,12 @@ ob_start();
                                 <button class="btn small" type="submit"><?= e($account['status'] === 'active' ? '停用' : '啟用') ?></button>
                             </form>
                         <?php endif; ?>
+                        <?php if (\App\Core\Permission::can('bank_accounts.delete')): ?>
+                            <form method="post" action="/bank-accounts/<?= e((string) $account['id']) ?>/delete" onsubmit="return confirm('確定要刪除此銀行帳戶？此操作無法復原（尚有交易紀錄者無法刪除）。');">
+                                <?= csrf_field() ?>
+                                <button class="btn small danger" type="submit">刪除</button>
+                            </form>
+                        <?php endif; ?>
                     </td>
                 </tr>
             <?php endforeach; ?>

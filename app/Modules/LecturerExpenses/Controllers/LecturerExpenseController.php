@@ -210,6 +210,25 @@ final class LecturerExpenseController extends Controller
         redirect('/lecturer-expenses/' . $id);
     }
 
+    public function destroy(string $id): void
+    {
+        $this->requirePermission('lecturer_expenses.delete');
+        $expense = $this->findExpense((int) $id);
+
+        if (!empty($expense['accounting_voucher_id'])) {
+            flash('error', '已建立會計傳票的講師支出不可直接刪除，請先處理相關傳票。');
+            redirect('/lecturer-expenses/' . $id);
+        }
+
+        Database::pdo()->prepare('DELETE FROM lecturer_expenses WHERE id = :id')->execute(['id' => (int) $id]);
+
+        AuditLog::write('delete', 'lecturer_expenses', 'lecturer_expenses', (int) $id, [
+            'amount' => $expense['amount'] ?? null,
+        ]);
+        flash('success', '講師支出費用已刪除。');
+        redirect('/lecturer-expenses');
+    }
+
     public function void(string $id): void
     {
         $this->requirePermission('lecturer_expenses.manage');
