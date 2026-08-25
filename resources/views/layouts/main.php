@@ -23,6 +23,7 @@ $navWorkflow = [
         ['perm' => 'work_plans.view', 'key' => 'work-plans', 'href' => '/work-plans', 'icon' => '計', 'label' => '工作計畫'],
         ['perm' => 'annual_budgets.view', 'key' => 'annual-budgets', 'href' => '/annual-budgets', 'icon' => '預', 'label' => '年度預算'],
         ['perm' => 'operating_statements.view', 'key' => 'operating-statements', 'href' => '/operating-statements', 'icon' => '營', 'label' => '收支營運表'],
+        ['perm' => 'balance_sheets.view', 'key' => 'balance-sheets', 'href' => '/balance-sheets', 'icon' => '資', 'label' => '資產負債表'],
         ['perm' => 'official_letters.view', 'key' => 'official-letters', 'href' => '/official-letters', 'icon' => '函', 'label' => '陳報公文'],
     ]],
     ['title' => '人事差勤', 'items' => [
