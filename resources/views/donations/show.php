@@ -41,8 +41,11 @@ ob_start();
             <?php if (!empty($donation['accounting_voucher_id'])): ?>
                 <a class="btn" href="/accounting/vouchers/<?= e((string) $donation['accounting_voucher_id']) ?>">查看傳票</a>
             <?php endif; ?>
-            <?php if (\App\Core\Permission::can('donations.delete') && empty($donation['accounting_voucher_id'])): ?>
-                <form method="post" action="/donations/<?= e((string) $donation['id']) ?>/delete" onsubmit="return confirm('確定要「刪除」整筆捐款紀錄？刪除後無法復原，且不會保留作廢軌跡。若僅需保留紀錄請改用「捐款作廢」。');">
+            <?php if (\App\Core\Permission::can('donations.delete')): ?>
+                <?php $deleteWarn = !empty($donation['accounting_voucher_id'])
+                    ? '此捐款已建立會計傳票，刪除後傳票分錄仍會保留於帳冊。確定要「刪除」整筆捐款紀錄？刪除後無法復原，且不會保留作廢軌跡。'
+                    : '確定要「刪除」整筆捐款紀錄？刪除後無法復原，且不會保留作廢軌跡。若僅需保留紀錄請改用「捐款作廢」。'; ?>
+                <form method="post" action="/donations/<?= e((string) $donation['id']) ?>/delete" onsubmit="return confirm('<?= e($deleteWarn) ?>');">
                     <?= csrf_field() ?>
                     <button class="btn danger" type="submit">刪除</button>
                 </form>

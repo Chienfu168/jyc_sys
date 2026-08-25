@@ -644,6 +644,14 @@ final class DonationController extends Controller
             'id' => (int) $id,
         ]);
 
+        // 舊資料若尚無捐款編號(升級前建立、或未回填),於編輯時依捐款日期補上一組。
+        if (trim((string) ($donation['donation_no'] ?? '')) === '') {
+            $pdo = Database::pdo();
+            $donationNo = $this->nextDonationNo($pdo, (string) $this->payload()['donated_at']);
+            $pdo->prepare('UPDATE donations SET donation_no = :donation_no WHERE id = :id AND (donation_no IS NULL OR donation_no = "")')
+                ->execute(['donation_no' => $donationNo, 'id' => (int) $id]);
+        }
+
         AuditLog::write('update', 'donations', 'donations', (int) $id);
         flash('success', '捐款紀錄已更新。');
         redirect('/donations/' . $id);
@@ -698,16 +706,15 @@ final class DonationController extends Controller
         $this->requirePermission('donations.delete');
         $donation = $this->findDonation((int) $id);
 
-        if (!empty($donation['accounting_voucher_id'])) {
-            flash('error', '已建立會計傳票的捐款紀錄不可直接刪除，請先處理相關傳票。');
-            redirect('/donations/' . $id);
-        }
-
+        // 捐款→會計傳票為 donation.accounting_voucher_id 單向外鍵,刪除捐款不影響傳票分錄;
+        // 系統管理員可直接刪除(含已建傳票者),已建傳票之分錄仍保留於帳冊。
         Database::pdo()->prepare('DELETE FROM donations WHERE id = :id')->execute(['id' => (int) $id]);
 
         AuditLog::write('delete', 'donations', 'donations', (int) $id, [
+            'donation_no' => trim((string) ($donation['donation_no'] ?? '')) ?: null,
             'amount' => $donation['amount'] ?? null,
             'receipt_no' => trim((string) ($donation['receipt_no'] ?? '')) ?: null,
+            'accounting_voucher_id' => $donation['accounting_voucher_id'] ?? null,
         ]);
         flash('success', '捐款紀錄已刪除。');
         redirect('/donations');
