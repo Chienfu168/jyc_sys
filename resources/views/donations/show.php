@@ -41,7 +41,7 @@ ob_start();
             <?php if (!empty($donation['accounting_voucher_id'])): ?>
                 <a class="btn" href="/accounting/vouchers/<?= e((string) $donation['accounting_voucher_id']) ?>">查看傳票</a>
             <?php endif; ?>
-            <?php if (\App\Core\Permission::can('donations.delete')): ?>
+            <?php if (\App\Core\Permission::can('donations.delete') || owns_record($donation['created_by'] ?? null)): ?>
                 <?php $deleteWarn = !empty($donation['accounting_voucher_id'])
                     ? '此捐款已建立會計傳票，刪除後傳票分錄仍會保留於帳冊。確定要「刪除」整筆捐款紀錄？刪除後無法復原，且不會保留作廢軌跡。'
                     : '確定要「刪除」整筆捐款紀錄？刪除後無法復原，且不會保留作廢軌跡。若僅需保留紀錄請改用「捐款作廢」。'; ?>

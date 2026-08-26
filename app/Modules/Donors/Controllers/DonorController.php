@@ -186,8 +186,8 @@ final class DonorController extends Controller
 
     public function destroy(string $id): void
     {
-        $this->requirePermission('donors.delete');
         $donor = $this->findDonor((int) $id);
+        $this->requireManageOrOwner('donors.delete', $donor['created_by'] ?? null);
 
         $stmt = Database::pdo()->prepare('SELECT COUNT(*) FROM donations WHERE donor_id = :id');
         $stmt->execute(['id' => (int) $id]);

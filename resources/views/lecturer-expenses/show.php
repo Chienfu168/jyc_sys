@@ -40,7 +40,7 @@ ob_start();
                     </form>
                 <?php endif; ?>
             <?php endif; ?>
-            <?php if (\App\Core\Permission::can('lecturer_expenses.delete')): ?>
+            <?php if (\App\Core\Permission::can('lecturer_expenses.delete') || owns_record($expense['created_by'] ?? null)): ?>
                 <form method="post" action="/lecturer-expenses/<?= e((string) $expense['id']) ?>/delete" onsubmit="return confirm('確定要刪除此講師支出？此操作無法復原（已建立會計傳票者無法刪除）。');">
                     <?= csrf_field() ?>
                     <button class="btn danger" type="submit">刪除</button>

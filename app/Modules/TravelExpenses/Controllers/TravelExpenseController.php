@@ -209,8 +209,8 @@ final class TravelExpenseController extends Controller
 
     public function destroy(string $id): void
     {
-        $this->requirePermission('travel_expenses.delete');
         $expense = $this->findExpense((int) $id);
+        $this->requireManageOrOwner('travel_expenses.delete', $expense['created_by'] ?? null);
 
         if (!empty($expense['accounting_voucher_id'])) {
             flash('error', '已建立會計傳票的出差費用不可直接刪除，請先處理相關傳票。');

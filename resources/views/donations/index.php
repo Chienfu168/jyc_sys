@@ -142,7 +142,7 @@ ob_start();
                         <?php if (\App\Core\Permission::can('donations.manage') && empty($donation['accounting_voucher_id'])): ?>
                             <a class="btn small" href="/donations/<?= e((string) $donation['id']) ?>/edit">編輯</a>
                         <?php endif; ?>
-                        <?php if (\App\Core\Permission::can('donations.delete')): ?>
+                        <?php if (\App\Core\Permission::can('donations.delete') || owns_record($donation['created_by'] ?? null)): ?>
                             <form method="post" action="/donations/<?= e((string) $donation['id']) ?>/delete" onsubmit="return confirm('確定要「刪除」此捐款紀錄（<?= e($donation['donation_no'] ?? '') ?: (string) $donation['id'] ?>）？刪除後無法復原，且不保留作廢軌跡。');">
                                 <?= csrf_field() ?>
                                 <button class="btn small danger" type="submit">刪除</button>
