@@ -34,7 +34,7 @@ ob_start();
                     </form>
                 <?php endif; ?>
             <?php endif; ?>
-            <?php if (\App\Core\Permission::can('annual_budgets.delete')): ?>
+            <?php if (\App\Core\Permission::can('annual_budgets.delete') || owns_record($budget['created_by'] ?? null)): ?>
                 <form method="post" action="/annual-budgets/<?= e((string) $budget['id']) ?>/delete" onsubmit="return confirm('確定要刪除此年度預算？此操作無法復原。');">
                     <?= csrf_field() ?>
                     <button class="btn danger" type="submit">刪除</button>

@@ -25,7 +25,7 @@ ob_start();
                     </form>
                 <?php endif; ?>
             <?php endif; ?>
-            <?php if (\App\Core\Permission::can('work_plans.delete')): ?>
+            <?php if (\App\Core\Permission::can('work_plans.delete') || owns_record($plan['created_by'] ?? null)): ?>
                 <form method="post" action="/work-plans/<?= e((string) $plan['id']) ?>/delete" onsubmit="return confirm('確定要刪除此工作計畫？此操作無法復原。');">
                     <?= csrf_field() ?>
                     <button class="btn danger" type="submit">刪除</button>

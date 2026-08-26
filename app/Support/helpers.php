@@ -209,6 +209,22 @@ function foundation_name(): string
     return foundation_profile()['foundation_name'] ?: config('app.name');
 }
 
+/** 目前登入者的使用者編號(未登入為 0)。 */
+function current_user_id(): int
+{
+    return (int) (auth()->user()['id'] ?? 0);
+}
+
+/**
+ * 目前登入者是否為該筆資料的建立者(created_by)。
+ * 供畫面判斷是否顯示「編輯／刪除」按鈕:建立者可管理自己建立的資料。
+ */
+function owns_record(int|string|null $ownerId): bool
+{
+    $uid = current_user_id();
+    return $uid > 0 && (int) $ownerId === $uid;
+}
+
 /**
  * 依模組屬性回傳列印文件下方的簽核鏈。
  *

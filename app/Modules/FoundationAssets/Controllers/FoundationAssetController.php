@@ -165,8 +165,8 @@ final class FoundationAssetController extends Controller
 
     public function destroy(string $id): void
     {
-        $this->requirePermission('foundation_assets.delete');
         $asset = $this->findAsset((int) $id);
+        $this->requireManageOrOwner('foundation_assets.delete', $asset['created_by'] ?? null);
 
         Database::pdo()->prepare('DELETE FROM foundation_assets WHERE id = :id')->execute(['id' => (int) $id]);
 

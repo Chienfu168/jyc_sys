@@ -197,8 +197,8 @@ final class PaymentReceiptController extends Controller
 
     public function destroy(string $id): void
     {
-        $this->requirePermission('payment_receipts.delete');
         $receipt = $this->findReceipt((int) $id);
+        $this->requireManageOrOwner('payment_receipts.delete', $receipt['created_by'] ?? null);
 
         Database::pdo()->prepare('DELETE FROM payment_receipts WHERE id = :id')->execute(['id' => (int) $id]);
 

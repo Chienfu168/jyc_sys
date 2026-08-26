@@ -280,8 +280,8 @@ final class PettyCashController extends Controller
      */
     public function destroy(string $id): void
     {
-        $this->requirePermission('petty_cash.delete');
         $entry = $this->findEntry((int) $id);
+        $this->requireManageOrOwner('petty_cash.delete', $entry['created_by'] ?? null);
 
         if (!empty($entry['accounting_voucher_id'])) {
             flash('error', '已建立會計傳票的零用金紀錄不可直接刪除，請先處理相關傳票。');

@@ -280,8 +280,8 @@ final class IncomeExpenseController extends Controller
 
     public function destroy(string $id): void
     {
-        $this->requirePermission('income_expenses.delete');
         $record = $this->findRecord((int) $id);
+        $this->requireManageOrOwner('income_expenses.delete', $record['created_by'] ?? null);
 
         if (!empty($record['accounting_voucher_id'])) {
             flash('error', '已建立會計傳票的收支紀錄不可直接刪除，請先處理相關傳票。');

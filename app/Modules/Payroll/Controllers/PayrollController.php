@@ -203,8 +203,8 @@ final class PayrollController extends Controller
 
     public function destroy(string $id): void
     {
-        $this->requirePermission('payroll.delete');
         $record = $this->findRecord((int) $id);
+        $this->requireManageOrOwner('payroll.delete', $record['created_by'] ?? null);
 
         if (!empty($record['accounting_voucher_id'])) {
             flash('error', '已建立會計傳票的薪資紀錄不可直接刪除，請先處理相關傳票。');

@@ -41,7 +41,7 @@ ob_start();
                 <button class="btn" type="submit">作廢</button>
             </form>
         <?php endif; ?>
-        <?php if (\App\Core\Permission::can('payment_receipts.delete')): ?>
+        <?php if (\App\Core\Permission::can('payment_receipts.delete') || owns_record($receipt['created_by'] ?? null)): ?>
             <form method="post" action="/payment-receipts/<?= e((string) $receipt['id']) ?>/delete" onsubmit="return confirm('確定要刪除此領款收據？此操作無法復原。');">
                 <?= csrf_field() ?>
                 <button class="btn danger" type="submit">刪除</button>

@@ -707,8 +707,8 @@ final class DonationController extends Controller
      */
     public function destroy(string $id): void
     {
-        $this->requirePermission('donations.delete');
         $donation = $this->findDonation((int) $id);
+        $this->requireManageOrOwner('donations.delete', $donation['created_by'] ?? null);
 
         // 捐款→會計傳票為 donation.accounting_voucher_id 單向外鍵,刪除捐款不影響傳票分錄;
         // 系統管理員可直接刪除(含已建傳票者),已建傳票之分錄仍保留於帳冊。

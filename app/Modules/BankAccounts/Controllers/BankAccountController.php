@@ -150,8 +150,8 @@ final class BankAccountController extends Controller
 
     public function destroy(string $id): void
     {
-        $this->requirePermission('bank_accounts.delete');
         $account = $this->findAccount((int) $id);
+        $this->requireManageOrOwner('bank_accounts.delete', $account['created_by'] ?? null);
 
         $stmt = Database::pdo()->prepare('SELECT COUNT(*) FROM bank_account_transactions WHERE bank_account_id = :id');
         $stmt->execute(['id' => (int) $id]);
