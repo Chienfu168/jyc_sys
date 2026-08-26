@@ -107,8 +107,14 @@ $navWorkflow = array_values(array_filter(array_map(static function (array $group
                 </div>
             </div>
 
+            <?php
+            // 手風琴側邊欄:預設僅展開含目前頁面的群組,其餘先疊起(無 JS 亦適用)。
+            $overviewOpen = $activeKey === 'dashboard' || $approvalsActive;
+            $backOfficeOpen = in_array($activeKey, ['users', 'roles'], true);
+            $systemOpen = in_array($activeKey, ['foundation-profile', 'system-security', 'system-update', 'system-update-db'], true);
+            ?>
             <nav class="nav" aria-label="主選單">
-                <div class="nav-section">
+                <div class="nav-section<?= $overviewOpen ? '' : ' collapsed' ?>">
                     <span class="nav-section-title">總覽</span>
                     <a class="<?= $activeKey === 'dashboard' ? 'active' : '' ?>" href="/">
                         <span class="nav-icon">總</span>
@@ -121,7 +127,8 @@ $navWorkflow = array_values(array_filter(array_map(static function (array $group
                 </div>
 
                 <?php foreach ($navWorkflow as $group): ?>
-                    <div class="nav-section">
+                    <?php $groupOpen = in_array($activeKey, array_column($group['items'], 'key'), true); ?>
+                    <div class="nav-section<?= $groupOpen ? '' : ' collapsed' ?>">
                         <span class="nav-section-title"><?= e($group['title']) ?></span>
                         <?php foreach ($group['items'] as $item): ?>
                             <a class="<?= $activeKey === $item['key'] ? 'active' : '' ?>" href="<?= e($item['href']) ?>">
@@ -133,7 +140,7 @@ $navWorkflow = array_values(array_filter(array_map(static function (array $group
                 <?php endforeach; ?>
 
                 <?php if (\App\Core\Permission::can('users.view') || \App\Core\Permission::can('roles.view')): ?>
-                    <div class="nav-section">
+                    <div class="nav-section<?= $backOfficeOpen ? '' : ' collapsed' ?>">
                         <span class="nav-section-title">後台管理</span>
                         <?php if (\App\Core\Permission::can('users.view')): ?>
                             <a class="<?= $activeKey === 'users' ? 'active' : '' ?>" href="/users">
@@ -151,7 +158,7 @@ $navWorkflow = array_values(array_filter(array_map(static function (array $group
                 <?php endif; ?>
 
                 <?php if (\App\Core\Permission::can('system_updates.manage') || \App\Core\Permission::can('foundation_profile.view')): ?>
-                    <div class="nav-section">
+                    <div class="nav-section<?= $systemOpen ? '' : ' collapsed' ?>">
                         <span class="nav-section-title">系統設定</span>
                         <?php if (\App\Core\Permission::can('foundation_profile.view')): ?>
                             <a class="<?= $activeKey === 'foundation-profile' ? 'active' : '' ?>" href="/foundation-profile">
@@ -221,44 +228,74 @@ $navWorkflow = array_values(array_filter(array_map(static function (array $group
 <?php if ($currentUser): ?>
 <script>
 (function () {
+    // 手風琴側邊欄:一次只展開一個主群組,點另一個會把原先的疊回去。
     var nav = document.querySelector('.sidebar .nav');
     if (!nav) {
         return;
     }
-    var KEY = 'nav-collapsed-groups';
-    var store = {};
-    try {
-        var raw = JSON.parse(localStorage.getItem(KEY) || '{}');
-        if (raw && typeof raw === 'object') {
-            store = raw;
+    var KEY = 'nav-open-group';
+    var sections = Array.prototype.slice.call(nav.querySelectorAll('.nav-section'));
+
+    function titleOf(section) {
+        return section.querySelector('.nav-section-title');
+    }
+    function nameOf(section) {
+        var title = titleOf(section);
+        return title ? (title.textContent || '').trim() : '';
+    }
+
+    // 僅展開指定名稱的群組,其餘一律疊起;openName 為空字串代表全部疊起。
+    function apply(openName, persist) {
+        sections.forEach(function (section) {
+            var title = titleOf(section);
+            if (!title) {
+                return;
+            }
+            var open = nameOf(section) === openName && openName !== '';
+            section.classList.toggle('collapsed', !open);
+            title.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+        if (persist) {
+            try {
+                if (openName) {
+                    localStorage.setItem(KEY, openName);
+                } else {
+                    localStorage.removeItem(KEY);
+                }
+            } catch (e) {}
         }
-    } catch (e) {
-        store = {};
     }
 
-    function setState(section, title, collapsed) {
-        section.classList.toggle('collapsed', collapsed);
-        title.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    // 初始展開順序:含目前頁面的群組 → 上次展開的群組 → 全部疊起。
+    var activeSection = sections.filter(function (section) {
+        return section.querySelector('a.active');
+    })[0];
+    var initial = '';
+    if (activeSection) {
+        initial = nameOf(activeSection);
+    } else {
+        try {
+            initial = localStorage.getItem(KEY) || '';
+        } catch (e) {
+            initial = '';
+        }
+        if (initial && !sections.some(function (section) { return nameOf(section) === initial; })) {
+            initial = '';
+        }
     }
+    apply(initial, false);
 
-    nav.querySelectorAll('.nav-section').forEach(function (section) {
-        var title = section.querySelector('.nav-section-title');
+    sections.forEach(function (section) {
+        var title = titleOf(section);
         if (!title) {
             return;
         }
-        var name = (title.textContent || '').trim();
-        var hasActive = !!section.querySelector('a.active');
         title.setAttribute('role', 'button');
         title.setAttribute('tabindex', '0');
-        setState(section, title, store[name] === true && !hasActive);
 
         function toggle() {
-            var collapsed = !section.classList.contains('collapsed');
-            setState(section, title, collapsed);
-            store[name] = collapsed;
-            try {
-                localStorage.setItem(KEY, JSON.stringify(store));
-            } catch (e) {}
+            var isOpen = !section.classList.contains('collapsed');
+            apply(isOpen ? '' : nameOf(section), true);
         }
 
         title.addEventListener('click', toggle);
