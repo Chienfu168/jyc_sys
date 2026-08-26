@@ -766,6 +766,23 @@ textarea:focus {
     letter-spacing: .12em;
 }
 
+.login-remember {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--muted);
+    cursor: pointer;
+}
+
+.login-remember input {
+    width: auto;
+    margin: 2px 0 0;
+    flex: none;
+}
+
 .text-link {
     color: var(--primary);
     text-align: center;

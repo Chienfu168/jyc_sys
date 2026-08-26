@@ -65,6 +65,10 @@ ob_start();
                     <input type="text" name="captcha" inputmode="numeric" autocomplete="off" required>
                 </div>
             </label>
+            <label class="login-remember">
+                <input type="checkbox" name="remember" value="1"<?= old('remember') ? ' checked' : '' ?>>
+                <span>記住我（此裝置約 <?= e((string) config('security.remember_lifetime_days', 30)) ?> 天內免重新登入，適合安裝為 App 使用；請勿在公用電腦勾選）</span>
+            </label>
             <button class="btn primary full" type="submit">登入</button>
             <a class="text-link" href="/forgot-password">忘記密碼</a>
         </form>

@@ -29,21 +29,22 @@ final class AuthController extends Controller
         $email = trim((string) ($_POST['email'] ?? ''));
         $password = (string) ($_POST['password'] ?? '');
         $captcha = trim((string) ($_POST['captcha'] ?? ''));
+        $remember = !empty($_POST['remember']);
 
         if ($error = Validator::required($_POST, ['email' => 'Email', 'password' => '密碼', 'captcha' => '驗證碼'])) {
-            $this->backWithInput('/login', ['email' => $email], $error);
+            $this->backWithInput('/login', ['email' => $email, 'remember' => $remember ? '1' : ''], $error);
         }
 
         if ($captcha !== (string) ($_SESSION['login_captcha'] ?? '')) {
-            $this->backWithInput('/login', ['email' => $email], '驗證碼輸入錯誤，請重新輸入。');
+            $this->backWithInput('/login', ['email' => $email, 'remember' => $remember ? '1' : ''], '驗證碼輸入錯誤，請重新輸入。');
         }
 
         if (Auth::instance()->tooManyAttempts($email)) {
-            $this->backWithInput('/login', ['email' => $email], '登入嘗試次數過多，請稍後再試。');
+            $this->backWithInput('/login', ['email' => $email, 'remember' => $remember ? '1' : ''], '登入嘗試次數過多，請稍後再試。');
         }
 
-        if (!Auth::instance()->attempt($email, $password)) {
-            $this->backWithInput('/login', ['email' => $email], '帳號或密碼不正確。');
+        if (!Auth::instance()->attempt($email, $password, $remember)) {
+            $this->backWithInput('/login', ['email' => $email, 'remember' => $remember ? '1' : ''], '帳號或密碼不正確。');
         }
 
         unset($_SESSION['login_captcha']);
@@ -171,6 +172,9 @@ final class AuthController extends Controller
 
         Database::pdo()->prepare('UPDATE password_reset_tokens SET used_at = :used_at WHERE user_id = :user_id AND used_at IS NULL')
             ->execute(['used_at' => now(), 'user_id' => $reset['user_id']]);
+        // 變更密碼後撤銷該帳號所有「記住我」持久權杖,強制以新密碼重新登入。
+        Database::pdo()->prepare('DELETE FROM remember_tokens WHERE user_id = :user_id')
+            ->execute(['user_id' => $reset['user_id']]);
         Database::pdo()->commit();
 
         flash('success', '密碼已更新，請使用新密碼登入。');
