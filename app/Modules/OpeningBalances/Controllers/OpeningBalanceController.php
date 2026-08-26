@@ -32,8 +32,9 @@ final class OpeningBalanceController extends Controller
         $ledgers = [];
         foreach (self::LEDGER_LABELS as $module => $label) {
             $current = $this->openingBalance($module, 0, $year);
+            // 前一年度尚未設定期初餘額時以 0 計算,避免 null 傳入型別為 float 的 closing()。
             $previousClosing = OpeningBalanceLedger::closing(
-                $this->openingBalance($module, 0, $year - 1),
+                $this->openingBalance($module, 0, $year - 1) ?? 0.0,
                 ...array_values($this->yearTotals($module, $year - 1))
             );
 
