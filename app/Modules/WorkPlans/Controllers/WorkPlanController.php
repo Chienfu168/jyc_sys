@@ -272,7 +272,7 @@ final class WorkPlanController extends Controller
     public function destroy(string $id): void
     {
         $plan = $this->findPlan((int) $id);
-        $this->requireManageOrOwner('work_plans.delete', $plan['created_by'] ?? null);
+        $this->requireManageOrOwner('work_plans.manage', $plan['created_by'] ?? null);
 
         Database::pdo()->prepare('DELETE FROM work_plans WHERE id = :id')->execute(['id' => (int) $id]);
 

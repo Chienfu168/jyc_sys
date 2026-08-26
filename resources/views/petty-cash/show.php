@@ -35,7 +35,7 @@ ob_start();
                     <a class="btn" href="/accounting/vouchers/<?= e((string) $entry['accounting_voucher_id']) ?>">查看傳票</a>
                 <?php endif; ?>
             <?php endif; ?>
-            <?php if ((\App\Core\Permission::can('petty_cash.delete') || owns_record($entry['created_by'] ?? null)) && empty($entry['accounting_voucher_id']) && empty($entry['bank_account_transaction_id'])): ?>
+            <?php if ((\App\Core\Permission::can('petty_cash.manage') || owns_record($entry['created_by'] ?? null)) && empty($entry['accounting_voucher_id']) && empty($entry['bank_account_transaction_id'])): ?>
                 <form method="post" action="/petty-cash/<?= e((string) $entry['id']) ?>/delete" onsubmit="return confirm('確定要「刪除」此零用金紀錄？刪除後無法復原。');">
                     <?= csrf_field() ?>
                     <button class="btn danger" type="submit">刪除</button>

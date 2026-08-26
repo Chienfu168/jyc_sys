@@ -299,7 +299,7 @@ final class AnnualBudgetController extends Controller
     public function destroy(string $id): void
     {
         $budget = $this->findBudget((int) $id);
-        $this->requireManageOrOwner('annual_budgets.delete', $budget['created_by'] ?? null);
+        $this->requireManageOrOwner('annual_budgets.manage', $budget['created_by'] ?? null);
 
         Database::pdo()->prepare('DELETE FROM annual_budgets WHERE id = :id')->execute(['id' => (int) $id]);
 

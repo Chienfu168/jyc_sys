@@ -68,6 +68,12 @@ ob_start();
                     </form>
                 <?php endif; ?>
             <?php endif; ?>
+            <?php if (($canManage || owns_record($request['created_by'] ?? null)) && $request['status'] !== 'received'): ?>
+                <form method="post" action="/purchase-requests/<?= e((string) $request['id']) ?>/delete" onsubmit="return confirm('確定要「刪除」此採購申請？將一併刪除明細與附件，刪除後無法復原。若僅需保留軌跡請改用作廢。');">
+                    <?= csrf_field() ?>
+                    <button class="btn danger" type="submit">刪除</button>
+                </form>
+            <?php endif; ?>
         </div>
     </section>
 

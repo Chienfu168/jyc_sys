@@ -14,6 +14,7 @@ $router->post('/purchase-requests/{id}/reject', [PurchaseRequestController::clas
 $router->post('/purchase-requests/{id}/mark-ordered', [PurchaseRequestController::class, 'markOrdered']);
 $router->post('/purchase-requests/{id}/mark-received', [PurchaseRequestController::class, 'markReceived']);
 $router->post('/purchase-requests/{id}/void', [PurchaseRequestController::class, 'void']);
+$router->post('/purchase-requests/{id}/delete', [PurchaseRequestController::class, 'destroy']);
 $router->post('/purchase-requests/{id}/attachments', [PurchaseRequestController::class, 'storeAttachment']);
 $router->get('/purchase-requests/{id}/attachments/{attachmentId}/download', [PurchaseRequestController::class, 'downloadAttachment']);
 $router->post('/purchase-requests/{id}/attachments/{attachmentId}/delete', [PurchaseRequestController::class, 'deleteAttachment']);
