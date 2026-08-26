@@ -81,9 +81,11 @@ a { color: inherit; text-decoration: none; }
 .muted-text {
     color: var(--muted);
 }
-.sidebar .brand-text span,
-.sidebar .nav-section-title {
+.sidebar .brand-text span {
     color: rgba(255, 255, 255, 0.66);
+}
+.sidebar .nav-section-title {
+    color: rgba(255, 255, 255, 0.82);
 }
 .nav,
 .nav-section {
@@ -93,7 +95,7 @@ a { color: inherit; text-decoration: none; }
 .nav-section { margin-bottom: 22px; }
 .nav-section-title {
     padding: 0 10px;
-    font-size: 12px;
+    font-size: 16px;
     font-weight: 700;
 }
 .nav a {
