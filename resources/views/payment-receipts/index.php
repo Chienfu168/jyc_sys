@@ -77,6 +77,12 @@ ob_start();
                     <td class="actions">
                         <a class="btn small" href="/payment-receipts/<?= e((string) $receipt['id']) ?>">檢視</a>
                         <a class="btn small" href="/payment-receipts/<?= e((string) $receipt['id']) ?>/print">列印</a>
+                        <?php if (\App\Core\Permission::can('payment_receipts.manage') || owns_record($receipt['created_by'] ?? null)): ?>
+                            <form method="post" action="/payment-receipts/<?= e((string) $receipt['id']) ?>/delete" onsubmit="return confirm('確定要刪除此領款收據？此操作無法復原。');">
+                                <?= csrf_field() ?>
+                                <button class="btn small danger" type="submit">刪除</button>
+                            </form>
+                        <?php endif; ?>
                     </td>
                 </tr>
             <?php endforeach; ?>
