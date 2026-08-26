@@ -498,7 +498,9 @@ th {
 }
 
 @media screen and (max-width: 900px) {
-    .app-shell,
+    .app-shell {
+        display: block;
+    }
     .purchase-detail-hero,
     .purchase-summary-grid,
     .purchase-detail-layout,
@@ -506,9 +508,18 @@ th {
         display: grid;
         grid-template-columns: 1fr;
     }
+    /* 側邊選單為由左滑出的抽屜(與 app.css 一致),預設收起、不佔版面高度。 */
     .sidebar {
-        position: static;
-        height: auto;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: min(84vw, 320px);
+        height: 100vh;
+        transform: translateX(-100%);
+        z-index: 70;
+    }
+    .app-shell.nav-open .sidebar {
+        transform: translateX(0);
     }
     .main {
         padding: 16px;
