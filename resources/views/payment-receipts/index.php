@@ -37,6 +37,7 @@ ob_start();
         </form>
         <div class="actions">
             <?php if (\App\Core\Permission::can('payment_receipts.manage')): ?>
+                <a class="btn" href="/payment-receipt-payees">常用領款人</a>
                 <a class="btn primary" href="/payment-receipts/create">新增領據</a>
             <?php endif; ?>
         </div>
