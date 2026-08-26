@@ -2,7 +2,7 @@
 ob_start();
 ?>
 <section class="panel narrow">
-    <form class="form grid-form" method="post" action="/foundation-profile">
+    <form class="form grid-form" method="post" action="/foundation-profile" enctype="multipart/form-data">
         <?= csrf_field() ?>
         <label class="span-2">
             <span>基金會名稱</span>
@@ -60,6 +60,23 @@ ob_start();
             <span>網址</span>
             <input type="text" name="website" value="<?= e((string) old('website', $profile['website'] ?? '')) ?>" placeholder="http://www.example.org">
         </label>
+        <div class="span-2 logo-field">
+            <span class="logo-field__label">機構 LOGO</span>
+            <?php if (!empty($profile['logo_path'])): ?>
+                <?php $logoUri = foundation_logo_data_uri(); ?>
+                <?php if ($logoUri !== null): ?>
+                    <div class="logo-field__preview">
+                        <img src="<?= e($logoUri) ?>" alt="目前 LOGO">
+                    </div>
+                    <label class="logo-field__remove">
+                        <input type="checkbox" name="remove_logo" value="1">
+                        <span>移除目前的 LOGO</span>
+                    </label>
+                <?php endif; ?>
+            <?php endif; ?>
+            <input type="file" name="logo" accept="image/png,image/jpeg,image/gif,image/webp">
+            <small class="logo-field__hint">支援 PNG／JPG／GIF／WEBP,建議寬高比接近正方形,檔案 5MB 以內。上傳後將顯示於各項列印報表抬頭。</small>
+        </div>
         <label class="span-2">
             <span>會址</span>
             <input type="text" name="address" value="<?= e((string) old('address', $profile['address'] ?? '')) ?>">

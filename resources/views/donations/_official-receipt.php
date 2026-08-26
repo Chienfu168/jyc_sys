@@ -23,7 +23,13 @@ $rcInKindItem = trim((string) ($donation['in_kind_item'] ?? '')) ?: ($rcProject 
 ?>
 <article class="official-receipt">
     <header class="rc-head">
-        <h2 class="rc-org"><?= e($rcName) ?></h2>
+        <?php $rcLogo = foundation_logo_data_uri(); ?>
+        <div class="rc-org-line">
+            <?php if ($rcLogo !== null): ?>
+                <img class="rc-logo" src="<?= e($rcLogo) ?>" alt="">
+            <?php endif; ?>
+            <h2 class="rc-org"><?= e($rcName) ?></h2>
+        </div>
         <div class="rc-title">收　據</div>
     </header>
 
