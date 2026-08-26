@@ -98,7 +98,14 @@ $navWorkflow = array_values(array_filter(array_map(static function (array $group
 <body>
 <div class="app-shell <?= $currentUser ? '' : 'guest-shell' ?>">
     <?php if ($currentUser): ?>
-        <aside class="sidebar">
+        <header class="mobile-bar no-print">
+            <button type="button" class="mobile-nav-toggle" aria-label="開啟選單" aria-controls="app-sidebar" aria-expanded="false">
+                <span class="mobile-nav-toggle-bars" aria-hidden="true"></span>
+            </button>
+            <span class="mobile-bar-title"><?= e(foundation_name()) ?></span>
+        </header>
+        <div class="sidebar-backdrop no-print" hidden></div>
+        <aside class="sidebar" id="app-sidebar">
             <div class="brand">
                 <div class="brand-mark">基</div>
                 <div class="brand-text">
@@ -272,6 +279,44 @@ $navWorkflow = array_values(array_filter(array_map(static function (array $group
                 toggle();
             }
         });
+    });
+})();
+
+(function () {
+    // 行動版:側邊選單改為抽屜,漢堡按鈕開關,點連結、背景或 Esc 皆會關閉。
+    var shell = document.querySelector('.app-shell');
+    var toggle = document.querySelector('.mobile-nav-toggle');
+    var backdrop = document.querySelector('.sidebar-backdrop');
+    var sidebar = document.getElementById('app-sidebar');
+    if (!shell || !toggle || !sidebar) {
+        return;
+    }
+
+    function setOpen(open) {
+        shell.classList.toggle('nav-open', open);
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        toggle.setAttribute('aria-label', open ? '關閉選單' : '開啟選單');
+        if (backdrop) {
+            backdrop.hidden = !open;
+        }
+    }
+
+    toggle.addEventListener('click', function () {
+        setOpen(!shell.classList.contains('nav-open'));
+    });
+    if (backdrop) {
+        backdrop.addEventListener('click', function () { setOpen(false); });
+    }
+    sidebar.addEventListener('click', function (event) {
+        // 點選單內的頁面連結後自動收起,方便瀏覽內容。
+        if (event.target.closest('a')) {
+            setOpen(false);
+        }
+    });
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') {
+            setOpen(false);
+        }
     });
 })();
 </script>
