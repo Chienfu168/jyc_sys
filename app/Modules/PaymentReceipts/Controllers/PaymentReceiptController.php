@@ -46,6 +46,7 @@ final class PaymentReceiptController extends Controller
             'section' => '財務會計',
             'active' => 'payment-receipts',
             'receipt' => $this->defaultReceipt(),
+            'payees' => $this->activePayees(),
             'action' => '/payment-receipts',
         ]);
     }
@@ -62,6 +63,7 @@ final class PaymentReceiptController extends Controller
 
         $id = $this->insertReceipt($payload, null, null, null);
         AuditLog::write('create', 'payment_receipts', 'payment_receipts', $id);
+        $this->maybeSavePayee($payload);
         flash('success', '領款收據已建立。');
         redirect('/payment-receipts/' . $id);
     }
@@ -107,6 +109,7 @@ final class PaymentReceiptController extends Controller
             'section' => '財務會計',
             'active' => 'payment-receipts',
             'receipt' => $receipt,
+            'payees' => $this->activePayees(),
             'action' => '/payment-receipts/' . $id,
         ]);
     }
@@ -157,6 +160,7 @@ final class PaymentReceiptController extends Controller
         ]);
 
         AuditLog::write('update', 'payment_receipts', 'payment_receipts', (int) $id);
+        $this->maybeSavePayee($payload);
         if ($payload['status'] === 'issued') {
             $this->syncSourceReceiptStatus($this->findReceipt((int) $id), 'issued');
         }
@@ -613,6 +617,79 @@ final class PaymentReceiptController extends Controller
         $receiptNo = trim((string) ($_POST['receipt_no'] ?? ''));
         if ($receiptNo !== '' && $this->receiptNoExists($receiptNo, $ignoreId)) {
             $this->backWithInput($redirectTo, $_POST, '收據編號已存在，請改用其他編號。');
+        }
+    }
+
+    /**
+     * 啟用中的常用領款人清單,供領據表單一鍵帶入。
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function activePayees(): array
+    {
+        try {
+            return Database::pdo()->query(
+                'SELECT id, payee_name, payee_tax_id, phone, household_address, payment_type,
+                        bank_name, bank_branch, bank_account, bank_account_name, fee_category
+                 FROM payment_receipt_payees
+                 WHERE status = "active"
+                 ORDER BY sort_order, payee_name'
+            )->fetchAll();
+        } catch (\PDOException) {
+            // 常用領款人資料表尚未建立(migration 未執行)時,不影響領據開立。
+            return [];
+        }
+    }
+
+    /**
+     * 若使用者勾選「存為常用領款人」,依姓名 upsert 此領款人資料。
+     *
+     * @param array<string, mixed> $payload
+     */
+    private function maybeSavePayee(array $payload): void
+    {
+        if (($_POST['save_as_payee'] ?? '') === '' || trim((string) $payload['payee_name']) === '') {
+            return;
+        }
+
+        try {
+            Database::pdo()->prepare(
+                'INSERT INTO payment_receipt_payees
+                 (payee_name, payee_tax_id, phone, household_address, payment_type,
+                  bank_name, bank_branch, bank_account, bank_account_name, fee_category,
+                  sort_order, status, created_at, updated_at)
+                 VALUES
+                 (:payee_name, :payee_tax_id, :phone, :household_address, :payment_type,
+                  :bank_name, :bank_branch, :bank_account, :bank_account_name, :fee_category,
+                  0, "active", :created_at, :updated_at)
+                 ON DUPLICATE KEY UPDATE
+                  payee_tax_id = VALUES(payee_tax_id),
+                  phone = VALUES(phone),
+                  household_address = VALUES(household_address),
+                  payment_type = VALUES(payment_type),
+                  bank_name = VALUES(bank_name),
+                  bank_branch = VALUES(bank_branch),
+                  bank_account = VALUES(bank_account),
+                  bank_account_name = VALUES(bank_account_name),
+                  fee_category = VALUES(fee_category),
+                  status = "active",
+                  updated_at = VALUES(updated_at)'
+            )->execute([
+                'payee_name' => trim((string) $payload['payee_name']),
+                'payee_tax_id' => $payload['payee_tax_id'],
+                'phone' => $payload['phone'],
+                'household_address' => $payload['household_address'],
+                'payment_type' => $payload['payment_type'],
+                'bank_name' => $payload['bank_name'],
+                'bank_branch' => $payload['bank_branch'],
+                'bank_account' => $payload['bank_account'],
+                'bank_account_name' => $payload['bank_account_name'],
+                'fee_category' => $payload['fee_category'] !== '' ? $payload['fee_category'] : null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        } catch (\PDOException) {
+            // 常用領款人資料表尚未建立時略過,不影響領據儲存。
         }
     }
 
