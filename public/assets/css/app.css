@@ -2615,7 +2615,7 @@ textarea:focus {
 }
 
 .payment-receipt-signature > div {
-    width: 260px;
+    width: 340px;
     border: 1px solid var(--line);
     text-align: center;
 }
@@ -2629,7 +2629,7 @@ textarea:focus {
 }
 
 .payment-receipt-stamp {
-    min-height: 82px;
+    min-height: 160px;
 }
 
 .payment-receipt-print-notes {
@@ -2855,7 +2855,7 @@ textarea:focus {
     .payment-receipt-paper {
         max-width: none;
         margin: 0;
-        padding: 0;
+        padding: 16mm 10mm 0;
         border: 0;
         border-radius: 0;
         box-shadow: none;
@@ -2896,11 +2896,11 @@ textarea:focus {
     }
 
     .payment-receipt-signature {
-        margin-top: 12px;
+        margin-top: 20px;
     }
 
     .payment-receipt-stamp {
-        min-height: 58px;
+        min-height: 150px;
     }
 
     .payment-receipt-print-notes {
