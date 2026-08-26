@@ -1060,6 +1060,36 @@ textarea:focus {
     color: var(--muted);
 }
 
+/* 外部(Google 等)日曆事件:唯讀,以左側色條標示來源顏色。 */
+.calendar-event.external {
+    background: #f4f6f8;
+    color: #2a3138;
+    border-left: 3px solid #4285f4;
+    cursor: default;
+}
+
+.calendar-legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 14px;
+    margin: 12px 0 4px;
+    font-size: 13px;
+}
+
+.calendar-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.calendar-legend-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
 .calendar-more {
     background: transparent;
     color: var(--muted);

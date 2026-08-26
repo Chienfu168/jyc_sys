@@ -6,6 +6,7 @@ use App\Core\AuditLog;
 use App\Core\Controller;
 use App\Core\Database;
 use App\Core\Validator;
+use App\Modules\Calendar\Services\CalendarFeedService;
 use DateInterval;
 use DateTimeImmutable;
 use PDO;
@@ -30,6 +31,18 @@ final class CalendarController extends Controller
 
         [$events, $summary] = $this->events($monthStart, $monthEnd, $type, $status, $keyword);
 
+        // 外部(Google 等)公開日曆事件:僅在未套用內部類型/狀態篩選時疊加顯示。
+        $externalEvents = [];
+        $feeds = [];
+        if ($type === '' && $status === '') {
+            $externalEvents = $this->externalEvents(
+                $calendarStart->format('Y-m-d'),
+                $calendarEnd->format('Y-m-d'),
+                $keyword
+            );
+            $feeds = CalendarFeedService::activeFeeds();
+        }
+
         $this->render('calendar.index', [
             'title' => '行事曆管理',
             'section' => '業務與人事',
@@ -39,8 +52,10 @@ final class CalendarController extends Controller
             'status' => $status,
             'keyword' => $keyword,
             'events' => $events,
-            'weeks' => $this->weeks($calendarStart, $calendarEnd, $events),
+            'weeks' => $this->weeks($calendarStart, $calendarEnd, array_merge($events, $externalEvents)),
             'summary' => $summary,
+            'feeds' => $feeds,
+            'externalCount' => count($externalEvents),
             'prevMonth' => (new DateTimeImmutable($monthStart))->modify('-1 month')->format('Y-m'),
             'nextMonth' => (new DateTimeImmutable($monthStart))->modify('+1 month')->format('Y-m'),
         ]);
@@ -216,6 +231,35 @@ final class CalendarController extends Controller
         $events = $stmt->fetchAll();
 
         return [$events, $this->summary($events)];
+    }
+
+    /**
+     * 取得外部日曆事件並套用關鍵字篩選,標準化為與內部事件相容的欄位。
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function externalEvents(string $rangeStart, string $rangeEnd, string $keyword): array
+    {
+        $events = CalendarFeedService::eventsInRange($rangeStart, $rangeEnd);
+
+        if ($keyword !== '') {
+            $needle = mb_strtolower($keyword);
+            $events = array_values(array_filter($events, static function (array $event) use ($needle): bool {
+                $haystack = mb_strtolower(($event['title'] ?? '') . ' ' . ($event['location'] ?? '') . ' ' . ($event['description'] ?? ''));
+                return mb_strpos($haystack, $needle) !== false;
+            }));
+        }
+
+        return array_map(static function (array $event): array {
+            return $event + [
+                'event_type' => 'external',
+                'all_day' => $event['all_day'] ? 1 : 0,
+                'status' => 'scheduled',
+                'owner_name' => $event['feed_name'] ?? '',
+                'reminder_minutes' => 0,
+                'source_module' => 'calendar_feed',
+            ];
+        }, $events);
     }
 
     private function weeks(DateTimeImmutable $calendarStart, DateTimeImmutable $calendarEnd, array $events): array
