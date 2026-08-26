@@ -37,11 +37,26 @@ final class FoundationProfileController extends Controller
             $month = 1;
         }
 
+        $currentLogo = trim((string) (foundation_profile()['logo_path'] ?? ''));
+        $logoPath = $currentLogo !== '' ? $currentLogo : null;
+
+        if (!empty($_POST['remove_logo'])) {
+            $this->deleteLogo($currentLogo);
+            $logoPath = null;
+        } elseif (isset($_FILES['logo']) && ($_FILES['logo']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+            $stored = $this->storeLogo($_FILES['logo']);
+            if ($stored === null) {
+                $this->backWithInput('/foundation-profile', $_POST, 'LOGO 上傳失敗:請提供 5MB 以內的 PNG／JPG／GIF／WEBP 圖片。');
+            }
+            $this->deleteLogo($currentLogo);
+            $logoPath = $stored;
+        }
+
         Database::pdo()->prepare(
             'INSERT INTO foundation_profiles
-             (id, foundation_name, english_name, tax_id, registration_no, competent_authority, approval_date, approval_doc_no, representative, executive_director, undertaker, phone, email, website, address, mailing_address, mission, service_area, fiscal_year_start_month, updated_by, created_at, updated_at)
+             (id, foundation_name, english_name, tax_id, registration_no, competent_authority, approval_date, approval_doc_no, representative, executive_director, undertaker, phone, email, website, logo_path, address, mailing_address, mission, service_area, fiscal_year_start_month, updated_by, created_at, updated_at)
              VALUES
-             (1, :foundation_name, :english_name, :tax_id, :registration_no, :competent_authority, :approval_date, :approval_doc_no, :representative, :executive_director, :undertaker, :phone, :email, :website, :address, :mailing_address, :mission, :service_area, :fiscal_year_start_month, :updated_by, :created_at, :updated_at)
+             (1, :foundation_name, :english_name, :tax_id, :registration_no, :competent_authority, :approval_date, :approval_doc_no, :representative, :executive_director, :undertaker, :phone, :email, :website, :logo_path, :address, :mailing_address, :mission, :service_area, :fiscal_year_start_month, :updated_by, :created_at, :updated_at)
              ON DUPLICATE KEY UPDATE
                foundation_name = VALUES(foundation_name),
                english_name = VALUES(english_name),
@@ -56,6 +71,7 @@ final class FoundationProfileController extends Controller
                phone = VALUES(phone),
                email = VALUES(email),
                website = VALUES(website),
+               logo_path = VALUES(logo_path),
                address = VALUES(address),
                mailing_address = VALUES(mailing_address),
                mission = VALUES(mission),
@@ -77,6 +93,7 @@ final class FoundationProfileController extends Controller
             'phone' => trim((string) ($_POST['phone'] ?? '')),
             'email' => trim((string) ($_POST['email'] ?? '')),
             'website' => trim((string) ($_POST['website'] ?? '')),
+            'logo_path' => $logoPath,
             'address' => trim((string) ($_POST['address'] ?? '')),
             'mailing_address' => trim((string) ($_POST['mailing_address'] ?? '')),
             'mission' => trim((string) ($_POST['mission'] ?? '')),
@@ -96,5 +113,64 @@ final class FoundationProfileController extends Controller
     {
         $value = trim((string) ($_POST[$key] ?? ''));
         return preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) ? $value : null;
+    }
+
+    /**
+     * 驗證並儲存上傳的 LOGO,回傳相對於 storage/ 的路徑;失敗回傳 null。
+     *
+     * @param array<string, mixed> $file
+     */
+    private function storeLogo(array $file): ?string
+    {
+        if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+            return null;
+        }
+
+        $tmp = (string) ($file['tmp_name'] ?? '');
+        if ($tmp === '' || !is_uploaded_file($tmp)) {
+            return null;
+        }
+
+        if ((int) ($file['size'] ?? 0) <= 0 || (int) $file['size'] > 5 * 1024 * 1024) {
+            return null;
+        }
+
+        $extByType = [
+            IMAGETYPE_PNG => 'png',
+            IMAGETYPE_JPEG => 'jpg',
+            IMAGETYPE_GIF => 'gif',
+            IMAGETYPE_WEBP => 'webp',
+        ];
+        $info = @getimagesize($tmp);
+        if ($info === false || !isset($extByType[$info[2]])) {
+            return null;
+        }
+        $extension = $extByType[$info[2]];
+
+        $dir = storage_path('private_uploads/foundation');
+        if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
+            return null;
+        }
+
+        $name = 'logo_' . date('YmdHis') . '_' . bin2hex(random_bytes(6)) . '.' . $extension;
+        $target = $dir . DIRECTORY_SEPARATOR . $name;
+        if (!move_uploaded_file($tmp, $target)) {
+            return null;
+        }
+
+        return 'private_uploads/foundation/' . $name;
+    }
+
+    private function deleteLogo(string $relativePath): void
+    {
+        $relativePath = trim($relativePath);
+        if ($relativePath === '' || !str_starts_with($relativePath, 'private_uploads/foundation/')) {
+            return;
+        }
+
+        $full = storage_path($relativePath);
+        if (is_file($full)) {
+            @unlink($full);
+        }
     }
 }

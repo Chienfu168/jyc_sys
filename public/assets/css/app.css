@@ -1203,6 +1203,15 @@ textarea:focus {
     font-size: 18px;
 }
 
+.print-logo {
+    display: block;
+    max-height: 64px;
+    max-width: 220px;
+    width: auto;
+    margin: 0 auto 6px;
+    object-fit: contain;
+}
+
 .print-meta {
     display: flex;
     flex-wrap: wrap;
@@ -1221,6 +1230,53 @@ textarea:focus {
 .meta-table td {
     white-space: normal;
     line-height: 1.6;
+}
+
+.logo-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.logo-field__label {
+    font-weight: 600;
+    color: var(--text, inherit);
+}
+
+.logo-field__preview {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 14px;
+    border: 1px solid var(--border, #d8dee9);
+    border-radius: 8px;
+    background: #fff;
+    max-width: 260px;
+}
+
+.logo-field__preview img {
+    max-height: 72px;
+    max-width: 220px;
+    width: auto;
+    object-fit: contain;
+}
+
+.logo-field__remove {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.logo-field__remove input {
+    width: auto;
+    margin: 0;
+}
+
+.logo-field__hint {
+    color: var(--muted);
+    font-size: 12px;
 }
 
 .two-column-report {
@@ -1331,6 +1387,20 @@ textarea:focus {
 .official-receipt .rc-head {
     text-align: center;
     margin-bottom: 10px;
+}
+
+.official-receipt .rc-org-line {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+}
+
+.official-receipt .rc-logo {
+    height: 40px;
+    max-width: 120px;
+    width: auto;
+    object-fit: contain;
 }
 
 .official-receipt .rc-org {

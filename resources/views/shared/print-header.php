@@ -1,5 +1,9 @@
 <?php $profile = $profile ?? foundation_profile(); ?>
-<div class="print-document-header" style="display: none;">
+<?php $printLogo = foundation_logo_data_uri(); ?>
+<div class="print-document-header<?= $printLogo !== null ? ' has-logo' : '' ?>" style="display: none;">
+    <?php if ($printLogo !== null): ?>
+        <img class="print-logo" src="<?= e($printLogo) ?>" alt="">
+    <?php endif; ?>
     <h2><?= e($profile['foundation_name'] ?? foundation_name()) ?></h2>
     <?php if (!empty($documentTitle ?? '')): ?>
         <h3><?= e($documentTitle) ?></h3>

@@ -187,6 +187,7 @@ function foundation_profile(): array
         'phone' => '',
         'email' => '',
         'website' => '',
+        'logo_path' => '',
         'address' => '',
         'mailing_address' => '',
         'mission' => '',
@@ -207,6 +208,54 @@ function foundation_profile(): array
 function foundation_name(): string
 {
     return foundation_profile()['foundation_name'] ?: config('app.name');
+}
+
+/**
+ * 將設定的基金會 LOGO 讀取為 data: URI(base64),供列印文件與畫面直接內嵌。
+ *
+ * LOGO 檔案存放於 storage/(非網站可直接存取),以 data URI 內嵌可在瀏覽器
+ * 列印/另存 PDF 時穩定呈現,且不需另設路由或驗證。無 LOGO 或檔案不存在時回傳 null。
+ */
+function foundation_logo_data_uri(): ?string
+{
+    static $cached = false;
+    static $value = null;
+
+    if ($cached) {
+        return $value;
+    }
+
+    $cached = true;
+    $path = trim((string) (foundation_profile()['logo_path'] ?? ''));
+    if ($path === '') {
+        return $value = null;
+    }
+
+    $full = storage_path($path);
+    if (!is_file($full) || !is_readable($full)) {
+        return $value = null;
+    }
+
+    $mimeByExt = [
+        'png' => 'image/png',
+        'jpg' => 'image/jpeg',
+        'jpeg' => 'image/jpeg',
+        'gif' => 'image/gif',
+        'webp' => 'image/webp',
+        'svg' => 'image/svg+xml',
+    ];
+    $ext = strtolower(pathinfo($full, PATHINFO_EXTENSION));
+    $mime = $mimeByExt[$ext] ?? null;
+    if ($mime === null) {
+        return $value = null;
+    }
+
+    $data = @file_get_contents($full);
+    if ($data === false || $data === '') {
+        return $value = null;
+    }
+
+    return $value = 'data:' . $mime . ';base64,' . base64_encode($data);
 }
 
 /** 目前登入者的使用者編號(未登入為 0)。 */
