@@ -317,6 +317,46 @@ final class PurchaseRequestController extends Controller
         redirect('/purchase-requests/' . $id);
     }
 
+    public function destroy(string $id): void
+    {
+        $request = $this->findRequest((int) $id);
+        $this->requireManageOrOwner('purchase_requests.manage', $request['created_by'] ?? null);
+
+        // 已完成驗收的採購申請不可刪除(保留軌跡),請改用作廢。
+        if (($request['status'] ?? '') === 'received') {
+            flash('error', '已完成驗收的採購申請不可刪除，請改用作廢。');
+            redirect('/purchase-requests/' . $id);
+        }
+
+        $pdo = Database::pdo();
+
+        // 先移除附件實體檔案,再刪明細、附件與主檔。
+        $attachments = $pdo->prepare('SELECT stored_path FROM purchase_request_attachments WHERE purchase_request_id = :id');
+        $attachments->execute(['id' => (int) $id]);
+        foreach ($attachments->fetchAll(PDO::FETCH_COLUMN) as $storedPath) {
+            $path = storage_path((string) $storedPath);
+            if ($this->attachmentPathIsSafe($path) && is_file($path)) {
+                @unlink($path);
+            }
+        }
+
+        $pdo->beginTransaction();
+        try {
+            $pdo->prepare('DELETE FROM purchase_request_attachments WHERE purchase_request_id = :id')->execute(['id' => (int) $id]);
+            $pdo->prepare('DELETE FROM purchase_request_items WHERE purchase_request_id = :id')->execute(['id' => (int) $id]);
+            $pdo->prepare('DELETE FROM purchase_requests WHERE id = :id')->execute(['id' => (int) $id]);
+            $pdo->commit();
+        } catch (\Throwable) {
+            $pdo->rollBack();
+            flash('error', '採購申請刪除失敗，可能仍有關聯資料。');
+            redirect('/purchase-requests/' . $id);
+        }
+
+        AuditLog::write('delete', 'purchase_requests', 'purchase_requests', (int) $id, ['subject' => $request['subject'] ?? null]);
+        flash('success', '採購申請已刪除。');
+        redirect('/purchase-requests');
+    }
+
     public function storeAttachment(string $id): void
     {
         $this->requirePermission('purchase_requests.manage');

@@ -6,7 +6,7 @@ return [
     'debug' => env_bool('APP_DEBUG', false),
     'url' => env('APP_URL', 'http://localhost:8000'),
     'timezone' => env('APP_TIMEZONE', 'Asia/Taipei'),
-    'version' => env('APP_VERSION', '0.6.82'),
+    'version' => env('APP_VERSION', '0.6.83'),
     'github_repo' => env('GITHUB_REPO', ''),
     'github_token' => env('GITHUB_TOKEN', ''),
     'update_channel' => env('UPDATE_CHANNEL', 'stable'),
