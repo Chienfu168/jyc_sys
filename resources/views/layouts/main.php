@@ -107,14 +107,8 @@ $navWorkflow = array_values(array_filter(array_map(static function (array $group
                 </div>
             </div>
 
-            <?php
-            // 手風琴側邊欄:預設僅展開含目前頁面的群組,其餘先疊起(無 JS 亦適用)。
-            $overviewOpen = $activeKey === 'dashboard' || $approvalsActive;
-            $backOfficeOpen = in_array($activeKey, ['users', 'roles'], true);
-            $systemOpen = in_array($activeKey, ['foundation-profile', 'system-security', 'system-update', 'system-update-db'], true);
-            ?>
             <nav class="nav" aria-label="主選單">
-                <div class="nav-section<?= $overviewOpen ? '' : ' collapsed' ?>">
+                <div class="nav-section collapsed">
                     <span class="nav-section-title">總覽</span>
                     <a class="<?= $activeKey === 'dashboard' ? 'active' : '' ?>" href="/">
                         <span class="nav-icon">總</span>
@@ -127,8 +121,7 @@ $navWorkflow = array_values(array_filter(array_map(static function (array $group
                 </div>
 
                 <?php foreach ($navWorkflow as $group): ?>
-                    <?php $groupOpen = in_array($activeKey, array_column($group['items'], 'key'), true); ?>
-                    <div class="nav-section<?= $groupOpen ? '' : ' collapsed' ?>">
+                    <div class="nav-section collapsed">
                         <span class="nav-section-title"><?= e($group['title']) ?></span>
                         <?php foreach ($group['items'] as $item): ?>
                             <a class="<?= $activeKey === $item['key'] ? 'active' : '' ?>" href="<?= e($item['href']) ?>">
@@ -140,7 +133,7 @@ $navWorkflow = array_values(array_filter(array_map(static function (array $group
                 <?php endforeach; ?>
 
                 <?php if (\App\Core\Permission::can('users.view') || \App\Core\Permission::can('roles.view')): ?>
-                    <div class="nav-section<?= $backOfficeOpen ? '' : ' collapsed' ?>">
+                    <div class="nav-section collapsed">
                         <span class="nav-section-title">後台管理</span>
                         <?php if (\App\Core\Permission::can('users.view')): ?>
                             <a class="<?= $activeKey === 'users' ? 'active' : '' ?>" href="/users">
@@ -158,7 +151,7 @@ $navWorkflow = array_values(array_filter(array_map(static function (array $group
                 <?php endif; ?>
 
                 <?php if (\App\Core\Permission::can('system_updates.manage') || \App\Core\Permission::can('foundation_profile.view')): ?>
-                    <div class="nav-section<?= $systemOpen ? '' : ' collapsed' ?>">
+                    <div class="nav-section collapsed">
                         <span class="nav-section-title">系統設定</span>
                         <?php if (\App\Core\Permission::can('foundation_profile.view')): ?>
                             <a class="<?= $activeKey === 'foundation-profile' ? 'active' : '' ?>" href="/foundation-profile">
@@ -233,7 +226,6 @@ $navWorkflow = array_values(array_filter(array_map(static function (array $group
     if (!nav) {
         return;
     }
-    var KEY = 'nav-open-group';
     var sections = Array.prototype.slice.call(nav.querySelectorAll('.nav-section'));
 
     function titleOf(section) {
@@ -245,7 +237,7 @@ $navWorkflow = array_values(array_filter(array_map(static function (array $group
     }
 
     // 僅展開指定名稱的群組,其餘一律疊起;openName 為空字串代表全部疊起。
-    function apply(openName, persist) {
+    function apply(openName) {
         sections.forEach(function (section) {
             var title = titleOf(section);
             if (!title) {
@@ -255,35 +247,10 @@ $navWorkflow = array_values(array_filter(array_map(static function (array $group
             section.classList.toggle('collapsed', !open);
             title.setAttribute('aria-expanded', open ? 'true' : 'false');
         });
-        if (persist) {
-            try {
-                if (openName) {
-                    localStorage.setItem(KEY, openName);
-                } else {
-                    localStorage.removeItem(KEY);
-                }
-            } catch (e) {}
-        }
     }
 
-    // 初始展開順序:含目前頁面的群組 → 上次展開的群組 → 全部疊起。
-    var activeSection = sections.filter(function (section) {
-        return section.querySelector('a.active');
-    })[0];
-    var initial = '';
-    if (activeSection) {
-        initial = nameOf(activeSection);
-    } else {
-        try {
-            initial = localStorage.getItem(KEY) || '';
-        } catch (e) {
-            initial = '';
-        }
-        if (initial && !sections.some(function (section) { return nameOf(section) === initial; })) {
-            initial = '';
-        }
-    }
-    apply(initial, false);
+    // 預設全部疊起,由使用者自行點選展開。
+    apply('');
 
     sections.forEach(function (section) {
         var title = titleOf(section);
@@ -295,7 +262,7 @@ $navWorkflow = array_values(array_filter(array_map(static function (array $group
 
         function toggle() {
             var isOpen = !section.classList.contains('collapsed');
-            apply(isOpen ? '' : nameOf(section), true);
+            apply(isOpen ? '' : nameOf(section));
         }
 
         title.addEventListener('click', toggle);
