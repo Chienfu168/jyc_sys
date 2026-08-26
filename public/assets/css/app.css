@@ -77,6 +77,15 @@ a {
     overflow-y: auto;
 }
 
+/* 行動版頂列(漢堡按鈕),桌機不顯示。 */
+.mobile-bar {
+    display: none;
+}
+
+.sidebar-backdrop {
+    display: none;
+}
+
 .brand,
 .auth-heading {
     display: flex;
@@ -2875,10 +2884,105 @@ textarea:focus {
         display: block;
     }
 
+    /* 行動版頂列:固定於頂端,含漢堡按鈕與基金會名稱。 */
+    .mobile-bar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        position: sticky;
+        top: 0;
+        z-index: 60;
+        padding: 10px 14px;
+        background: var(--sidebar);
+        color: #fff;
+    }
+
+    .mobile-bar-title {
+        font-size: 16px;
+        font-weight: 700;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .mobile-nav-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        width: 42px;
+        height: 42px;
+        padding: 0;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        border-radius: 8px;
+        background: transparent;
+        cursor: pointer;
+    }
+
+    .mobile-nav-toggle-bars,
+    .mobile-nav-toggle-bars::before,
+    .mobile-nav-toggle-bars::after {
+        content: "";
+        display: block;
+        width: 20px;
+        height: 2px;
+        background: #fff;
+        border-radius: 2px;
+        transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+
+    .mobile-nav-toggle-bars {
+        position: relative;
+    }
+
+    .mobile-nav-toggle-bars::before {
+        position: absolute;
+        top: -6px;
+    }
+
+    .mobile-nav-toggle-bars::after {
+        position: absolute;
+        top: 6px;
+    }
+
+    /* 開啟時漢堡變成關閉叉。 */
+    .app-shell.nav-open .mobile-nav-toggle-bars {
+        background: transparent;
+    }
+
+    .app-shell.nav-open .mobile-nav-toggle-bars::before {
+        top: 0;
+        transform: rotate(45deg);
+    }
+
+    .app-shell.nav-open .mobile-nav-toggle-bars::after {
+        top: 0;
+        transform: rotate(-45deg);
+    }
+
+    /* 側邊選單改為由左側滑出的抽屜,預設收起。 */
     .sidebar {
-        position: static;
-        width: 100%;
-        height: auto;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: min(84vw, 320px);
+        height: 100vh;
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        z-index: 70;
+        box-shadow: 2px 0 16px rgba(0, 0, 0, 0.28);
+    }
+
+    .app-shell.nav-open .sidebar {
+        transform: translateX(0);
+    }
+
+    .app-shell.nav-open .sidebar-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 65;
+        background: rgba(0, 0, 0, 0.45);
     }
 
     .login-shell {
