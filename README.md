@@ -5,6 +5,7 @@ PHP + MySQL 的內部管理系統，目標是部署在一般租用主機 / cPane
 ## 目前功能
 
 - 登入、登出、忘記密碼與重設密碼
+- 登入「記住我」：勾選後於該裝置以 selector／validator 雙段式持久權杖（資料庫僅存 sha256 雜湊、HttpOnly + SameSite=Lax cookie）記住登入，預設 30 天內（`REMEMBER_LIFETIME_DAYS` 可調）免重新登入，適合安裝為 App／PWA 長期使用；未勾選者維持既有較短閒置逾時。登出、變更密碼或帳號停用會撤銷持久權杖
 - CSRF 防護、登入嘗試限制、操作紀錄
 - 使用者管理、角色權限檢視與權限勾選管理
 - 硬刪除權限採最高權限控管：捐款人、工作計畫、年度預算、財產、收支紀錄、講師支出、出差費用、薪資、領款收據、銀行帳戶、使用者、角色、會計科目、會計傳票、期初餘額等模組的刪除僅系統管理員可用，並附關聯保護（已入帳／有關聯資料者擋下）；刪除會計傳票會一併移除分錄並解除來源紀錄的傳票連結
@@ -77,7 +78,7 @@ https://你的網域/install.php
 `.env` 主要設定：
 
 ```env
-APP_VERSION=0.6.87
+APP_VERSION=0.6.88
 GITHUB_REPO=Chienfu168/jyc_sys
 GITHUB_TOKEN=
 UPDATE_CHANNEL=stable

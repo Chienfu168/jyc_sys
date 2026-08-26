@@ -123,6 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     Csrf::verify();
 }
 
+Auth::instance()->attemptRememberLogin();
 Auth::instance()->enforceSessionLifetime();
 
 $router = new Router();
