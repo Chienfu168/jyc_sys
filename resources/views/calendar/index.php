@@ -44,10 +44,23 @@ ob_start();
             <a class="btn" href="/calendar?month=<?= e($prevMonth) ?>">上個月</a>
             <a class="btn" href="/calendar?month=<?= e($nextMonth) ?>">下個月</a>
             <?php if (\App\Core\Permission::can('calendar.manage')): ?>
+                <a class="btn" href="/calendar-feeds">連結外部日曆</a>
                 <a class="btn primary" href="/calendar/create">新增事件</a>
             <?php endif; ?>
         </div>
     </div>
+
+    <?php if (!empty($feeds ?? [])): ?>
+        <div class="calendar-legend">
+            <span class="muted-text">外部日曆：</span>
+            <?php foreach ($feeds as $feed): ?>
+                <span class="calendar-legend-item">
+                    <span class="calendar-legend-dot" style="background: <?= e($feed['color']) ?>;"></span>
+                    <?= e($feed['name']) ?>
+                </span>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
 
     <div class="calendar-grid">
         <?php foreach (['日', '一', '二', '三', '四', '五', '六'] as $dayName): ?>
@@ -63,10 +76,17 @@ ob_start();
                     </div>
                     <div class="calendar-events">
                         <?php foreach (array_slice($day['events'], 0, 3) as $event): ?>
-                            <a class="calendar-event <?= e($event['event_type']) ?>" href="/calendar/<?= e((string) $event['id']) ?>">
-                                <span><?= e(calendar_time($event)) ?></span>
-                                <?= e($event['title']) ?>
-                            </a>
+                            <?php if (!empty($event['external'])): ?>
+                                <span class="calendar-event external" style="border-left-color: <?= e($event['feed_color'] ?? '#4285F4') ?>;" title="<?= e(($event['feed_name'] ?? '外部日曆') . '：' . $event['title']) ?>">
+                                    <span><?= e(calendar_time($event)) ?></span>
+                                    <?= e($event['title']) ?>
+                                </span>
+                            <?php else: ?>
+                                <a class="calendar-event <?= e($event['event_type']) ?>" href="/calendar/<?= e((string) $event['id']) ?>">
+                                    <span><?= e(calendar_time($event)) ?></span>
+                                    <?= e($event['title']) ?>
+                                </a>
+                            <?php endif; ?>
                         <?php endforeach; ?>
                         <?php if (count($day['events']) > 3): ?>
                             <span class="calendar-more">另有 <?= e((string) (count($day['events']) - 3)) ?> 筆</span>
