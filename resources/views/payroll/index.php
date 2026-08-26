@@ -82,6 +82,12 @@ ob_start();
                         <?php if (\App\Core\Permission::can('payroll.manage')): ?>
                             <a class="btn small" href="/payroll/<?= e((string) $record['id']) ?>/edit">編輯</a>
                         <?php endif; ?>
+                        <?php if ((\App\Core\Permission::can('payroll.manage') || owns_record($record['created_by'] ?? null)) && empty($record['accounting_voucher_id'])): ?>
+                            <form method="post" action="/payroll/<?= e((string) $record['id']) ?>/delete" onsubmit="return confirm('確定要刪除此薪資紀錄？此操作無法復原。');">
+                                <?= csrf_field() ?>
+                                <button class="btn small danger" type="submit">刪除</button>
+                            </form>
+                        <?php endif; ?>
                     </td>
                 </tr>
             <?php endforeach; ?>
