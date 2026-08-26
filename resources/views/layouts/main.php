@@ -3,7 +3,7 @@ $currentUser = auth()->user();
 $activeKey = $active ?? '';
 $approvalsActive = $activeKey === 'approvals';
 
-// 依基金會工作流程分組的側邊欄模組(捐贈收入 → 業務執行 → 人事 → 支出核銷 → 帳務)。
+// 依基金會工作流程分組的側邊欄模組(捐贈收入 → 業務推動 → 人事差勤 → 支出核銷 → 會計帳務 → 主管機關核備)。
 // 每個項目依 view 權限顯示;群組內全無可見項目時整組隱藏。
 $navWorkflow = [
     ['title' => '捐贈與收入', 'items' => [
@@ -16,17 +16,6 @@ $navWorkflow = [
         ['perm' => 'lecturers.view', 'key' => 'lecturers', 'href' => '/lecturers', 'icon' => '師', 'label' => '講師管理'],
         ['perm' => 'volunteers.view', 'key' => 'volunteers', 'href' => '/volunteers', 'icon' => '志', 'label' => '志工管理'],
         ['perm' => 'calendar.view', 'key' => 'calendar', 'href' => '/calendar', 'icon' => '曆', 'label' => '行事曆管理'],
-    ]],
-    // 陳報／核備主管機關(教育局)的治理文件集中一區。
-    ['title' => '主管機關核備', 'items' => [
-        ['perm' => 'board_meetings.view', 'key' => 'board-meetings', 'href' => '/board-meetings', 'icon' => '董', 'label' => '董事會議'],
-        ['perm' => 'work_plans.view', 'key' => 'work-plans', 'href' => '/work-plans', 'icon' => '計', 'label' => '工作計畫'],
-        ['perm' => 'annual_budgets.view', 'key' => 'annual-budgets', 'href' => '/annual-budgets', 'icon' => '預', 'label' => '年度預算'],
-        ['perm' => 'operating_statements.view', 'key' => 'operating-statements', 'href' => '/operating-statements', 'icon' => '營', 'label' => '收支營運表'],
-        ['perm' => 'balance_sheets.view', 'key' => 'balance-sheets', 'href' => '/balance-sheets', 'icon' => '資', 'label' => '資產負債表'],
-        ['perm' => 'cash_flow_statements.view', 'key' => 'cash-flow-statements', 'href' => '/cash-flow-statements', 'icon' => '流', 'label' => '現金流量表'],
-        ['perm' => 'net_asset_statements.view', 'key' => 'net-asset-statements', 'href' => '/net-asset-statements', 'icon' => '淨', 'label' => '淨值變動表'],
-        ['perm' => 'official_letters.view', 'key' => 'official-letters', 'href' => '/official-letters', 'icon' => '函', 'label' => '陳報公文'],
     ]],
     ['title' => '人事差勤', 'items' => [
         ['perm' => 'personnel.view', 'key' => 'personnel', 'href' => '/personnel', 'icon' => '人', 'label' => '人事管理'],
@@ -45,6 +34,17 @@ $navWorkflow = [
         ['perm' => 'accounting.view', 'key' => 'accounting', 'href' => '/accounting', 'icon' => '會', 'label' => '會計系統'],
         ['perm' => 'bank_accounts.view', 'key' => 'bank-accounts', 'href' => '/bank-accounts', 'icon' => '銀', 'label' => '銀行帳戶'],
         ['perm' => 'opening_balances.view', 'key' => 'opening-balances', 'href' => '/opening-balances', 'icon' => '初', 'label' => '期初餘額'],
+    ]],
+    // 陳報／核備主管機關(教育局)的治理文件集中一區,置於帳務之後(決算報表依帳務彙整)。
+    ['title' => '主管機關核備', 'items' => [
+        ['perm' => 'board_meetings.view', 'key' => 'board-meetings', 'href' => '/board-meetings', 'icon' => '董', 'label' => '董事會議'],
+        ['perm' => 'work_plans.view', 'key' => 'work-plans', 'href' => '/work-plans', 'icon' => '計', 'label' => '工作計畫'],
+        ['perm' => 'annual_budgets.view', 'key' => 'annual-budgets', 'href' => '/annual-budgets', 'icon' => '預', 'label' => '年度預算'],
+        ['perm' => 'operating_statements.view', 'key' => 'operating-statements', 'href' => '/operating-statements', 'icon' => '營', 'label' => '收支營運表'],
+        ['perm' => 'balance_sheets.view', 'key' => 'balance-sheets', 'href' => '/balance-sheets', 'icon' => '資', 'label' => '資產負債表'],
+        ['perm' => 'cash_flow_statements.view', 'key' => 'cash-flow-statements', 'href' => '/cash-flow-statements', 'icon' => '流', 'label' => '現金流量表'],
+        ['perm' => 'net_asset_statements.view', 'key' => 'net-asset-statements', 'href' => '/net-asset-statements', 'icon' => '淨', 'label' => '淨值變動表'],
+        ['perm' => 'official_letters.view', 'key' => 'official-letters', 'href' => '/official-letters', 'icon' => '函', 'label' => '陳報公文'],
     ]],
 ];
 
