@@ -4,9 +4,7 @@ $documentTitle = '捐款收據';
 $canManage = \App\Core\Permission::can('donations.manage');
 ob_start();
 ?>
-<?php require base_path('resources/views/shared/print-header.php'); ?>
-
-<section class="panel">
+<section class="panel receipt-print-shell">
     <div class="panel-header no-print">
         <div>
             <p class="eyebrow">捐款收據</p>
