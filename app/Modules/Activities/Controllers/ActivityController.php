@@ -99,7 +99,9 @@ final class ActivityController extends Controller
                 'starts_at' => date('Y-m-d H:i'),
                 'ends_at' => '',
                 'location' => '',
-                'project_id' => '',
+                'project_id' => (int) ($_GET['project_id'] ?? 0) ?: '',
+                'session_no' => '',
+                'session_topic' => '',
                 'status' => 'draft',
                 'description' => '',
             ],
@@ -115,9 +117,9 @@ final class ActivityController extends Controller
 
         Database::pdo()->prepare(
             'INSERT INTO activities
-             (project_id, title, starts_at, ends_at, location, status, description, created_by, created_at, updated_at)
+             (project_id, session_no, session_topic, title, starts_at, ends_at, location, status, description, created_by, created_at, updated_at)
              VALUES
-             (:project_id, :title, :starts_at, :ends_at, :location, :status, :description, :created_by, :created_at, :updated_at)'
+             (:project_id, :session_no, :session_topic, :title, :starts_at, :ends_at, :location, :status, :description, :created_by, :created_at, :updated_at)'
         )->execute($this->payload() + [
             'created_by' => auth()->user()['id'] ?? null,
             'created_at' => now(),
@@ -173,6 +175,8 @@ final class ActivityController extends Controller
         Database::pdo()->prepare(
             'UPDATE activities
              SET project_id = :project_id,
+                 session_no = :session_no,
+                 session_topic = :session_topic,
                  title = :title,
                  starts_at = :starts_at,
                  ends_at = :ends_at,
@@ -480,9 +484,12 @@ final class ActivityController extends Controller
     private function payload(): array
     {
         $projectId = (int) ($_POST['project_id'] ?? 0);
+        $sessionNo = trim((string) ($_POST['session_no'] ?? ''));
 
         return [
             'project_id' => $projectId > 0 ? $projectId : null,
+            'session_no' => ($projectId > 0 && $sessionNo !== '' && ctype_digit($sessionNo)) ? (int) $sessionNo : null,
+            'session_topic' => $projectId > 0 ? (trim((string) ($_POST['session_topic'] ?? '')) ?: null) : null,
             'title' => trim((string) $_POST['title']),
             'starts_at' => $this->datetimeValue('starts_at'),
             'ends_at' => $this->datetimeValue('ends_at'),
