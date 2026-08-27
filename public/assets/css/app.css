@@ -2846,15 +2846,87 @@ textarea:focus {
         page-break-after: auto;
     }
 
+    /* 收據列印:壓縮版面高度,確保單張完整落在一頁 A4 內。 */
+    .receipt-print-shell {
+        padding: 0 !important;
+        border: 0 !important;
+        margin: 0 !important;
+    }
+
     .official-receipt {
         max-width: none;
         margin: 0;
-        padding: 14mm 0 0;
+        padding: 6mm 0 0;
+        line-height: 1.5;
         break-inside: avoid;
     }
 
+    .official-receipt .rc-head {
+        margin-bottom: 6px;
+    }
+
+    .official-receipt .rc-org {
+        font-size: 20px;
+    }
+
+    .official-receipt .rc-logo {
+        height: 34px;
+    }
+
+    .official-receipt .rc-title {
+        font-size: 23px;
+        margin: 2px 0 8px;
+    }
+
+    .official-receipt .rc-datno {
+        margin-bottom: 8px;
+        padding-bottom: 3px;
+    }
+
+    .official-receipt .rc-recital {
+        font-size: 15px;
+        margin: 6px 0 8px;
+    }
+
+    .official-receipt .rc-body {
+        padding: 8px 12px;
+        margin: 8px 0;
+    }
+
+    .official-receipt .rc-row {
+        font-size: 15px;
+        margin: 2px 0;
+    }
+
+    .official-receipt .rc-thanks {
+        font-size: 15px;
+        margin: 10px 0 14px;
+    }
+
+    .official-receipt .rc-stamps {
+        margin-top: 4px;
+    }
+
     .official-receipt .rc-stamp-box {
+        width: 3.8cm;
+        height: 3.8cm;
         border-color: #cccccc;
+    }
+
+    .official-receipt .rc-stamp-label {
+        margin-bottom: 4px;
+    }
+
+    .official-receipt .rc-stamp-people {
+        font-size: 14px;
+        line-height: 2.1;
+    }
+
+    .official-receipt .rc-footer {
+        margin-top: 10px;
+        padding-top: 6px;
+        font-size: 11.5px;
+        line-height: 1.55;
     }
 
     .board-meeting-print {
