@@ -6,7 +6,7 @@ ob_start();
     <div class="panel-header">
         <div>
             <h2>連結外部日曆</h2>
-            <p class="muted-text">貼上 Google 等公開日曆的 iCal（.ics）訂閱網址，事件會唯讀顯示於行事曆。可連結多個。</p>
+            <p class="muted-text">貼上 Google 等公開日曆的 iCal（.ics）訂閱網址，事件會唯讀顯示於行事曆。可連結多個。行事曆頁面採用已同步的快取顯示（不會即時抓取以免拖慢頁面）；外部日曆有更新時，請按「同步」或「全部同步」重新抓取。</p>
         </div>
         <div class="actions">
             <a class="btn" href="/calendar">返回行事曆</a>

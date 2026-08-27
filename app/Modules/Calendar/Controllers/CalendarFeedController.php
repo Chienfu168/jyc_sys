@@ -65,9 +65,11 @@ final class CalendarFeedController extends Controller
         AuditLog::write('create', 'calendar', 'calendar_feeds', $id);
 
         // 建立後立即嘗試同步一次,讓事件盡快顯示。
-        CalendarFeedService::sync($id);
-
-        flash('success', '外部日曆已新增，並已嘗試同步一次。');
+        if (CalendarFeedService::sync($id)) {
+            flash('success', '外部日曆已新增並同步成功，事件將顯示於行事曆。');
+        } else {
+            flash('error', '外部日曆已新增，但同步失敗，請查看清單上的錯誤訊息並確認網址為公開的 iCal（.ics）連結。');
+        }
         redirect('/calendar-feeds');
     }
 
@@ -155,9 +157,9 @@ final class CalendarFeedController extends Controller
             $this->backWithInput($path, $_POST, $error);
         }
 
-        $url = trim((string) $_POST['ics_url']);
+        $url = CalendarFeedService::normalizeUrl((string) $_POST['ics_url']);
         if (!preg_match('#^https?://#i', $url)) {
-            $this->backWithInput($path, $_POST, 'iCal 網址需以 http:// 或 https:// 開頭（Google 日曆的「iCal 格式的公開網址」）。');
+            $this->backWithInput($path, $_POST, 'iCal 網址需以 http://、https:// 或 webcal:// 開頭（Google 日曆的「iCal 格式的公開網址」）。');
         }
     }
 
@@ -171,7 +173,7 @@ final class CalendarFeedController extends Controller
 
         return [
             'name' => trim((string) $_POST['name']),
-            'ics_url' => trim((string) $_POST['ics_url']),
+            'ics_url' => CalendarFeedService::normalizeUrl((string) $_POST['ics_url']),
             'color' => $color,
             'sort_order' => max(0, (int) ($_POST['sort_order'] ?? 0)),
             'status' => ($_POST['status'] ?? '') === 'disabled' ? 'disabled' : 'active',
