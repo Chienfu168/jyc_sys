@@ -270,6 +270,18 @@ a {
     max-width: 760px;
 }
 
+.panel.subtle {
+    background: var(--surface-2, #f6f8f7);
+    border: 1px solid var(--line, #e2e8e5);
+}
+
+.field-hint {
+    font-weight: 400;
+    color: var(--muted);
+    font-size: 12px;
+    margin-left: 4px;
+}
+
 .panel-header {
     display: flex;
     justify-content: space-between;

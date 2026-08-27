@@ -140,8 +140,9 @@ ob_start();
         <table>
             <thead>
             <tr>
+                <th>週次</th>
                 <th>活動時間</th>
-                <th>活動名稱</th>
+                <th>活動名稱 / 單元主題</th>
                 <th>地點</th>
                 <th class="amount">志工時數</th>
                 <th>狀態</th>
@@ -150,19 +151,80 @@ ob_start();
             <tbody>
             <?php foreach ($activities as $activity): ?>
                 <tr>
+                    <td><?= $activity['session_no'] !== null ? '第 ' . e((string) $activity['session_no']) . ' 週' : '-' ?></td>
                     <td><?= e(project_show_activity_datetime($activity['starts_at'])) ?></td>
-                    <td><a class="text-link" href="/activities/<?= e((string) $activity['id']) ?>"><?= e($activity['title']) ?></a></td>
+                    <td>
+                        <a class="text-link" href="/activities/<?= e((string) $activity['id']) ?>"><?= e($activity['title']) ?></a>
+                        <?php if (!empty($activity['session_topic'])): ?><div class="muted-text"><?= e($activity['session_topic']) ?></div><?php endif; ?>
+                    </td>
                     <td><?= e($activity['location'] ?: '-') ?></td>
                     <td class="amount"><?= e(number_format((float) $activity['volunteer_hours'], 2)) ?></td>
                     <td><?= e(project_show_activity_status_label($activity['status'])) ?></td>
                 </tr>
             <?php endforeach; ?>
             <?php if (!$activities): ?>
-                <tr><td colspan="5" class="empty">尚無連結活動。</td></tr>
+                <tr><td colspan="6" class="empty">尚無連結活動。</td></tr>
             <?php endif; ?>
             </tbody>
         </table>
     </div>
+
+    <?php if (\App\Core\Permission::can('projects.manage')): ?>
+        <section class="panel subtle no-print" style="margin-top:18px;">
+            <div class="panel-header">
+                <div>
+                    <h3 style="margin:0;">批次產生課程週次</h3>
+                    <p class="muted-text">搭配學期規劃深耕課程，一次產生多週上課活動（預設 16 週），可跳過假日／考試週。每週自動歸屬本專案並同步行事曆。</p>
+                </div>
+            </div>
+            <form class="form grid-form" method="post" action="/projects/<?= e((string) $project['id']) ?>/generate-sessions" onsubmit="return confirm('確定要依此設定批次產生課程週次？');">
+                <?= csrf_field() ?>
+                <label class="span-2">
+                    <span>課程名稱前綴</span>
+                    <input type="text" name="title_prefix" value="<?= e((string) old('title_prefix', $project['name'])) ?>" placeholder="每筆會加上「第 N 週」">
+                </label>
+                <label>
+                    <span>第一次上課日期</span>
+                    <input type="date" name="start_date" value="<?= e((string) old('start_date', $project['start_date'] ?: '')) ?>" required>
+                </label>
+                <label>
+                    <span>週數</span>
+                    <input type="number" name="weeks" min="1" max="40" value="<?= e((string) old('weeks', '16')) ?>" required>
+                </label>
+                <label>
+                    <span>間隔週數</span>
+                    <input type="number" name="interval_weeks" min="1" max="8" value="<?= e((string) old('interval_weeks', '1')) ?>">
+                </label>
+                <label>
+                    <span>每次開始時間</span>
+                    <input type="time" name="start_time" value="<?= e((string) old('start_time', '14:00')) ?>">
+                </label>
+                <label>
+                    <span>每次結束時間</span>
+                    <input type="time" name="end_time" value="<?= e((string) old('end_time', '16:00')) ?>">
+                </label>
+                <label>
+                    <span>初始狀態</span>
+                    <?php $genStatus = old('status', 'published'); ?>
+                    <select name="status">
+                        <option value="published" <?= $genStatus === 'published' ? 'selected' : '' ?>>已發布</option>
+                        <option value="draft" <?= $genStatus === 'draft' ? 'selected' : '' ?>>草稿</option>
+                    </select>
+                </label>
+                <label class="span-2">
+                    <span>上課地點</span>
+                    <input type="text" name="location" value="<?= e((string) old('location', '')) ?>">
+                </label>
+                <label class="span-2">
+                    <span>排除日期（假日／考試週，選填）</span>
+                    <textarea name="exclude_dates" placeholder="每行或以逗號分隔，格式 2026-10-10。落在這些日期的週次會略過，並自動順延補足週數。"><?= e((string) old('exclude_dates', '')) ?></textarea>
+                </label>
+                <div class="form-actions span-2">
+                    <button class="btn primary" type="submit">批次產生</button>
+                </div>
+            </form>
+        </section>
+    <?php endif; ?>
 
     <?php require base_path('resources/views/shared/signatures.php'); ?>
 </section>

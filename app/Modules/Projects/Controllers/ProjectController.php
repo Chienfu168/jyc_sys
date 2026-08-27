@@ -178,6 +178,179 @@ final class ProjectController extends Controller
         redirect('/projects/' . $id);
     }
 
+    /**
+     * 依專案批次產生課程週次活動(搭配學期的深耕課程,預設 16 週)。
+     *
+     * 以開始日期為第一次上課,每隔 N 週產生一次,遇到排除日期(假日／考試週)略過,
+     * 直到累計出指定的實際上課次數為止;每筆同步建立行事曆事件並歸屬本專案,
+     * 週次自既有最大週次接續編號,可分批產生。
+     */
+    public function generateSessions(string $id): void
+    {
+        $this->requirePermission('projects.manage');
+        $project = $this->findProject((int) $id);
+        $projectId = (int) $project['id'];
+        $back = '/projects/' . $projectId;
+
+        $startDate = trim((string) ($_POST['start_date'] ?? ''));
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $startDate) || !$this->isValidDate($startDate)) {
+            $this->backWithInput($back, $_POST, '開始日期格式不正確。');
+        }
+
+        $startTime = $this->timeValue((string) ($_POST['start_time'] ?? '14:00'));
+        if ($startTime === null) {
+            $this->backWithInput($back, $_POST, '上課開始時間格式不正確(請用 HH:MM)。');
+        }
+        $endTimeRaw = trim((string) ($_POST['end_time'] ?? ''));
+        $endTime = $endTimeRaw === '' ? null : $this->timeValue($endTimeRaw);
+        if ($endTimeRaw !== '' && $endTime === null) {
+            $this->backWithInput($back, $_POST, '上課結束時間格式不正確(請用 HH:MM)。');
+        }
+        if ($endTime !== null && $endTime <= $startTime) {
+            $this->backWithInput($back, $_POST, '結束時間必須晚於開始時間。');
+        }
+
+        $weeks = (int) ($_POST['weeks'] ?? 16);
+        if ($weeks < 1 || $weeks > 40) {
+            $this->backWithInput($back, $_POST, '週數請填 1 到 40。');
+        }
+        $intervalWeeks = (int) ($_POST['interval_weeks'] ?? 1);
+        if ($intervalWeeks < 1 || $intervalWeeks > 8) {
+            $this->backWithInput($back, $_POST, '間隔週數請填 1 到 8。');
+        }
+
+        $status = in_array(($_POST['status'] ?? ''), ['draft', 'published', 'closed', 'cancelled'], true)
+            ? (string) $_POST['status']
+            : 'published';
+        $location = trim((string) ($_POST['location'] ?? ''));
+        $titlePrefix = trim((string) ($_POST['title_prefix'] ?? '')) ?: (string) $project['name'];
+
+        // 排除日期(假日／考試週):以換行、逗號或空白分隔,保留合法且存在的日期。
+        $excludeSet = [];
+        foreach (preg_split('/[\s,]+/', (string) ($_POST['exclude_dates'] ?? '')) ?: [] as $raw) {
+            $raw = trim($raw);
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $raw) && $this->isValidDate($raw)) {
+                $excludeSet[$raw] = true;
+            }
+        }
+
+        $startNo = (int) $this->maxSessionNo($projectId) + 1;
+
+        $cursor = new \DateTimeImmutable($startDate);
+        $stepDays = $intervalWeeks * 7;
+        $cap = $weeks + count($excludeSet) + 60; // 迴圈安全上限,避免排除過多造成無限延伸。
+        $created = 0;
+        $skipped = 0;
+        $iterations = 0;
+
+        while ($created < $weeks && $iterations <= $cap) {
+            $iterations++;
+            $dateStr = $cursor->format('Y-m-d');
+            $cursor = $cursor->modify('+' . $stepDays . ' days');
+
+            if (isset($excludeSet[$dateStr])) {
+                $skipped++;
+                continue;
+            }
+
+            $sessionNo = $startNo + $created;
+            $activityId = $this->insertSessionActivity([
+                'project_id' => $projectId,
+                'session_no' => $sessionNo,
+                'title' => $titlePrefix . ' 第' . $sessionNo . '週',
+                'starts_at' => $dateStr . ' ' . $startTime . ':00',
+                'ends_at' => $endTime !== null ? $dateStr . ' ' . $endTime . ':00' : null,
+                'location' => $location,
+                'status' => $status,
+            ]);
+            $this->syncSessionCalendarEvent($activityId, $titlePrefix . ' 第' . $sessionNo . '週', $dateStr . ' ' . $startTime . ':00', $endTime !== null ? $dateStr . ' ' . $endTime . ':00' : null, $location, $status);
+            $created++;
+        }
+
+        AuditLog::write('generate-sessions', 'projects', 'projects', $projectId, [
+            'created' => $created,
+            'skipped' => $skipped,
+        ]);
+
+        $message = '已產生 ' . $created . ' 週課程活動並歸屬本專案。';
+        if ($skipped > 0) {
+            $message .= '(略過 ' . $skipped . ' 個排除日期)';
+        }
+        flash('success', $message);
+        redirect($back);
+    }
+
+    private function maxSessionNo(int $projectId): int
+    {
+        $stmt = Database::pdo()->prepare('SELECT COALESCE(MAX(session_no), 0) FROM activities WHERE project_id = :project_id');
+        $stmt->execute(['project_id' => $projectId]);
+        return (int) $stmt->fetchColumn();
+    }
+
+    /** @param array<string, mixed> $data */
+    private function insertSessionActivity(array $data): int
+    {
+        Database::pdo()->prepare(
+            'INSERT INTO activities
+             (project_id, session_no, title, starts_at, ends_at, location, status, created_by, created_at, updated_at)
+             VALUES
+             (:project_id, :session_no, :title, :starts_at, :ends_at, :location, :status, :created_by, :created_at, :updated_at)'
+        )->execute($data + [
+            'created_by' => auth()->user()['id'] ?? null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return (int) Database::pdo()->lastInsertId();
+    }
+
+    private function syncSessionCalendarEvent(int $activityId, string $title, string $startsAt, ?string $endsAt, string $location, string $status): void
+    {
+        $eventStatus = match ($status) {
+            'closed' => 'done',
+            'cancelled' => 'cancelled',
+            default => 'scheduled',
+        };
+
+        Database::pdo()->prepare(
+            'INSERT INTO calendar_events
+             (title, event_type, starts_at, ends_at, all_day, location, owner_name, reminder_minutes, status, description, source_module, source_id, created_by, created_at, updated_at)
+             VALUES
+             (:title, "activity", :starts_at, :ends_at, 0, :location, :owner_name, 60, :status, NULL, "activities", :source_id, :created_by, :created_at, :updated_at)'
+        )->execute([
+            'title' => $title,
+            'starts_at' => $startsAt,
+            'ends_at' => $endsAt,
+            'location' => $location !== '' ? $location : null,
+            'owner_name' => auth()->user()['name'] ?? null,
+            'status' => $eventStatus,
+            'source_id' => $activityId,
+            'created_by' => auth()->user()['id'] ?? null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    private function isValidDate(string $date): bool
+    {
+        $parts = explode('-', $date);
+        return count($parts) === 3 && checkdate((int) $parts[1], (int) $parts[2], (int) $parts[0]);
+    }
+
+    private function timeValue(string $value): ?string
+    {
+        $value = trim($value);
+        if (!preg_match('/^(\d{1,2}):(\d{2})$/', $value, $m)) {
+            return null;
+        }
+        $h = (int) $m[1];
+        $min = (int) $m[2];
+        if ($h > 23 || $min > 59) {
+            return null;
+        }
+        return sprintf('%02d:%02d', $h, $min);
+    }
+
     public function destroy(string $id): void
     {
         $this->requirePermission('projects.manage');
@@ -306,7 +479,7 @@ final class ProjectController extends Controller
                 GROUP BY activity_id
              ) AS volunteer_stats ON volunteer_stats.activity_id = activities.id
              WHERE activities.project_id = :project_id
-             ORDER BY activities.starts_at DESC, activities.id DESC'
+             ORDER BY activities.session_no IS NULL, activities.session_no ASC, activities.starts_at ASC, activities.id ASC'
         );
         $stmt->execute(['project_id' => $projectId]);
         return $stmt->fetchAll();

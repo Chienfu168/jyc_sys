@@ -29,6 +29,14 @@
         </select>
     </label>
     <label>
+        <span>課程週次<small class="field-hint">（歸屬專案時填，如 1、2…16）</small></span>
+        <input type="number" name="session_no" min="1" max="60" value="<?= e((string) old('session_no', $activity['session_no'] ?? '')) ?>" placeholder="非課程可留空">
+    </label>
+    <label class="span-2">
+        <span>單元主題<small class="field-hint">（該週課程主題，可留空）</small></span>
+        <input type="text" name="session_topic" value="<?= e((string) old('session_topic', $activity['session_topic'] ?? '')) ?>">
+    </label>
+    <label>
         <span>狀態</span>
         <?php $status = old('status', $activity['status'] ?? 'draft'); ?>
         <select name="status">
