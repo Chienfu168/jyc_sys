@@ -13,11 +13,8 @@ use Throwable;
  */
 final class CalendarFeedService
 {
-    /** 快取視為過期的分鐘數;超過才於背景重新抓取。 */
-    private const STALE_MINUTES = 180;
-
-    /** 抓取逾時秒數,避免拖慢頁面。 */
-    private const TIMEOUT = 8;
+    /** 抓取逾時秒數(僅用於手動/建立時同步,不在頁面載入時觸發)。 */
+    private const TIMEOUT = 12;
 
     /** @return array<int, array<string, mixed>> */
     public static function activeFeeds(): array
@@ -94,14 +91,9 @@ final class CalendarFeedService
 
         $events = [];
         foreach (self::activeFeeds() as $feed) {
-            if (self::isStale($feed)) {
-                self::sync((int) $feed['id']);
-                // 重新讀取本筆最新快取。
-                $stmt = Database::pdo()->prepare('SELECT * FROM calendar_feeds WHERE id = :id LIMIT 1');
-                $stmt->execute(['id' => (int) $feed['id']]);
-                $feed = $stmt->fetch() ?: $feed;
-            }
-
+            // 僅使用既有快取展開,不於頁面載入時做同步網路抓取,
+            // 避免外部網址逾時或被主機阻擋時拖垮整個行事曆頁面。
+            // 更新快取改由「同步／全部同步」按鈕或排程觸發。
             $ics = (string) ($feed['cached_ics'] ?? '');
             if (trim($ics) === '') {
                 continue;
@@ -125,37 +117,41 @@ final class CalendarFeedService
         return $events;
     }
 
-    /** @param array<string, mixed> $feed */
-    private static function isStale(array $feed): bool
+    /**
+     * 將訂閱網址正規化:webcal:// 轉為 https://。
+     */
+    public static function normalizeUrl(string $url): string
     {
-        if (empty($feed['last_synced_at'])) {
-            return true;
+        $url = trim($url);
+        if (preg_match('#^webcal://#i', $url)) {
+            return 'https://' . substr($url, strlen('webcal://'));
         }
-        $syncedTs = strtotime((string) $feed['last_synced_at']);
-        return $syncedTs === false || (time() - $syncedTs) > self::STALE_MINUTES * 60;
+        return $url;
     }
 
     /**
-     * 抓取 URL 內容,回傳 [ics, error]。僅接受 http(s)。
+     * 抓取 URL 內容,回傳 [ics, error]。僅接受 http(s)(webcal 會先轉 https)。
      *
      * @return array{0: ?string, 1: ?string}
      */
     private static function fetch(string $url): array
     {
+        $url = self::normalizeUrl($url);
         if (!preg_match('#^https?://#i', $url)) {
-            return [null, '網址格式不正確(需 http/https)'];
+            return [null, '網址格式不正確(需 http/https 或 webcal)'];
         }
 
-        // Google 的 webcal:// 會以 https 提供,呼叫端請填 https 網址。
         if (function_exists('curl_init')) {
             $ch = curl_init($url);
             curl_setopt_array($ch, [
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_FOLLOWLOCATION => true,
-                CURLOPT_MAXREDIRS => 4,
+                CURLOPT_MAXREDIRS => 5,
                 CURLOPT_TIMEOUT => self::TIMEOUT,
                 CURLOPT_CONNECTTIMEOUT => self::TIMEOUT,
                 CURLOPT_USERAGENT => 'jyc-sys-calendar/1.0',
+                CURLOPT_ENCODING => '', // 接受並自動解壓 gzip/deflate。
+                CURLOPT_HTTPHEADER => ['Accept: text/calendar, text/plain, */*'],
             ]);
             $body = curl_exec($ch);
             $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -163,21 +159,53 @@ final class CalendarFeedService
             curl_close($ch);
 
             if ($body === false || $body === '') {
-                return [null, $err !== '' ? $err : '無回應內容'];
+                return [null, $err !== '' ? self::friendlyCurlError($err) : '無回應內容(可能被主機阻擋對外連線)'];
             }
             if ($status >= 400) {
-                return [null, 'HTTP ' . $status];
+                return [null, 'HTTP ' . $status . '(請確認為公開且有效的 iCal 網址)'];
             }
-            return [self::normalize((string) $body), null];
+            return self::validateIcs(self::normalize((string) $body));
         }
 
-        $context = stream_context_create(['http' => ['timeout' => self::TIMEOUT, 'follow_location' => 1]]);
+        $context = stream_context_create(['http' => [
+            'timeout' => self::TIMEOUT,
+            'follow_location' => 1,
+            'header' => "Accept: text/calendar, text/plain, */*\r\n",
+        ]]);
         $body = @file_get_contents($url, false, $context);
         if ($body === false || $body === '') {
-            return [null, '無法連線或內容為空'];
+            return [null, '無法連線或內容為空(可能被主機阻擋對外連線)'];
         }
 
-        return [self::normalize($body), null];
+        return self::validateIcs(self::normalize($body));
+    }
+
+    /**
+     * 確認回應內容確實是 iCal(避免使用者貼到嵌入/分享頁而非 .ics 網址)。
+     *
+     * @return array{0: ?string, 1: ?string}
+     */
+    private static function validateIcs(string $body): array
+    {
+        if (stripos($body, 'BEGIN:VCALENDAR') === false) {
+            return [null, '回應內容不是 iCal 格式(請確認貼的是「iCal 格式的公開網址」,結尾為 .ics,而非嵌入或分享連結)'];
+        }
+        return [$body, null];
+    }
+
+    private static function friendlyCurlError(string $err): string
+    {
+        $lower = strtolower($err);
+        if (str_contains($lower, 'ssl') || str_contains($lower, 'certificate')) {
+            return 'SSL 憑證驗證失敗,請主機商更新 CA 憑證庫:' . $err;
+        }
+        if (str_contains($lower, 'timed out') || str_contains($lower, 'timeout')) {
+            return '連線逾時(主機可能無法對外連線或網址回應過慢):' . $err;
+        }
+        if (str_contains($lower, "couldn't resolve") || str_contains($lower, 'could not resolve')) {
+            return '無法解析網域(請確認網址正確且主機可對外連線):' . $err;
+        }
+        return $err;
     }
 
     private static function normalize(string $body): string
