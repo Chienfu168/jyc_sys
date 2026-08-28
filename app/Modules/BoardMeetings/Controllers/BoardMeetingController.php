@@ -72,9 +72,9 @@ final class BoardMeetingController extends Controller
 
         Database::pdo()->prepare(
             'INSERT INTO board_meetings
-             (term_no, session_no, meeting_date, meeting_time, location, chairperson, recorder, report_items, extempore_motions, status, notes, created_by, created_at, updated_at)
+             (term_no, session_no, meeting_date, meeting_time, location, chairperson, recorder, chair_remarks, report_items, extempore_motions, attachments, status, notes, created_by, created_at, updated_at)
              VALUES
-             (:term_no, :session_no, :meeting_date, :meeting_time, :location, :chairperson, :recorder, :report_items, :extempore_motions, :status, :notes, :created_by, :created_at, :updated_at)'
+             (:term_no, :session_no, :meeting_date, :meeting_time, :location, :chairperson, :recorder, :chair_remarks, :report_items, :extempore_motions, :attachments, :status, :notes, :created_by, :created_at, :updated_at)'
         )->execute($this->payload() + [
             'created_by' => auth()->user()['id'] ?? null,
             'created_at' => now(),
@@ -141,8 +141,10 @@ final class BoardMeetingController extends Controller
                  location = :location,
                  chairperson = :chairperson,
                  recorder = :recorder,
+                 chair_remarks = :chair_remarks,
                  report_items = :report_items,
                  extempore_motions = :extempore_motions,
+                 attachments = :attachments,
                  status = :status,
                  notes = :notes,
                  updated_at = :updated_at
@@ -292,11 +294,18 @@ final class BoardMeetingController extends Controller
                 continue;
             }
             $subject = trim((string) ($row['subject'] ?? ''));
+            $explanation = trim((string) ($row['explanation'] ?? ''));
+            $proposal = trim((string) ($row['proposal'] ?? ''));
             $resolution = trim((string) ($row['resolution'] ?? ''));
-            if ($subject === '' && $resolution === '') {
+            if ($subject === '' && $explanation === '' && $proposal === '' && $resolution === '') {
                 continue;
             }
-            $items[] = ['subject' => $subject, 'resolution' => $resolution];
+            $items[] = [
+                'subject' => $subject,
+                'explanation' => $explanation,
+                'proposal' => $proposal,
+                'resolution' => $resolution,
+            ];
         }
 
         return $items;
@@ -328,14 +337,16 @@ final class BoardMeetingController extends Controller
         $pdo->prepare('DELETE FROM board_meeting_agenda_items WHERE board_meeting_id = :id')->execute(['id' => $meetingId]);
 
         $stmt = $pdo->prepare(
-            'INSERT INTO board_meeting_agenda_items (board_meeting_id, sort_order, subject, resolution)
-             VALUES (:board_meeting_id, :sort_order, :subject, :resolution)'
+            'INSERT INTO board_meeting_agenda_items (board_meeting_id, sort_order, subject, explanation, proposal, resolution)
+             VALUES (:board_meeting_id, :sort_order, :subject, :explanation, :proposal, :resolution)'
         );
         foreach (array_values($items) as $index => $item) {
             $stmt->execute([
                 'board_meeting_id' => $meetingId,
                 'sort_order' => $index,
                 'subject' => $item['subject'],
+                'explanation' => $item['explanation'] ?? '',
+                'proposal' => $item['proposal'] ?? '',
                 'resolution' => $item['resolution'],
             ]);
         }
@@ -351,8 +362,10 @@ final class BoardMeetingController extends Controller
             'location' => $this->nullableText('location'),
             'chairperson' => $this->nullableText('chairperson'),
             'recorder' => $this->nullableText('recorder'),
+            'chair_remarks' => trim((string) ($_POST['chair_remarks'] ?? '')),
             'report_items' => trim((string) ($_POST['report_items'] ?? '')),
             'extempore_motions' => trim((string) ($_POST['extempore_motions'] ?? '')),
+            'attachments' => trim((string) ($_POST['attachments'] ?? '')),
             'status' => in_array($_POST['status'] ?? '', ['draft', 'confirmed'], true) ? (string) $_POST['status'] : 'draft',
             'notes' => trim((string) ($_POST['notes'] ?? '')),
         ];
@@ -409,8 +422,10 @@ final class BoardMeetingController extends Controller
             'location' => '',
             'chairperson' => '',
             'recorder' => '',
+            'chair_remarks' => '',
             'report_items' => '',
             'extempore_motions' => '',
+            'attachments' => '',
             'status' => 'draft',
             'notes' => '',
         ];

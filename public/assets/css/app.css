@@ -1645,12 +1645,23 @@ textarea:focus {
 
 .bm-body {
     margin: 18px 0 0;
-    padding-left: 1.6em;
+    padding-left: 2.2em;
     font-size: 16px;
+    list-style: none;
+    counter-reset: bm-section;
 }
 
 .bm-body > li {
     margin-bottom: 10px;
+    counter-increment: bm-section;
+}
+
+.bm-body > li::before {
+    content: counter(bm-section, cjk-ideographic) "、";
+    display: inline-block;
+    width: 2.2em;
+    margin-left: -2.2em;
+    text-align: left;
 }
 
 .bm-agenda-item {
@@ -1661,6 +1672,16 @@ textarea:focus {
 
 .bm-agenda-item p {
     margin: 2px 0;
+}
+
+.bm-agenda-item .bm-agenda-sub {
+    padding-left: 3em;
+    text-indent: -3em;
+}
+
+.bm-multiline {
+    display: inline-block;
+    vertical-align: top;
 }
 
 .bm-signatures {

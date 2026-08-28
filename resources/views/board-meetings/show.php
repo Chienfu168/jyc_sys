@@ -67,6 +67,11 @@ ob_start();
         </tbody>
     </table>
 
+    <?php if (!empty($meeting['chair_remarks'])): ?>
+        <h3 class="purchase-print-section-title">主席致詞</h3>
+        <p><?= nl2br(e($meeting['chair_remarks'])) ?></p>
+    <?php endif; ?>
+
     <?php if (!empty($meeting['report_items'])): ?>
         <h3 class="purchase-print-section-title">報告事項</h3>
         <p><?= nl2br(e($meeting['report_items'])) ?></p>
@@ -76,6 +81,8 @@ ob_start();
     <?php foreach ($agendaItems as $index => $item): ?>
         <div class="board-meeting-line">
             <strong>案由<?= e((string) ($index + 1)) ?>：</strong><?= nl2br(e($item['subject'])) ?>
+            <?php if (!empty($item['explanation'])): ?><div class="muted-text"><strong>說明：</strong><?= nl2br(e($item['explanation'])) ?></div><?php endif; ?>
+            <?php if (!empty($item['proposal'])): ?><div class="muted-text"><strong>擬辦：</strong><?= nl2br(e($item['proposal'])) ?></div><?php endif; ?>
             <div class="muted-text"><strong>決議：</strong><?= $item['resolution'] !== '' ? nl2br(e($item['resolution'])) : '（尚未填寫）' ?></div>
         </div>
     <?php endforeach; ?>
@@ -86,6 +93,11 @@ ob_start();
     <?php if (!empty($meeting['extempore_motions'])): ?>
         <h3 class="purchase-print-section-title">臨時動議</h3>
         <p><?= nl2br(e($meeting['extempore_motions'])) ?></p>
+    <?php endif; ?>
+
+    <?php if (!empty($meeting['attachments'])): ?>
+        <h3 class="purchase-print-section-title">附件</h3>
+        <p><?= nl2br(e($meeting['attachments'])) ?></p>
     <?php endif; ?>
 
     <?php if (!empty($meeting['notes'])): ?>
