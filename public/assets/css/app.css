@@ -2803,7 +2803,7 @@ textarea:focus {
         color: #000000;
         font-family: "DFKai-SB", "BiauKai", "標楷體", "KaiTi", "TW-Kai", "Noto Serif TC", "PMingLiU", serif;
         font-size: 13px;
-        line-height: 1.75;
+        line-height: 1.6;
         overflow: visible;
     }
 
@@ -2835,17 +2835,29 @@ textarea:focus {
         max-width: 100% !important;
     }
 
+    /* 內容型 panel 允許跨頁流動:避免高內容(如請假單、報表)整塊被推到下一頁,
+       造成第一頁只剩抬頭、大片留白。小型卡片與簽核區仍避免被切開。 */
     .panel,
     .stat-card,
     .feature-card {
-        break-inside: avoid;
         box-shadow: none;
         border-color: #d8d8d8;
         margin-bottom: 12px;
     }
 
+    .stat-card,
+    .feature-card {
+        break-inside: avoid;
+    }
+
     .panel {
-        padding: 14px;
+        padding: 12px 14px;
+        border: 0;
+    }
+
+    /* 表格列不被切開,避免半列跨頁。 */
+    tr {
+        break-inside: avoid;
     }
 
     .table-wrap {
@@ -2859,11 +2871,39 @@ textarea:focus {
     th,
     td {
         white-space: normal;
-        padding: 8px 6px;
+        padding: 6px 6px;
+    }
+
+    .meta-table th,
+    .meta-table td {
+        padding: 5px 8px;
+        line-height: 1.5;
     }
 
     .print-document-header {
         display: block !important;
+        margin-bottom: 10px;
+    }
+
+    /* 精簡抬頭高度,讓內文有更多空間、減少整份文件被推到第二頁。 */
+    .print-document-header h2 {
+        font-size: 19px;
+    }
+
+    .print-document-header h3 {
+        margin-top: 4px;
+        font-size: 15px;
+    }
+
+    .print-document-header .print-logo {
+        max-height: 46px;
+        margin-bottom: 4px;
+    }
+
+    .print-document-header .print-meta {
+        gap: 4px 14px;
+        margin-top: 5px;
+        font-size: 11.5px;
     }
 
     .print-only {
@@ -3045,8 +3085,8 @@ textarea:focus {
     }
 
     .signature-box .signature-stamp {
-        height: 82px;
-        max-width: 3.4cm;
+        height: 64px;
+        max-width: 3.2cm;
         border: 1px solid #888888;
         color: #999999;
     }
@@ -3057,7 +3097,7 @@ textarea:focus {
 
     .signature-box .signature-name {
         font-size: 14px;
-        margin-top: 10px;
+        margin-top: 8px;
     }
 
     .purchase-print-form {
