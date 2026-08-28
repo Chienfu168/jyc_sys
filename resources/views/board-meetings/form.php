@@ -84,12 +84,20 @@ ob_start();
         <?php endforeach; ?>
     </div>
 
-    <details class="form-section">
-        <summary>報告事項與臨時動議(選填)</summary>
+    <details class="form-section" open>
+        <summary>主席致詞、報告事項、附件與臨時動議(選填)</summary>
         <div class="grid-form">
             <label class="span-2">
-                <span>報告事項</span>
+                <span>主席致詞<small class="field-hint">（議程版列印）</small></span>
+                <textarea name="chair_remarks" rows="2"><?= e((string) old('chair_remarks', $meeting['chair_remarks'] ?? '')) ?></textarea>
+            </label>
+            <label class="span-2">
+                <span>報告事項<small class="field-hint">（可分項條列，每行一項）</small></span>
                 <textarea name="report_items" rows="3"><?= e((string) old('report_items', $meeting['report_items'] ?? '')) ?></textarea>
+            </label>
+            <label class="span-2">
+                <span>附件<small class="field-hint">（會議紀錄版列印，如附件一、附件二…每行一項）</small></span>
+                <textarea name="attachments" rows="2"><?= e((string) old('attachments', $meeting['attachments'] ?? '')) ?></textarea>
             </label>
             <label class="span-2">
                 <span>臨時動議</span>
