@@ -133,7 +133,7 @@ final class GithubReleaseService
         curl_close($ch);
 
         if ($content === false || $status >= 400) {
-            throw new RuntimeException($error ?: $this->httpErrorMessage($url, $status));
+            throw new RuntimeException($error ?: $this->httpErrorMessage($url, $status, is_string($content) ? $content : ''));
         }
 
         return (string) $content;
@@ -154,7 +154,7 @@ final class GithubReleaseService
         $status = $this->streamStatusCode($http_response_header ?? []);
 
         if ($content === false || $status >= 400) {
-            throw new RuntimeException($this->httpErrorMessage($url, $status));
+            throw new RuntimeException($this->httpErrorMessage($url, $status, is_string($content) ? $content : ''));
         }
 
         return (string) $content;
@@ -171,7 +171,7 @@ final class GithubReleaseService
         return 200;
     }
 
-    private function httpErrorMessage(string $url, int $status): string
+    private function httpErrorMessage(string $url, int $status, string $body = ''): string
     {
         if ($status === 404 && str_contains($url, '/releases/latest')) {
             return 'GitHub 找不到 Latest Release。請先到 GitHub 建立正式 Release；如果 repo 是私有，請確認 GITHUB_TOKEN 具備 Contents: Read-only 權限。';
@@ -181,15 +181,43 @@ final class GithubReleaseService
             return 'GitHub 找不到可用的 Release。請確認 repo 名稱正確、已建立 Release，或 GITHUB_TOKEN 有讀取權限。';
         }
 
-        if ($status === 401 || $status === 403) {
-            return 'GitHub 權限不足或 API 限制。請確認 GITHUB_TOKEN 是否正確，並具備 Contents: Read-only 權限。';
+        // 先判斷是否為「請求次數上限」(rate limit),與權限問題分開提示。
+        // 公開 repo 免 Token 即可讀取,但未帶 Token 時每小時僅 60 次、且共用主機 IP 易觸發上限。
+        $hasToken = trim((string) config('app.github_token', '')) !== '';
+        if (($status === 403 || $status === 429) && $this->isRateLimited($body)) {
+            $suffix = $hasToken
+                ? '請稍後再試。'
+                : '此為公開 repo，免 Token 亦可更新；未設定 GITHUB_TOKEN 時每小時上限僅 60 次，且與同主機其他網站共用 IP 額度，容易觸發。可稍後再試，或於 .env 設定 GITHUB_TOKEN（僅需 Contents: Read-only）將額度提高到每小時 5000 次。';
+            return 'GitHub API 請求次數已達上限。' . $suffix;
+        }
+
+        if ($status === 401) {
+            return 'GitHub Token 無效或已過期。請確認 .env 的 GITHUB_TOKEN 正確；公開 repo 若不需私有存取，也可清空 GITHUB_TOKEN 改用免 Token 方式更新。';
+        }
+
+        if ($status === 403) {
+            return 'GitHub 拒絕存取（權限不足）。若 repo 為私有，請確認 GITHUB_TOKEN 具備 Contents: Read-only 權限；公開 repo 通常免 Token 即可讀取。';
         }
 
         if ($status === 415) {
             return 'GitHub 不接受目前的下載請求格式。請更新系統更新模組後再下載 Release zip。';
         }
 
+        if ($status === 0) {
+            return '無法連線至 GitHub（可能被主機阻擋對外連線或連線逾時），請確認主機允許對外 HTTPS 連線。';
+        }
+
         return "GitHub 請求失敗，HTTP {$status}";
+    }
+
+    /** 由回應內容判斷是否為 GitHub 的請求次數上限錯誤。 */
+    private function isRateLimited(string $body): bool
+    {
+        if ($body === '') {
+            return true; // 403/429 但無內容時,多為速率限制,採較保守判斷。
+        }
+        $lower = strtolower($body);
+        return str_contains($lower, 'rate limit') || str_contains($lower, 'secondary rate');
     }
 
     private function downloadUrl(string $tagName): string

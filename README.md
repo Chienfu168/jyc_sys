@@ -79,7 +79,7 @@ https://你的網域/install.php
 `.env` 主要設定：
 
 ```env
-APP_VERSION=0.6.93
+APP_VERSION=0.6.94
 GITHUB_REPO=Chienfu168/jyc_sys
 GITHUB_TOKEN=
 UPDATE_CHANNEL=stable
@@ -87,6 +87,8 @@ MAIL_ENABLED=false
 ```
 
 公開 repo 可先不填 `GITHUB_TOKEN`；私有 repo 需要 GitHub Personal Access Token，至少要能讀取 repository 與 release。
+
+註：未設定 `GITHUB_TOKEN` 時，GitHub API 對每個對外 IP 每小時僅允許 60 次未驗證請求；在共用主機（cPanel）上與同一 IP 的其他網站共用此額度，容易出現「GitHub API 請求次數已達上限」。此時可稍後再試，或設定一組僅需 `Contents: Read-only` 權限的 `GITHUB_TOKEN`，額度提高到每小時 5000 次。系統更新頁會將「請求次數上限」與「Token 權限不足」分開提示，方便判斷。
 
 ## Release 流程
 
