@@ -1332,20 +1332,38 @@ textarea:focus {
 }
 
 .signature-box {
-    min-height: 86px;
-    border-top: 1px solid var(--line);
-    padding-top: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
 }
 
-.signature-box span {
+.signature-box .signature-role {
     display: block;
-    color: var(--muted);
-    margin-bottom: 22px;
+    font-weight: 700;
+    margin-bottom: 8px;
 }
 
-.signature-box strong {
+/* 蓋章位置:留框供實體用印。 */
+.signature-box .signature-stamp {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-width: 130px;
+    height: 72px;
+    border: 1px dashed #c4ccc8;
+    border-radius: 6px;
+    color: #b7c0bc;
+    font-size: 12px;
+    letter-spacing: 2px;
+}
+
+.signature-box .signature-name {
     display: block;
-    min-height: 24px;
+    margin-top: 8px;
+    min-height: 22px;
+    font-weight: 700;
 }
 
 .print-notes {
@@ -1467,6 +1485,18 @@ textarea:focus {
     margin: 8px 0 12px;
 }
 
+.official-receipt .rc-recital-line {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    gap: 2px;
+}
+
+.official-receipt .rc-recital-line + .rc-recital-line {
+    margin-top: 6px;
+}
+
 .official-receipt .rc-fill {
     display: inline-block;
     min-width: 180px;
@@ -1474,6 +1504,13 @@ textarea:focus {
     text-align: center;
     padding: 0 6px;
     font-weight: 700;
+}
+
+/* 捐贈人欄位:填滿該行剩餘寬度,姓名長短皆整齊。 */
+.official-receipt .rc-fill-donor {
+    flex: 1 1 auto;
+    min-width: 0;
+    text-align: left;
 }
 
 .official-receipt .rc-fill-sm {
@@ -2897,11 +2934,23 @@ textarea:focus {
 
     .official-receipt .rc-recital {
         font-size: 17px;
-        margin: 14px 0 14px;
+        margin: 14px 0 16px;
+    }
+
+    .official-receipt .rc-recital-line + .rc-recital-line {
+        margin-top: 10px;
     }
 
     .official-receipt .rc-fill {
-        min-width: 210px;
+        min-width: 200px;
+    }
+
+    .official-receipt .rc-fill-donor {
+        min-width: 0;
+    }
+
+    .official-receipt .rc-fill-sm {
+        min-width: 150px;
     }
 
     .official-receipt .rc-body {
@@ -2991,7 +3040,24 @@ textarea:focus {
 
     .signature-grid {
         grid-template-columns: repeat(4, minmax(120px, 1fr));
+        gap: 14px;
         break-inside: avoid;
+    }
+
+    .signature-box .signature-stamp {
+        height: 82px;
+        max-width: 3.4cm;
+        border: 1px solid #888888;
+        color: #999999;
+    }
+
+    .signature-box .signature-role {
+        font-size: 14px;
+    }
+
+    .signature-box .signature-name {
+        font-size: 14px;
+        margin-top: 10px;
     }
 
     .purchase-print-form {

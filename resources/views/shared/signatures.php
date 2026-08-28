@@ -7,8 +7,9 @@ $signatureRoles = $signatureRoles ?? signature_chain($signatureContext ?? $activ
 <section class="signature-grid">
     <?php foreach ($signatureRoles as $role): ?>
         <div class="signature-box">
-            <span><?= e($role['label']) ?></span>
-            <strong><?= e($role['name'] ?? '') ?></strong>
+            <span class="signature-role"><?= e($role['label']) ?></span>
+            <span class="signature-stamp" aria-hidden="true">（蓋章）</span>
+            <strong class="signature-name"><?= e($role['name'] ?? '') ?></strong>
         </div>
     <?php endforeach; ?>
 </section>
