@@ -1411,7 +1411,7 @@ textarea:focus {
     background: #ffffff;
     border: 1px solid #333333;
     border-radius: 6px;
-    font-family: "PMingLiU", "MingLiU", "Noto Serif TC", "Songti TC", serif;
+    font-family: "DFKai-SB", "BiauKai", "標楷體", "KaiTi", "TW-Kai", "Noto Serif TC", "PMingLiU", serif;
     line-height: 1.9;
 }
 
@@ -1588,7 +1588,7 @@ textarea:focus {
     padding: 8mm 10mm;
     color: #000000;
     background: #ffffff;
-    font-family: "PMingLiU", "MingLiU", "Noto Serif TC", "Songti TC", serif;
+    font-family: "DFKai-SB", "BiauKai", "標楷體", "KaiTi", "TW-Kai", "Noto Serif TC", "PMingLiU", serif;
     line-height: 1.9;
 }
 
@@ -1655,7 +1655,7 @@ textarea:focus {
     padding: 14mm 20mm 16mm 16mm;
     color: #000000;
     background: #ffffff;
-    font-family: "PMingLiU", "MingLiU", "Noto Serif TC", "Songti TC", serif;
+    font-family: "DFKai-SB", "BiauKai", "標楷體", "KaiTi", "TW-Kai", "Noto Serif TC", "PMingLiU", serif;
     line-height: 2;
 }
 
@@ -2764,7 +2764,9 @@ textarea:focus {
     body {
         background: #ffffff;
         color: #000000;
-        font-size: 12px;
+        font-family: "DFKai-SB", "BiauKai", "標楷體", "KaiTi", "TW-Kai", "Noto Serif TC", "PMingLiU", serif;
+        font-size: 13px;
+        line-height: 1.75;
         overflow: visible;
     }
 
@@ -2849,7 +2851,7 @@ textarea:focus {
         page-break-after: auto;
     }
 
-    /* 收據列印:壓縮版面高度,確保單張完整落在一頁 A4 內。 */
+    /* 收據列印:標楷體、寬鬆間距,充分利用整個 A4 版面(仍維持單頁)。 */
     .receipt-print-shell {
         padding: 0 !important;
         border: 0 !important;
@@ -2859,77 +2861,98 @@ textarea:focus {
     .official-receipt {
         max-width: none;
         margin: 0;
-        padding: 7mm 9mm;
-        line-height: 1.5;
+        padding: 12mm 14mm;
+        line-height: 1.8;
         break-inside: avoid;
     }
 
     .official-receipt .rc-head {
-        margin-bottom: 6px;
+        margin-bottom: 10px;
+    }
+
+    .official-receipt .rc-org-line {
+        gap: 16px;
     }
 
     .official-receipt .rc-org {
-        font-size: 20px;
+        font-size: 24px;
     }
 
     .official-receipt .rc-logo {
-        height: 34px;
+        height: 44px;
+        max-width: 140px;
     }
 
     .official-receipt .rc-title {
-        font-size: 23px;
-        margin: 2px 0 8px;
+        font-size: 28px;
+        letter-spacing: 15px;
+        margin: 6px 0 12px;
     }
 
     .official-receipt .rc-datno {
-        margin-bottom: 8px;
-        padding-bottom: 3px;
+        font-size: 16px;
+        margin-bottom: 14px;
+        padding-bottom: 7px;
     }
 
     .official-receipt .rc-recital {
-        font-size: 15px;
-        margin: 6px 0 8px;
+        font-size: 17px;
+        margin: 14px 0 14px;
+    }
+
+    .official-receipt .rc-fill {
+        min-width: 210px;
     }
 
     .official-receipt .rc-body {
-        padding: 8px 12px;
-        margin: 8px 0;
+        padding: 13px 18px;
+        margin: 14px 0;
     }
 
     .official-receipt .rc-row {
-        font-size: 15px;
-        margin: 2px 0;
+        font-size: 17px;
+        margin: 6px 0;
+    }
+
+    .official-receipt .rc-amount-cn {
+        font-size: 18px;
     }
 
     .official-receipt .rc-thanks {
-        font-size: 15px;
-        margin: 10px 0 14px;
+        font-size: 17px;
+        margin: 18px 0 22px;
     }
 
     .official-receipt .rc-stamps {
-        margin-top: 4px;
+        margin-top: 12px;
+        gap: 28px;
     }
 
     .official-receipt .rc-stamp-box {
-        width: 3.8cm;
-        height: 3.8cm;
-        border-color: #cccccc;
+        width: 4cm;
+        height: 4cm;
+        border-color: #bbbbbb;
     }
 
     .official-receipt .rc-stamp-label {
-        margin-bottom: 4px;
+        font-size: 16px;
+        margin-bottom: 10px;
     }
 
     .official-receipt .rc-stamp-people {
-        font-size: 14px;
-        line-height: 2.1;
+        font-size: 16px;
+        line-height: 2.6;
+    }
+
+    .official-receipt .rc-stamp-space {
+        min-width: 150px;
     }
 
     .official-receipt .rc-footer {
-        margin-top: 10px;
-        padding-top: 6px;
-        font-size: 11.5px;
-        line-height: 1.55;
+        margin-top: 20px;
+        padding-top: 10px;
+        font-size: 12.5px;
+        line-height: 1.85;
     }
 
     .board-meeting-print {
