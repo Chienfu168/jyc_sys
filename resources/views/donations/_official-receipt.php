@@ -39,10 +39,10 @@ $rcInKindItem = trim((string) ($donation['in_kind_item'] ?? '')) ?: ($rcProject 
         <span class="rc-no">No.<?= e($rcNo) ?></span>
     </div>
 
-    <p class="rc-recital">
-        茲收捐贈人 <span class="rc-fill"><?= e($rcDonor) ?></span>
-        ；統編：<span class="rc-fill rc-fill-sm"><?= e($rcTaxId !== '' ? $rcTaxId : '—') ?></span>。捐贈如下；
-    </p>
+    <div class="rc-recital">
+        <div class="rc-recital-line">茲收捐贈人 <span class="rc-fill rc-fill-donor"><?= e($rcDonor) ?></span></div>
+        <div class="rc-recital-line">統一編號：<span class="rc-fill rc-fill-sm"><?= e($rcTaxId !== '' ? $rcTaxId : '—') ?></span> ，捐贈如下：</div>
+    </div>
 
     <div class="rc-body">
         <div class="rc-row">
