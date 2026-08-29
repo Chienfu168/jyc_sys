@@ -111,4 +111,52 @@ final class GeoAccessTest extends TestCase
 
         unset($_SERVER['HTTP_X_FORWARDED_FOR']);
     }
+
+    public function testNormalizeModeAcceptsKnownModes(): void
+    {
+        $this->assertSame('off', GeoAccess::normalizeMode('off'));
+        $this->assertSame('monitor', GeoAccess::normalizeMode('monitor'));
+        $this->assertSame('enforce', GeoAccess::normalizeMode('ENFORCE'));
+        $this->assertSame('off', GeoAccess::normalizeMode('nonsense'));
+        $this->assertSame('off', GeoAccess::normalizeMode(null));
+    }
+
+    public function testNormalizeModeIsBackwardCompatibleWithLegacyEnabled(): void
+    {
+        // 舊版設定只有布林 enabled 欄位。
+        $this->assertSame('enforce', GeoAccess::normalizeMode(null, true));
+        $this->assertSame('off', GeoAccess::normalizeMode(null, false));
+        // 有明確 mode 時以 mode 為準,不看 legacy。
+        $this->assertSame('monitor', GeoAccess::normalizeMode('monitor', true));
+    }
+
+    public function testMergeLogEntryAggregatesByIp(): void
+    {
+        $log = [];
+        $log = GeoAccess::mergeLogEntry($log, '8.8.8.8', 'foreign', '/login', 'UA1', 1000, '2026-01-01 00:00:00');
+        $this->assertSame(1, $log['8.8.8.8']['count']);
+        $this->assertSame('2026-01-01 00:00:00', $log['8.8.8.8']['first_seen']);
+
+        $log = GeoAccess::mergeLogEntry($log, '8.8.8.8', 'foreign', '/admin', 'UA2', 1000, '2026-01-02 00:00:00');
+        $this->assertSame(2, $log['8.8.8.8']['count']);
+        $this->assertSame('2026-01-01 00:00:00', $log['8.8.8.8']['first_seen']); // 不變
+        $this->assertSame('2026-01-02 00:00:00', $log['8.8.8.8']['last_seen']);  // 更新
+        $this->assertSame('/admin', $log['8.8.8.8']['last_path']);
+        $this->assertCount(1, $log);
+    }
+
+    public function testMergeLogEntryRespectsCap(): void
+    {
+        $log = [];
+        // 上限 2:第三個「不同 IP」不再新增。
+        $log = GeoAccess::mergeLogEntry($log, '1.0.0.1', 'foreign', '/', '', 2, 'now');
+        $log = GeoAccess::mergeLogEntry($log, '1.0.0.2', 'foreign', '/', '', 2, 'now');
+        $log = GeoAccess::mergeLogEntry($log, '1.0.0.3', 'foreign', '/', '', 2, 'now');
+        $this->assertCount(2, $log);
+        $this->assertArrayNotHasKey('1.0.0.3', $log);
+
+        // 但已存在的 IP 仍可持續累加,不受上限影響。
+        $log = GeoAccess::mergeLogEntry($log, '1.0.0.1', 'foreign', '/', '', 2, 'now');
+        $this->assertSame(2, $log['1.0.0.1']['count']);
+    }
 }

@@ -79,7 +79,7 @@ https://你的網域/install.php
 `.env` 主要設定：
 
 ```env
-APP_VERSION=0.7.5
+APP_VERSION=0.7.6
 GITHUB_REPO=Chienfu168/jyc_sys
 GITHUB_TOKEN=
 UPDATE_CHANNEL=stable
@@ -94,6 +94,7 @@ MAIL_ENABLED=false
 
 屬內部使用系統,可於後台「系統設定 →連線來源管制」啟用「僅允許台灣 IP 連入」,阻擋國外連線以降低遭入侵風險。
 
+- 三段模式:**關閉** / **僅記錄(觀察模式)** / **啟用阻擋**。建議先用「僅記錄」蒐集一段時間的連線狀況(不阻擋任何人,但會把「若啟用就會被擋」的來源以 IP 聚合記錄於頁面),確認不會誤擋自己人後再切換為「啟用阻擋」。連線記錄存於 `storage/access_control_log.json`,最多保留 1000 個不同來源 IP。
 - 台灣 IP 範圍以 APNIC 委派資料為準(離線內建於 `app/Core/GeoData/`,不需連外)。更新請執行 `python3 tools/geoip/build_tw_ranges.py`。
 - 內部／內網位址(`127.0.0.1`、`192.168.x.x` 等)一律放行;可另設允許清單(單一 IP 或 CIDR)供國外辦公室／VPN 例外。
 - 啟用時會先確認「操作者當下連線」不會被擋,避免把自己鎖在門外。

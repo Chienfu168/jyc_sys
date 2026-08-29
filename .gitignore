@@ -15,4 +15,5 @@
 /storage/installed.lock
 /storage/maintenance.lock
 /storage/access_control.json
+/storage/access_control_log.json
 !.gitkeep
