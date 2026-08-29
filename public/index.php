@@ -102,6 +102,9 @@ if (file_exists(base_path('storage/maintenance.lock')) && !str_contains($request
     exit;
 }
 
+// 僅限台灣 IP 連線管制(啟用時阻擋國外連線;內網／允許清單放行,出錯放行)。
+\App\Core\GeoAccess::enforce();
+
 if (!headers_sent()) {
     header('X-Frame-Options: SAMEORIGIN');
     header('X-Content-Type-Options: nosniff');

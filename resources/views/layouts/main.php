@@ -171,6 +171,10 @@ $navWorkflow = array_values(array_filter(array_map(static function (array $group
                                 <span class="nav-icon">安</span>
                                 <span>安全檢查</span>
                             </a>
+                            <a class="<?= $activeKey === 'access-control' ? 'active' : '' ?>" href="/access-control">
+                                <span class="nav-icon">限</span>
+                                <span>連線來源管制</span>
+                            </a>
                             <a class="<?= $activeKey === 'system-update' ? 'active' : '' ?>" href="/system-update">
                                 <span class="nav-icon">更</span>
                                 <span>系統更新</span>
