@@ -1672,11 +1672,8 @@ textarea:focus {
 
 .bm-agenda-item p {
     margin: 2px 0;
-}
-
-.bm-agenda-item .bm-agenda-sub {
-    padding-left: 3em;
-    text-indent: -3em;
+    padding-left: 4em;
+    text-indent: -4em;
 }
 
 .bm-multiline {
