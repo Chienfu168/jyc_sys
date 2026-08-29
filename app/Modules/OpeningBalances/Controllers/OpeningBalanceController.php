@@ -160,10 +160,13 @@ final class OpeningBalanceController extends Controller
 
     private function upsert(string $module, int $referenceId, int $year, float $amount, ?string $note): void
     {
+        // 具名參數在原生 prepared statement 下不可重複使用(否則 SQLSTATE[HY093]),
+        // created_at 與 updated_at 使用不同參數名稱並帶入相同時間。
+        $timestamp = date('Y-m-d H:i:s');
         Database::pdo()->prepare(
             'INSERT INTO opening_balances (module, reference_id, fiscal_year, opening_balance, note, created_by, created_at, updated_at)
-             VALUES (:module, :reference_id, :year, :amount, :note, :created_by, :created_at, :created_at)
-             ON DUPLICATE KEY UPDATE opening_balance = VALUES(opening_balance), note = VALUES(note), updated_at = VALUES(created_at)'
+             VALUES (:module, :reference_id, :year, :amount, :note, :created_by, :created_at, :updated_at)
+             ON DUPLICATE KEY UPDATE opening_balance = VALUES(opening_balance), note = VALUES(note), updated_at = VALUES(updated_at)'
         )->execute([
             'module' => $module,
             'reference_id' => $referenceId,
@@ -171,7 +174,8 @@ final class OpeningBalanceController extends Controller
             'amount' => $amount,
             'note' => $note,
             'created_by' => auth()->user()['id'] ?? null,
-            'created_at' => date('Y-m-d H:i:s'),
+            'created_at' => $timestamp,
+            'updated_at' => $timestamp,
         ]);
     }
 
