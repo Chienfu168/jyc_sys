@@ -56,7 +56,19 @@ final class CalendarFeedService
             )->execute(['ics' => $ics, 'now' => now(), 'id' => $feedId]);
 
             return true;
-        } catch (Throwable) {
+        } catch (Throwable $e) {
+            // 未預期錯誤也記錄原因,避免同步失敗卻查不到理由。
+            try {
+                Database::pdo()->prepare(
+                    'UPDATE calendar_feeds SET last_error = :err, updated_at = :now WHERE id = :id'
+                )->execute([
+                    'err' => mb_substr($e->getMessage() !== '' ? $e->getMessage() : '同步發生未預期錯誤', 0, 250),
+                    'now' => now(),
+                    'id' => $feedId,
+                ]);
+            } catch (Throwable) {
+                // 連記錄錯誤都失敗時忽略,至少不中斷流程。
+            }
             return false;
         }
     }

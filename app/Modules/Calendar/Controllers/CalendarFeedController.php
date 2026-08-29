@@ -138,7 +138,12 @@ final class CalendarFeedController extends Controller
         $this->findFeed((int) $id);
 
         $ok = CalendarFeedService::sync((int) $id);
-        flash($ok ? 'success' : 'error', $ok ? '已同步外部日曆。' : '同步失敗，請確認網址是否為公開的 iCal 連結。');
+        if ($ok) {
+            flash('success', '已同步外部日曆。');
+        } else {
+            $reason = trim((string) ($this->findFeed((int) $id)['last_error'] ?? ''));
+            flash('error', $reason !== '' ? '同步失敗：' . $reason : '同步失敗，請確認網址是否為公開的 iCal 連結，並確認主機允許對外 HTTPS 連線。');
+        }
         redirect('/calendar-feeds');
     }
 
@@ -146,8 +151,14 @@ final class CalendarFeedController extends Controller
     {
         $this->requirePermission('calendar.manage');
 
+        $total = count(CalendarFeedService::activeFeeds());
         $count = CalendarFeedService::syncAllActive();
-        flash('success', '已同步 ' . $count . ' 個外部日曆。');
+        $failed = $total - $count;
+        if ($failed > 0) {
+            flash('error', '已同步 ' . $count . ' 個外部日曆，' . $failed . ' 個失敗，請查看清單各列的錯誤訊息。');
+        } else {
+            flash('success', '已同步 ' . $count . ' 個外部日曆。');
+        }
         redirect('/calendar-feeds');
     }
 
