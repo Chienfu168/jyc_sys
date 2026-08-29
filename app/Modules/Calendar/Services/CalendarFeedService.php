@@ -49,11 +49,14 @@ final class CalendarFeedService
                 return false;
             }
 
+            // 注意:同一具名參數在原生(非模擬)prepared statement 下不可重複使用,
+            // 否則會出現 SQLSTATE[HY093] Invalid parameter number,故 synced_at 與
+            // updated_at 使用不同的參數名稱。
             Database::pdo()->prepare(
                 'UPDATE calendar_feeds
-                 SET cached_ics = :ics, last_synced_at = :now, last_error = NULL, updated_at = :now
+                 SET cached_ics = :ics, last_synced_at = :synced_at, last_error = NULL, updated_at = :updated_at
                  WHERE id = :id'
-            )->execute(['ics' => $ics, 'now' => now(), 'id' => $feedId]);
+            )->execute(['ics' => $ics, 'synced_at' => now(), 'updated_at' => now(), 'id' => $feedId]);
 
             return true;
         } catch (Throwable $e) {
