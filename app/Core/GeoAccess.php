@@ -25,15 +25,28 @@ final class GeoAccess
     /** @var array<string, mixed>|null */
     private static ?array $settingsCache = null;
 
+    /** 管制模式:關閉／僅記錄(觀察)／啟用阻擋。 */
+    public const MODE_OFF = 'off';
+    public const MODE_MONITOR = 'monitor';
+    public const MODE_ENFORCE = 'enforce';
+
+    /** 記錄檔最多保留多少個不同來源 IP(避免檔案無限增長)。 */
+    private const LOG_MAX_ENTRIES = 1000;
+
     public static function settingsPath(): string
     {
         return storage_path('access_control.json');
     }
 
+    public static function logPath(): string
+    {
+        return storage_path('access_control_log.json');
+    }
+
     /**
      * 讀取管制設定(含預設值)。
      *
-     * @return array{enabled:bool, trust_proxy_header:string, allow_ips:array<int,string>, updated_at:?string, updated_by:mixed}
+     * @return array{mode:string, trust_proxy_header:string, allow_ips:array<int,string>, updated_at:?string, updated_by:mixed}
      */
     public static function loadSettings(bool $fresh = false): array
     {
@@ -42,7 +55,7 @@ final class GeoAccess
         }
 
         $defaults = [
-            'enabled' => false,
+            'mode' => self::MODE_OFF,
             'trust_proxy_header' => '',
             'allow_ips' => [],
             'updated_at' => null,
@@ -53,7 +66,7 @@ final class GeoAccess
         if (is_file($path)) {
             $decoded = json_decode((string) @file_get_contents($path), true);
             if (is_array($decoded)) {
-                $defaults['enabled'] = (bool) ($decoded['enabled'] ?? false);
+                $defaults['mode'] = self::normalizeMode($decoded['mode'] ?? null, $decoded['enabled'] ?? null);
                 $defaults['trust_proxy_header'] = self::normalizeHeaderChoice((string) ($decoded['trust_proxy_header'] ?? ''));
                 $allow = $decoded['allow_ips'] ?? [];
                 $defaults['allow_ips'] = is_array($allow) ? array_values(array_filter(array_map('strval', $allow), static fn (string $s): bool => trim($s) !== '')) : [];
@@ -67,14 +80,32 @@ final class GeoAccess
     }
 
     /**
+     * 將設定內容正規化為 off／monitor／enforce。相容舊版布林 enabled 欄位。
+     */
+    public static function normalizeMode(mixed $mode, mixed $legacyEnabled = null): string
+    {
+        if (is_string($mode)) {
+            $mode = strtolower(trim($mode));
+            if (in_array($mode, [self::MODE_OFF, self::MODE_MONITOR, self::MODE_ENFORCE], true)) {
+                return $mode;
+            }
+        }
+        // 舊版只有布林 enabled:true 視為阻擋。
+        if ($legacyEnabled !== null) {
+            return $legacyEnabled ? self::MODE_ENFORCE : self::MODE_OFF;
+        }
+        return self::MODE_OFF;
+    }
+
+    /**
      * 寫入管制設定。
      *
-     * @param array{enabled:bool, trust_proxy_header:string, allow_ips:array<int,string>} $settings
+     * @param array{mode?:string, enabled?:bool, trust_proxy_header:string, allow_ips:array<int,string>} $settings
      */
     public static function saveSettings(array $settings): bool
     {
         $payload = [
-            'enabled' => (bool) $settings['enabled'],
+            'mode' => self::normalizeMode($settings['mode'] ?? null, $settings['enabled'] ?? null),
             'trust_proxy_header' => self::normalizeHeaderChoice((string) ($settings['trust_proxy_header'] ?? '')),
             'allow_ips' => array_values(array_filter(array_map('strval', $settings['allow_ips'] ?? []), static fn (string $s): bool => trim($s) !== '')),
             'updated_at' => now(),
@@ -95,7 +126,10 @@ final class GeoAccess
     }
 
     /**
-     * 在請求最前端執行管制。若判定為應阻擋,直接回應 403 並結束程式。
+     * 在請求最前端執行管制。
+     * - 關閉:不動作。
+     * - 僅記錄(觀察):把「會被擋的連線」記錄下來,但一律放行。
+     * - 啟用阻擋:記錄並回應 403 結束程式。
      * 任何內部錯誤都採放行(fail-open),不影響正常服務。
      */
     public static function enforce(): void
@@ -106,7 +140,8 @@ final class GeoAccess
             }
 
             $settings = self::loadSettings();
-            if (empty($settings['enabled'])) {
+            $mode = self::normalizeMode($settings['mode'] ?? null);
+            if ($mode === self::MODE_OFF) {
                 return;
             }
 
@@ -116,11 +151,114 @@ final class GeoAccess
                 return;
             }
 
-            self::blockResponse($ip);
+            // 會被擋的連線:兩種模式都記錄。
+            self::recordBlocked($ip, $decision['reason']);
+
+            if ($mode === self::MODE_ENFORCE) {
+                self::blockResponse($ip);
+            }
+            // 觀察模式:記錄後放行。
         } catch (\Throwable $e) {
             // 出錯一律放行,避免因程式問題造成全站無法連入。
             error_log('[GeoAccess] enforce failed, fail-open: ' . $e->getMessage());
         }
+    }
+
+    /** 記錄一筆「會被擋」的連線(以來源 IP 聚合,避免記錄爆量)。 */
+    private static function recordBlocked(string $ip, string $reason): void
+    {
+        $path = (string) ($_SERVER['REQUEST_URI'] ?? '');
+        $ua = (string) ($_SERVER['HTTP_USER_AGENT'] ?? '');
+
+        $fp = @fopen(self::logPath(), 'c+');
+        if ($fp === false) {
+            return;
+        }
+        try {
+            if (!flock($fp, LOCK_EX)) {
+                return;
+            }
+            $raw = stream_get_contents($fp);
+            $log = is_string($raw) && $raw !== '' ? json_decode($raw, true) : [];
+            if (!is_array($log)) {
+                $log = [];
+            }
+            $log = self::mergeLogEntry($log, $ip, $reason, $path, $ua, self::LOG_MAX_ENTRIES, now());
+            $encoded = json_encode($log, JSON_UNESCAPED_UNICODE);
+            if ($encoded !== false) {
+                ftruncate($fp, 0);
+                rewind($fp);
+                fwrite($fp, $encoded);
+                fflush($fp);
+            }
+        } finally {
+            flock($fp, LOCK_UN);
+            fclose($fp);
+        }
+    }
+
+    /**
+     * 純函式:把一筆連線併入記錄陣列(以 IP 為鍵聚合)。
+     *
+     * @param array<string, array<string, mixed>> $log
+     * @return array<string, array<string, mixed>>
+     */
+    public static function mergeLogEntry(array $log, string $ip, string $reason, string $path, string $ua, int $cap, string $now): array
+    {
+        if (isset($log[$ip]) && is_array($log[$ip])) {
+            $log[$ip]['count'] = (int) ($log[$ip]['count'] ?? 0) + 1;
+            $log[$ip]['last_seen'] = $now;
+            $log[$ip]['reason'] = $reason;
+            $log[$ip]['last_path'] = mb_substr($path, 0, 200);
+            $log[$ip]['last_ua'] = mb_substr($ua, 0, 200);
+            return $log;
+        }
+
+        // 已達上限時不再新增不同 IP,只保留既有統計,避免檔案無限增長。
+        if (count($log) >= $cap) {
+            return $log;
+        }
+
+        $log[$ip] = [
+            'ip' => $ip,
+            'reason' => $reason,
+            'count' => 1,
+            'first_seen' => $now,
+            'last_seen' => $now,
+            'last_path' => mb_substr($path, 0, 200),
+            'last_ua' => mb_substr($ua, 0, 200),
+        ];
+        return $log;
+    }
+
+    /**
+     * 讀取連線記錄,依最後出現時間新到舊排序。
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public static function readLog(): array
+    {
+        $path = self::logPath();
+        if (!is_file($path)) {
+            return [];
+        }
+        $decoded = json_decode((string) @file_get_contents($path), true);
+        if (!is_array($decoded)) {
+            return [];
+        }
+        $rows = array_values($decoded);
+        usort($rows, static fn (array $a, array $b): int => strcmp((string) ($b['last_seen'] ?? ''), (string) ($a['last_seen'] ?? '')));
+        return $rows;
+    }
+
+    /** 清除連線記錄。 */
+    public static function clearLog(): bool
+    {
+        $path = self::logPath();
+        if (!is_file($path)) {
+            return true;
+        }
+        return @unlink($path);
     }
 
     private static function blockResponse(string $ip): never
