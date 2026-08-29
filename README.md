@@ -79,7 +79,7 @@ https://你的網域/install.php
 `.env` 主要設定：
 
 ```env
-APP_VERSION=0.7.4
+APP_VERSION=0.7.5
 GITHUB_REPO=Chienfu168/jyc_sys
 GITHUB_TOKEN=
 UPDATE_CHANNEL=stable
@@ -89,6 +89,16 @@ MAIL_ENABLED=false
 公開 repo 可先不填 `GITHUB_TOKEN`；私有 repo 需要 GitHub Personal Access Token，至少要能讀取 repository 與 release。
 
 註：未設定 `GITHUB_TOKEN` 時，GitHub API 對每個對外 IP 每小時僅允許 60 次未驗證請求；在共用主機（cPanel）上與同一 IP 的其他網站共用此額度，容易出現「GitHub API 請求次數已達上限」。此時可稍後再試，或設定一組僅需 `Contents: Read-only` 權限的 `GITHUB_TOKEN`，額度提高到每小時 5000 次。系統更新頁會將「請求次數上限」與「Token 權限不足」分開提示，方便判斷。
+
+## 連線來源管制(僅限台灣 IP)
+
+屬內部使用系統,可於後台「系統設定 →連線來源管制」啟用「僅允許台灣 IP 連入」,阻擋國外連線以降低遭入侵風險。
+
+- 台灣 IP 範圍以 APNIC 委派資料為準(離線內建於 `app/Core/GeoData/`,不需連外)。更新請執行 `python3 tools/geoip/build_tw_ranges.py`。
+- 內部／內網位址(`127.0.0.1`、`192.168.x.x` 等)一律放行;可另設允許清單(單一 IP 或 CIDR)供國外辦公室／VPN 例外。
+- 啟用時會先確認「操作者當下連線」不會被擋,避免把自己鎖在門外。
+- 若系統前面有 Cloudflare 或反向代理,請在頁面選擇對應的來源 IP 標頭(CF-Connecting-IP／X-Forwarded-For／X-Real-IP);一般虛擬主機維持「直接連線」。
+- **被鎖在門外時的解除方式**:於 `.env` 設定 `ACCESS_CONTROL_DISABLED=true` 強制放行,或刪除 `storage/access_control.json` 解除管制。
 
 ## Release 流程
 
