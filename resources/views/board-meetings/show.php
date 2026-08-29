@@ -13,6 +13,7 @@ ob_start();
             <a class="btn" href="/board-meetings">返回列表</a>
             <a class="btn" href="/board-meetings/<?= e((string) $meeting['id']) ?>/print?type=agenda">列印議程</a>
             <a class="btn" href="/board-meetings/<?= e((string) $meeting['id']) ?>/print?type=minutes">列印會議紀錄</a>
+            <a class="btn" href="/board-meetings/<?= e((string) $meeting['id']) ?>/print?type=signin">列印簽到表</a>
             <?php if ($canManage): ?>
                 <a class="btn" href="/board-meetings/<?= e((string) $meeting['id']) ?>/edit">編輯</a>
                 <?php if ($meeting['status'] !== 'confirmed'): ?>
@@ -102,6 +103,108 @@ ob_start();
 
     <?php if (!empty($meeting['notes'])): ?>
         <p class="print-notes">備註：<?= nl2br(e($meeting['notes'])) ?></p>
+    <?php endif; ?>
+</section>
+
+<?php
+$files = $files ?? [];
+$attachmentFiles = array_values(array_filter($files, static fn (array $f): bool => $f['category'] === 'attachment'));
+$signinFiles = array_values(array_filter($files, static fn (array $f): bool => $f['category'] === 'signin_sheet'));
+$renderFileRow = static function (array $f) use ($meeting, $canManage): void {
+    $sizeKb = number_format(((int) ($f['file_size'] ?? 0)) / 1024, 1);
+    ?>
+    <tr>
+        <td><a href="/board-meetings/<?= e((string) $meeting['id']) ?>/files/<?= e((string) $f['id']) ?>"><?= e($f['title'] ?: $f['original_name']) ?></a></td>
+        <td class="muted-text"><?= e($f['original_name']) ?></td>
+        <td class="muted-text"><?= e($sizeKb) ?> KB</td>
+        <td>
+            <?php if ($canManage): ?>
+                <form method="post" action="/board-meetings/<?= e((string) $meeting['id']) ?>/files/<?= e((string) $f['id']) ?>/delete" onsubmit="return confirm('確定要刪除此檔案？');">
+                    <?= csrf_field() ?>
+                    <button class="btn" type="submit">刪除</button>
+                </form>
+            <?php endif; ?>
+        </td>
+    </tr>
+    <?php
+};
+?>
+
+<section class="panel">
+    <div class="panel-header">
+        <div>
+            <h2>附件檔案</h2>
+            <p class="muted-text">上傳議程／會議紀錄之附件，列印時依序附於文件之後（圖片檔可自動內嵌）。</p>
+        </div>
+    </div>
+    <table class="table">
+        <thead><tr><th>標題</th><th>原始檔名</th><th>大小</th><th>操作</th></tr></thead>
+        <tbody>
+        <?php foreach ($attachmentFiles as $f): ?>
+            <?php $renderFileRow($f); ?>
+        <?php endforeach; ?>
+        <?php if (!$attachmentFiles): ?>
+            <tr><td colspan="4" class="empty">尚未上傳附件。</td></tr>
+        <?php endif; ?>
+        </tbody>
+    </table>
+    <?php if ($canManage): ?>
+        <form method="post" action="/board-meetings/<?= e((string) $meeting['id']) ?>/files" enctype="multipart/form-data" class="form">
+            <?= csrf_field() ?>
+            <input type="hidden" name="category" value="attachment">
+            <div class="grid-form">
+                <label>
+                    <span>附件標題（可對應「附件一、二…」）</span>
+                    <input type="text" name="title" maxlength="160" placeholder="例如：113年度工作計畫">
+                </label>
+                <label>
+                    <span>選擇檔案（PDF／圖片，上限 15MB）</span>
+                    <input type="file" name="file" required>
+                </label>
+            </div>
+            <div class="form-actions">
+                <button class="btn primary" type="submit">上傳附件</button>
+            </div>
+        </form>
+    <?php endif; ?>
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <div>
+            <h2>簽到簿掃描檔</h2>
+            <p class="muted-text">會議結束後，上傳簽到簿正本掃描檔留存。</p>
+        </div>
+    </div>
+    <table class="table">
+        <thead><tr><th>標題</th><th>原始檔名</th><th>大小</th><th>操作</th></tr></thead>
+        <tbody>
+        <?php foreach ($signinFiles as $f): ?>
+            <?php $renderFileRow($f); ?>
+        <?php endforeach; ?>
+        <?php if (!$signinFiles): ?>
+            <tr><td colspan="4" class="empty">尚未上傳簽到簿掃描檔。</td></tr>
+        <?php endif; ?>
+        </tbody>
+    </table>
+    <?php if ($canManage): ?>
+        <form method="post" action="/board-meetings/<?= e((string) $meeting['id']) ?>/files" enctype="multipart/form-data" class="form">
+            <?= csrf_field() ?>
+            <input type="hidden" name="category" value="signin_sheet">
+            <div class="grid-form">
+                <label>
+                    <span>標題</span>
+                    <input type="text" name="title" maxlength="160" placeholder="例如：簽到簿掃描檔">
+                </label>
+                <label>
+                    <span>選擇檔案（PDF／圖片，上限 15MB）</span>
+                    <input type="file" name="file" required>
+                </label>
+            </div>
+            <div class="form-actions">
+                <button class="btn primary" type="submit">上傳簽到簿掃描檔</button>
+            </div>
+        </form>
     <?php endif; ?>
 </section>
 <?php

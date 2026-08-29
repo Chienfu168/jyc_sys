@@ -10,4 +10,7 @@ $router->get('/board-meetings/{id}/edit', [BoardMeetingController::class, 'edit'
 $router->post('/board-meetings/{id}', [BoardMeetingController::class, 'update']);
 $router->post('/board-meetings/{id}/confirm', [BoardMeetingController::class, 'confirm']);
 $router->get('/board-meetings/{id}/print', [BoardMeetingController::class, 'print']);
+$router->post('/board-meetings/{id}/files', [BoardMeetingController::class, 'uploadFile']);
+$router->get('/board-meetings/{id}/files/{fileId}', [BoardMeetingController::class, 'downloadFile']);
+$router->post('/board-meetings/{id}/files/{fileId}/delete', [BoardMeetingController::class, 'deleteFile']);
 $router->post('/board-meetings/{id}/delete', [BoardMeetingController::class, 'destroy']);
