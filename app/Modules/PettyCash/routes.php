@@ -5,8 +5,13 @@ use App\Modules\PettyCash\Controllers\PettyCashItemController;
 
 $router->get('/petty-cash', [PettyCashController::class, 'index']);
 $router->get('/petty-cash/report', [PettyCashController::class, 'report']);
+$router->get('/petty-cash/quick', [PettyCashController::class, 'quick']);
+$router->post('/petty-cash/quick', [PettyCashController::class, 'quickStore']);
 $router->get('/petty-cash/create', [PettyCashController::class, 'create']);
 $router->post('/petty-cash', [PettyCashController::class, 'store']);
+$router->post('/petty-cash/{id}/attachments', [PettyCashController::class, 'uploadAttachment']);
+$router->get('/petty-cash/{id}/attachments/{fileId}', [PettyCashController::class, 'downloadAttachment']);
+$router->post('/petty-cash/{id}/attachments/{fileId}/delete', [PettyCashController::class, 'deleteAttachment']);
 $router->post('/petty-cash/{id}/submit', [PettyCashController::class, 'submit']);
 $router->post('/petty-cash/{id}/approve', [PettyCashController::class, 'approve']);
 $router->post('/petty-cash/{id}/reject', [PettyCashController::class, 'reject']);

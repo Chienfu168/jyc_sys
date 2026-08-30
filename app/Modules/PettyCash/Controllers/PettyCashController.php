@@ -6,6 +6,7 @@ use App\Core\AuditLog;
 use App\Core\ApprovalFlow;
 use App\Core\Controller;
 use App\Core\Database;
+use App\Core\ImageCompressor;
 use App\Core\Validator;
 use App\Domain\PettyCash\PettyCashReport;
 use App\Support\DateScope;
@@ -78,6 +79,112 @@ final class PettyCashController extends Controller
             'projects' => $this->projects(),
             'action' => '/petty-cash',
         ]);
+    }
+
+    /** 手機快速記帳表單:精簡欄位、可拍照上傳憑證,先存草稿,之後可在電腦上完善。 */
+    public function quick(): void
+    {
+        $this->requirePermission('petty_cash.manage');
+
+        $this->render('petty-cash.quick', [
+            'title' => '零用金快速記帳',
+            'section' => '財務會計',
+            'active' => 'petty-cash',
+            'items' => $this->items(),
+            'today' => date('Y-m-d'),
+            'recent' => $this->recentQuickEntries(),
+        ]);
+    }
+
+    /** 儲存快速記帳:建立草稿紀錄並存入壓縮後的憑證照片。 */
+    public function quickStore(): void
+    {
+        $this->requirePermission('petty_cash.manage');
+        $this->validateEntry('/petty-cash/quick');
+
+        $item = $this->selectedItem();
+        $itemName = trim((string) ($_POST['item_name'] ?? ''));
+        if ($item && $itemName === '') {
+            $itemName = $item['name'];
+        }
+
+        Database::pdo()->prepare(
+            'INSERT INTO petty_cash_entries
+             (occurred_on, item_type, petty_cash_item_id, project_id, item_name, amount, payment_to, receipt_no, notes, approval_status, created_by, created_at, updated_at)
+             VALUES (:occurred_on, :item_type, :petty_cash_item_id, NULL, :item_name, :amount, :payment_to, :receipt_no, :notes, "draft", :created_by, :created_at, :updated_at)'
+        )->execute([
+            'occurred_on' => $_POST['occurred_on'],
+            'item_type' => $item['item_type'] ?? $this->typeValue(),
+            'petty_cash_item_id' => $item['id'] ?? null,
+            'item_name' => $itemName,
+            'amount' => $this->amountValue(),
+            'payment_to' => trim((string) ($_POST['payment_to'] ?? '')),
+            'receipt_no' => trim((string) ($_POST['receipt_no'] ?? '')),
+            'notes' => trim((string) ($_POST['notes'] ?? '')),
+            'created_by' => auth()->user()['id'] ?? null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $id = (int) Database::pdo()->lastInsertId();
+        $stored = $this->storeUploadedReceipts($id);
+
+        AuditLog::write('quick_create', 'petty_cash', 'petty_cash_entries', $id);
+        flash('success', '已快速記錄一筆零用金' . ($stored > 0 ? ('(含 ' . $stored . ' 張憑證)') : '') . ',可稍後於電腦上完善。');
+        redirect('/petty-cash/quick');
+    }
+
+    public function uploadAttachment(string $id): void
+    {
+        $this->requirePermission('petty_cash.manage');
+        $entry = $this->findEntry((int) $id);
+
+        $stored = $this->storeUploadedReceipts((int) $entry['id']);
+        if ($stored === 0) {
+            $this->backWithInput('/petty-cash/' . $id, [], '沒有可上傳的憑證,或檔案格式不支援。');
+        }
+
+        flash('success', '已上傳 ' . $stored . ' 張憑證。');
+        redirect('/petty-cash/' . $id);
+    }
+
+    public function downloadAttachment(string $id, string $fileId): void
+    {
+        $this->requirePermission('petty_cash.view');
+        $this->findEntry((int) $id);
+        $file = $this->findAttachment((int) $id, (int) $fileId);
+        $path = storage_path((string) $file['stored_path']);
+
+        if (!$this->fileInStore($path) || !is_file($path)) {
+            http_response_code(404);
+            view('errors.404', ['title' => '找不到憑證檔案']);
+            exit;
+        }
+
+        AuditLog::write('download', 'petty_cash', 'petty_cash_attachments', (int) $file['id']);
+        header('Content-Type: ' . ($file['mime_type'] ?: 'application/octet-stream'));
+        header('Content-Length: ' . (string) filesize($path));
+        header('Content-Disposition: inline; filename="' . rawurlencode((string) $file['original_name']) . '"');
+        header('X-Content-Type-Options: nosniff');
+        readfile($path);
+        exit;
+    }
+
+    public function deleteAttachment(string $id, string $fileId): void
+    {
+        $this->requirePermission('petty_cash.manage');
+        $this->findEntry((int) $id);
+        $file = $this->findAttachment((int) $id, (int) $fileId);
+
+        $path = storage_path((string) $file['stored_path']);
+        if ($this->fileInStore($path) && is_file($path)) {
+            @unlink($path);
+        }
+        Database::pdo()->prepare('DELETE FROM petty_cash_attachments WHERE id = :id')->execute(['id' => (int) $file['id']]);
+
+        AuditLog::write('delete', 'petty_cash', 'petty_cash_attachments', (int) $file['id']);
+        flash('success', '憑證已刪除。');
+        redirect('/petty-cash/' . $id);
     }
 
     public function report(): void
@@ -209,6 +316,7 @@ final class PettyCashController extends Controller
             'section' => '財務會計',
             'active' => 'petty-cash',
             'entry' => $this->findEntry((int) $id),
+            'attachments' => $this->attachments((int) $id),
             'approvalHistory' => ApprovalFlow::history('petty_cash', 'petty_cash_entries', (int) $id),
             'profile' => foundation_profile(),
         ]);
@@ -291,6 +399,14 @@ final class PettyCashController extends Controller
         if (!empty($entry['bank_account_transaction_id'])) {
             flash('error', '已連結銀行交易的零用金紀錄不可直接刪除，請先解除銀行交易關聯。');
             redirect('/petty-cash/' . $id);
+        }
+
+        // 先清除憑證實體檔(資料列由外鍵串聯刪除)。
+        foreach ($this->attachments((int) $id) as $file) {
+            $path = storage_path((string) $file['stored_path']);
+            if ($this->fileInStore($path) && is_file($path)) {
+                @unlink($path);
+            }
         }
 
         Database::pdo()->prepare('DELETE FROM petty_cash_entries WHERE id = :id')->execute(['id' => (int) $id]);
@@ -659,6 +775,146 @@ final class PettyCashController extends Controller
     {
         $id = (int) ($_POST['project_id'] ?? 0);
         return $id > 0 ? $id : null;
+    }
+
+    /** 快速記帳頁顯示最近幾筆,方便手機上確認剛記的內容。 */
+    private function recentQuickEntries(): array
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT id, occurred_on, item_type, item_name, amount
+             FROM petty_cash_entries
+             ORDER BY id DESC
+             LIMIT 5'
+        );
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private function attachments(int $entryId): array
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT * FROM petty_cash_attachments WHERE petty_cash_entry_id = :id ORDER BY id'
+        );
+        $stmt->execute(['id' => $entryId]);
+        return $stmt->fetchAll();
+    }
+
+    /** @return array<string, mixed> */
+    private function findAttachment(int $entryId, int $fileId): array
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT * FROM petty_cash_attachments WHERE id = :id AND petty_cash_entry_id = :entry_id LIMIT 1'
+        );
+        $stmt->execute(['id' => $fileId, 'entry_id' => $entryId]);
+        $file = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$file) {
+            http_response_code(404);
+            view('errors.404', ['title' => '找不到憑證檔案']);
+            exit;
+        }
+        return $file;
+    }
+
+    /**
+     * 處理 $_FILES['receipts'](可多張)的憑證上傳:驗證、影像壓縮後存放並寫入資料表。
+     * 回傳成功存入的張數。
+     */
+    private function storeUploadedReceipts(int $entryId): int
+    {
+        if (empty($_FILES['receipts']) || !is_array($_FILES['receipts']['name'] ?? null)) {
+            return 0;
+        }
+
+        $names = $_FILES['receipts']['name'];
+        $count = count($names);
+        $stored = 0;
+        $targetDir = storage_path('private_uploads/petty_cash/' . $entryId);
+        if (!is_dir($targetDir) && !mkdir($targetDir, 0775, true) && !is_dir($targetDir)) {
+            return 0;
+        }
+
+        for ($i = 0; $i < $count; $i++) {
+            if ($stored >= 10) {
+                break; // 單次最多 10 張,避免濫用。
+            }
+            $error = (int) ($_FILES['receipts']['error'][$i] ?? UPLOAD_ERR_NO_FILE);
+            if ($error !== UPLOAD_ERR_OK) {
+                continue;
+            }
+            $tmp = (string) ($_FILES['receipts']['tmp_name'][$i] ?? '');
+            $size = (int) ($_FILES['receipts']['size'][$i] ?? 0);
+            if ($tmp === '' || !is_uploaded_file($tmp) || $size <= 0 || $size > 25 * 1024 * 1024) {
+                continue;
+            }
+
+            $originalName = basename((string) ($_FILES['receipts']['name'][$i] ?? ''));
+            $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+            $mime = $this->detectMime($tmp);
+
+            $storedName = date('YmdHis') . '_' . bin2hex(random_bytes(6));
+
+            if (ImageCompressor::isCompressible($mime)) {
+                // 影像一律壓縮並轉存為 JPEG。
+                $relativePath = 'private_uploads/petty_cash/' . $entryId . '/' . $storedName . '.jpg';
+                if (!ImageCompressor::compressToJpeg($tmp, storage_path($relativePath), 1600, 75)) {
+                    continue;
+                }
+                $finalMime = 'image/jpeg';
+                $finalSize = (int) @filesize(storage_path($relativePath));
+            } elseif ($ext === 'pdf' && $mime === 'application/pdf') {
+                // PDF 憑證原樣存放(不壓縮)。
+                $relativePath = 'private_uploads/petty_cash/' . $entryId . '/' . $storedName . '.pdf';
+                if (!move_uploaded_file($tmp, storage_path($relativePath))) {
+                    continue;
+                }
+                $finalMime = 'application/pdf';
+                $finalSize = $size;
+            } else {
+                continue; // 其他格式不收。
+            }
+
+            Database::pdo()->prepare(
+                'INSERT INTO petty_cash_attachments
+                 (petty_cash_entry_id, original_name, stored_path, mime_type, file_size, uploaded_by, created_at)
+                 VALUES (:entry_id, :original_name, :stored_path, :mime_type, :file_size, :uploaded_by, :created_at)'
+            )->execute([
+                'entry_id' => $entryId,
+                'original_name' => $originalName !== '' ? $originalName : ($storedName . '.jpg'),
+                'stored_path' => $relativePath,
+                'mime_type' => $finalMime,
+                'file_size' => $finalSize,
+                'uploaded_by' => auth()->user()['id'] ?? null,
+                'created_at' => now(),
+            ]);
+            $stored++;
+        }
+
+        return $stored;
+    }
+
+    /** 確認路徑位於零用金上傳目錄下,避免路徑穿越。 */
+    private function fileInStore(string $path): bool
+    {
+        $base = storage_path('private_uploads/petty_cash');
+        $real = realpath($path);
+        $realBase = realpath($base);
+        return $real !== false && $realBase !== false && str_starts_with($real, $realBase . DIRECTORY_SEPARATOR);
+    }
+
+    private function detectMime(string $path): string
+    {
+        if (function_exists('finfo_open')) {
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            if ($finfo) {
+                $mime = finfo_file($finfo, $path);
+                finfo_close($finfo);
+                if (is_string($mime) && $mime !== '') {
+                    return $mime;
+                }
+            }
+        }
+        return 'application/octet-stream';
     }
 
     private function dateScope(int $year, string $month): array
