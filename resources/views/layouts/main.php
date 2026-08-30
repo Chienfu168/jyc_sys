@@ -55,6 +55,11 @@ $navWorkflow = array_values(array_filter(array_map(static function (array $group
         : [];
     return $group;
 }, $navWorkflow), static fn (array $group): bool => $group['items'] !== []));
+
+// 使用者自訂的常用連結(釘選於選單最上方);表格未建立或未登入時為空。
+$quickLinks = $currentUser
+    ? \App\Domain\Navigation\UserQuickLinks::resolvedFor((int) ($currentUser['id'] ?? 0))
+    : [];
 ?>
 <!doctype html>
 <html lang="zh-Hant">
@@ -115,6 +120,17 @@ $navWorkflow = array_values(array_filter(array_map(static function (array $group
             </div>
 
             <nav class="nav" aria-label="主選單">
+                <?php if (!empty($quickLinks)): ?>
+                    <div class="nav-section nav-section--quick">
+                        <span class="nav-section-title">常用連結<a class="nav-quick-edit" href="/quick-links" title="編輯常用連結" aria-label="編輯常用連結">＋</a></span>
+                        <?php foreach ($quickLinks as $ql): ?>
+                            <a class="<?= $activeKey === $ql['key'] ? 'active' : '' ?>" href="<?= e($ql['href']) ?>">
+                                <span class="nav-icon"><?= e($ql['icon']) ?></span>
+                                <span><?= e($ql['label']) ?></span>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
                 <div class="nav-section collapsed">
                     <span class="nav-section-title">總覽</span>
                     <a class="<?= $activeKey === 'dashboard' ? 'active' : '' ?>" href="/">
@@ -124,6 +140,10 @@ $navWorkflow = array_values(array_filter(array_map(static function (array $group
                     <a class="<?= $approvalsActive ? 'active' : '' ?>" href="/approvals">
                         <span class="nav-icon">核</span>
                         <span>簽核中心</span>
+                    </a>
+                    <a class="<?= $activeKey === 'quick-links' ? 'active' : '' ?>" href="/quick-links">
+                        <span class="nav-icon">＋</span>
+                        <span>常用連結設定</span>
                     </a>
                 </div>
 
@@ -237,7 +257,8 @@ $navWorkflow = array_values(array_filter(array_map(static function (array $group
     if (!nav) {
         return;
     }
-    var sections = Array.prototype.slice.call(nav.querySelectorAll('.nav-section'));
+    // 常用連結區固定展開,不納入手風琴收合。
+    var sections = Array.prototype.slice.call(nav.querySelectorAll('.nav-section:not(.nav-section--quick)'));
 
     function titleOf(section) {
         return section.querySelector('.nav-section-title');
