@@ -29,6 +29,7 @@ ob_start();
             <a class="btn" href="/petty-cash/report?year=<?= e(substr($month, 0, 4)) ?>&month=<?= e(substr($month, 5, 2)) ?>&mode=summary">統計輸出</a>
             <?php if ($canManage): ?>
                 <a class="btn" href="/petty-cash-items">常用項目</a>
+                <a class="btn" href="/petty-cash/quick">快速記帳</a>
                 <a class="btn primary" href="/petty-cash/create">新增紀錄</a>
             <?php endif; ?>
         </div>

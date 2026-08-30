@@ -118,6 +118,55 @@ ob_start();
 
     <?php require base_path('resources/views/shared/signatures.php'); ?>
 </section>
+
+<section class="panel">
+    <div class="panel-header">
+        <div>
+            <h2>憑證附件</h2>
+            <p class="muted-text">快速記帳上傳的憑證照片(已壓縮)。</p>
+        </div>
+    </div>
+    <?php $attachments = $attachments ?? []; ?>
+    <?php if ($attachments): ?>
+        <div class="pcq-attach-grid">
+            <?php foreach ($attachments as $file): ?>
+                <?php $isImage = str_starts_with((string) ($file['mime_type'] ?? ''), 'image/'); ?>
+                <figure class="pcq-attach">
+                    <a href="/petty-cash/<?= e((string) $entry['id']) ?>/attachments/<?= e((string) $file['id']) ?>" target="_blank" rel="noopener">
+                        <?php if ($isImage): ?>
+                            <img src="/petty-cash/<?= e((string) $entry['id']) ?>/attachments/<?= e((string) $file['id']) ?>" alt="憑證" loading="lazy">
+                        <?php else: ?>
+                            <span class="pcq-attach__file">PDF</span>
+                        <?php endif; ?>
+                    </a>
+                    <figcaption>
+                        <span class="muted-text"><?= e(number_format(((int) ($file['file_size'] ?? 0)) / 1024, 0)) ?> KB</span>
+                        <?php if ($canManage): ?>
+                            <form method="post" action="/petty-cash/<?= e((string) $entry['id']) ?>/attachments/<?= e((string) $file['id']) ?>/delete" onsubmit="return confirm('確定要刪除此憑證？');">
+                                <?= csrf_field() ?>
+                                <button class="btn" type="submit">刪除</button>
+                            </form>
+                        <?php endif; ?>
+                    </figcaption>
+                </figure>
+            <?php endforeach; ?>
+        </div>
+    <?php else: ?>
+        <p class="muted-text">尚無憑證附件。</p>
+    <?php endif; ?>
+    <?php if ($canManage): ?>
+        <form method="post" action="/petty-cash/<?= e((string) $entry['id']) ?>/attachments" enctype="multipart/form-data" class="form" style="margin-top:14px">
+            <?= csrf_field() ?>
+            <label class="pcq-field">
+                <span class="pcq-label">新增憑證(照片會自動壓縮)</span>
+                <input type="file" name="receipts[]" accept="image/*,application/pdf" multiple required>
+            </label>
+            <div class="form-actions">
+                <button class="btn primary" type="submit">上傳憑證</button>
+            </div>
+        </form>
+    <?php endif; ?>
+</section>
 <?php
 function petty_cash_show_approval_label(string $status): string
 {
