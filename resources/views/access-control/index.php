@@ -62,22 +62,25 @@ ob_start();
 
         <div class="form-section">
             <h3>管制模式</h3>
-            <label class="checkbox-row" style="display:flex;gap:10px;align-items:flex-start;margin-bottom:12px">
+            <label class="access-mode-option">
                 <input type="radio" name="mode" value="off" <?= $mode === 'off' ? 'checked' : '' ?>>
-                <span><strong>關閉</strong><span class="muted-text" style="display:block">不做任何來源管制(預設)。</span></span>
-            </label>
-            <label class="checkbox-row" style="display:flex;gap:10px;align-items:flex-start;margin-bottom:12px">
-                <input type="radio" name="mode" value="monitor" <?= $mode === 'monitor' ? 'checked' : '' ?>>
-                <span>
-                    <strong>僅記錄(觀察模式)— 建議先用這個</strong>
-                    <span class="muted-text" style="display:block">不阻擋任何連線,但會把「若啟用就會被擋」的連線記錄於下方,供你日後判斷是否安全啟用。</span>
+                <span class="access-mode-text">
+                    <strong>關閉</strong>
+                    <span class="muted-text">不做任何來源管制(預設)。</span>
                 </span>
             </label>
-            <label class="checkbox-row" style="display:flex;gap:10px;align-items:flex-start">
+            <label class="access-mode-option">
+                <input type="radio" name="mode" value="monitor" <?= $mode === 'monitor' ? 'checked' : '' ?>>
+                <span class="access-mode-text">
+                    <strong>僅記錄(觀察模式)— 建議先用這個</strong>
+                    <span class="muted-text">不阻擋任何連線,但會把「若啟用就會被擋」的連線記錄於下方,供你日後判斷是否安全啟用。</span>
+                </span>
+            </label>
+            <label class="access-mode-option">
                 <input type="radio" name="mode" value="enforce" <?= $mode === 'enforce' ? 'checked' : '' ?>>
-                <span>
+                <span class="access-mode-text">
                     <strong>啟用阻擋 — 僅允許台灣 IP 連入</strong>
-                    <span class="muted-text" style="display:block">阻擋國外連線。內部／內網位址與下方允許清單一律放行。台灣 IP 範圍以 APNIC 委派資料為準。</span>
+                    <span class="muted-text">阻擋國外連線。內部／內網位址與下方允許清單一律放行。台灣 IP 範圍以 APNIC 委派資料為準。</span>
                 </span>
             </label>
         </div>

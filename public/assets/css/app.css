@@ -1385,6 +1385,36 @@ textarea:focus {
     width: auto;
 }
 
+/* 連線來源管制:三段模式的單選列(避免全域 input{width:100%} 撐開單選鈕)。 */
+.access-mode-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 12px;
+    cursor: pointer;
+}
+.access-mode-option:last-child {
+    margin-bottom: 0;
+}
+.access-mode-option input[type="radio"] {
+    width: auto;
+    min-height: 0;
+    flex: 0 0 auto;
+    margin: 3px 0 0;
+}
+.access-mode-option .access-mode-text {
+    flex: 1;
+    min-width: 0;
+}
+.access-mode-option .access-mode-text strong {
+    display: block;
+    margin-bottom: 2px;
+    color: var(--text);
+}
+.access-mode-option .access-mode-text span {
+    margin-bottom: 0;
+}
+
 .budget-statement {
     max-width: 100%;
 }
