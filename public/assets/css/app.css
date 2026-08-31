@@ -3650,3 +3650,13 @@ details.form-section[open] > summary { margin-bottom: 14px; }
 }
 .ql-option__label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ql-option__order { flex: 0 0 auto; width: 58px; min-height: 34px; padding: 4px 8px; text-align: center; }
+
+/* 費用申請:付款方式切換 */
+.er-pay-toggle { display: flex; gap: 10px; }
+.er-pay-opt { position: relative; flex: 0 0 auto; }
+.er-pay-opt input { position: absolute; opacity: 0; pointer-events: none; }
+.er-pay-opt span {
+    display: inline-block; padding: 9px 22px; border: 1px solid var(--line); border-radius: 999px;
+    background: #fff; color: var(--muted); cursor: pointer; font-size: 15px;
+}
+.er-pay-opt input:checked + span { border-color: #1d5fa8; color: #1d5fa8; background: #eef4fb; }

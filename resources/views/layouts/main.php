@@ -28,6 +28,7 @@ $navWorkflow = [
         ['perm' => 'lecturer_expenses.view', 'key' => 'lecturer-expenses', 'href' => '/lecturer-expenses', 'icon' => '鐘', 'label' => '講師支出費用'],
         ['perm' => 'travel_expenses.view', 'key' => 'travel-expenses', 'href' => '/travel-expenses', 'icon' => '差', 'label' => '出差費用'],
         ['perm' => 'petty_cash.view', 'key' => 'petty-cash', 'href' => '/petty-cash', 'icon' => '零', 'label' => '零用金'],
+        ['perm' => 'expense_requests.view', 'key' => 'expense-requests', 'href' => '/expense-requests', 'icon' => '請', 'label' => '費用申請'],
         ['perm' => 'payment_receipts.view', 'key' => 'payment-receipts', 'href' => '/payment-receipts', 'icon' => '領', 'label' => '領款收據'],
     ]],
     ['title' => '會計與帳務', 'items' => [
