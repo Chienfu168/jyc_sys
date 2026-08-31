@@ -44,6 +44,7 @@ final class NavCatalog
                 ['perm' => 'travel_expenses.view', 'key' => 'travel-expenses', 'href' => '/travel-expenses', 'icon' => '差', 'label' => '出差費用'],
                 ['perm' => 'petty_cash.view', 'key' => 'petty-cash', 'href' => '/petty-cash', 'icon' => '零', 'label' => '零用金'],
                 ['perm' => 'petty_cash.manage', 'key' => 'petty-cash-quick', 'href' => '/petty-cash/quick', 'icon' => '快', 'label' => '零用金快速記帳'],
+                ['perm' => 'expense_requests.view', 'key' => 'expense-requests', 'href' => '/expense-requests', 'icon' => '請', 'label' => '費用申請'],
                 ['perm' => 'payment_receipts.view', 'key' => 'payment-receipts', 'href' => '/payment-receipts', 'icon' => '領', 'label' => '領款收據'],
             ]],
             ['title' => '會計與帳務', 'items' => [
