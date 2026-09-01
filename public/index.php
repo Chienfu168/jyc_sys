@@ -105,6 +105,9 @@ if (file_exists(base_path('storage/maintenance.lock')) && !str_contains($request
 // 僅限台灣 IP 連線管制(啟用時阻擋國外連線;內網／允許清單放行,出錯放行)。
 \App\Core\GeoAccess::enforce();
 
+// 自動封鎖累犯 IP(fail2ban 式):被封鎖且未過期的來源 IP 直接回 403,出錯放行。
+\App\Core\IpGuard::enforce();
+
 if (!headers_sent()) {
     header('X-Frame-Options: SAMEORIGIN');
     header('X-Content-Type-Options: nosniff');

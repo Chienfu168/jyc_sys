@@ -82,7 +82,7 @@ https://你的網域/install.php
 `.env` 主要設定：
 
 ```env
-APP_VERSION=0.7.10
+APP_VERSION=0.7.11
 GITHUB_REPO=Chienfu168/jyc_sys
 GITHUB_TOKEN=
 UPDATE_CHANNEL=stable
@@ -103,6 +103,16 @@ MAIL_ENABLED=false
 - 啟用時會先確認「操作者當下連線」不會被擋,避免把自己鎖在門外。
 - 若系統前面有 Cloudflare 或反向代理,請在頁面選擇對應的來源 IP 標頭(CF-Connecting-IP／X-Forwarded-For／X-Real-IP);一般虛擬主機維持「直接連線」。
 - **被鎖在門外時的解除方式**:於 `.env` 設定 `ACCESS_CONTROL_DISABLED=true` 強制放行,或刪除 `storage/access_control.json` 解除管制。
+
+## 自動封鎖累犯 IP(fail2ban 式)
+
+除了台灣 IP 來源管制外,系統會自動暫時封鎖短時間內大量登入失敗的來源 IP,降低暴力破解與掃描風險。管理頁面:後台「系統設定 →連線來源管制 →管理封鎖 IP」。
+
+- 同一來源 IP 在觀察視窗內登入失敗達門檻,即自動封鎖一段時間;封鎖為**暫時性**,到期自動解除,期間該 IP 所有連線都會回 403。
+- 可調參數(`.env`,預設值):`IP_AUTOBLOCK_FAIL_THRESHOLD=20`(門檻次數)、`IP_AUTOBLOCK_WINDOW_MINUTES=15`(觀察視窗分鐘)、`IP_AUTOBLOCK_MINUTES=60`(封鎖分鐘)。
+- 內網位址與「連線來源管制」允許清單一律豁免,不會誤鎖自己人;取得來源 IP 的方式沿用同一組反向代理設定。
+- 管理頁面可查看目前封鎖清單並隨時**解除**、依觀察清單或直接輸入**手動封鎖** IP。
+- **緊急停用**:於 `.env` 設定 `IP_AUTOBLOCK_DISABLED=true`,自動封鎖與現有名單即全部不生效(fail-open)。
 
 ## Release 流程
 

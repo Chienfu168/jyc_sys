@@ -52,6 +52,8 @@ final class Auth
         $this->recordLoginAttempt($email, $success);
 
         if (!$success) {
+            // 累計同一來源 IP 的登入失敗,達門檻即自動暫時封鎖(fail2ban 式)。
+            IpGuard::registerLoginFailure(IpGuard::currentClientIp());
             return false;
         }
 
@@ -253,7 +255,7 @@ final class Auth
         $minutes = config('security.login_lock_minutes', 15);
         $max = (int) config('security.max_login_attempts', 5);
         $since = date('Y-m-d H:i:s', time() - ($minutes * 60));
-        $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+        $ip = IpGuard::currentClientIp();
 
         // 對單一 Email 鎖定,阻擋針對特定帳號的密碼猜測。
         $byEmail = Database::pdo()->prepare(
@@ -288,7 +290,7 @@ final class Auth
              VALUES (:email, :ip_address, :user_agent, :success, :created_at)'
         )->execute([
             'email' => $email,
-            'ip_address' => $_SERVER['REMOTE_ADDR'] ?? '',
+            'ip_address' => IpGuard::currentClientIp(),
             'user_agent' => substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 255),
             'success' => $success ? 1 : 0,
             'created_at' => now(),

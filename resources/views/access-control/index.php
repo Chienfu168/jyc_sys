@@ -52,6 +52,18 @@ ob_start();
 <section class="panel">
     <div class="panel-header">
         <div>
+            <h2>自動封鎖累犯 IP</h2>
+            <p class="muted-text">除了「僅限台灣 IP」的來源管制外,系統也會自動暫時封鎖短時間內大量登入失敗的來源 IP(fail2ban 式),並可手動封鎖／解除。</p>
+        </div>
+        <div class="actions">
+            <a class="btn" href="/access-control/blocked">管理封鎖 IP →</a>
+        </div>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="panel-header">
+        <div>
             <h2>連線來源管制(僅限台灣 IP)</h2>
             <p class="muted-text">屬內部使用系統。建議先用「僅記錄(觀察模式)」蒐集一段時間的連線狀況,確認不會誤擋自己人後,再切換為「啟用阻擋」。</p>
         </div>
