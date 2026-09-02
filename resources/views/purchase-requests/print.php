@@ -127,6 +127,52 @@ ob_start();
         <?php endforeach; ?>
     </section>
 </section>
+
+<?php
+$attachments = $attachments ?? [];
+$attachmentImages = [];
+$attachmentOthers = [];
+foreach ($attachments as $attachment) {
+    if (purchase_print_is_image((array) $attachment)) {
+        $attachmentImages[] = $attachment;
+    } else {
+        $attachmentOthers[] = $attachment;
+    }
+}
+$attachmentSeq = 0;
+?>
+<?php foreach ($attachmentImages as $img): ?>
+    <?php $dataUri = purchase_print_image_data_uri((string) ($img['stored_path'] ?? '')); ?>
+    <?php if ($dataUri !== null): ?>
+        <?php $attachmentSeq++; ?>
+        <article class="panel purchase-print-form purchase-print-attachment">
+            <h3 class="purchase-print-attachment-caption">
+                附件<?= e(purchase_print_cjk_no($attachmentSeq)) ?>：<?= e(purchase_print_attachment_label((array) $img)) ?>
+            </h3>
+            <img class="purchase-print-attachment-img" src="<?= e($dataUri) ?>" alt="">
+        </article>
+    <?php endif; ?>
+<?php endforeach; ?>
+
+<?php if ($attachmentOthers): ?>
+    <article class="panel purchase-print-form purchase-print-attachment">
+        <h3 class="purchase-print-attachment-caption">附件清單（PDF／文件檔，請附正本一併送核）</h3>
+        <table class="purchase-form-table">
+            <tbody>
+            <?php foreach ($attachmentOthers as $other): ?>
+                <?php $attachmentSeq++; ?>
+                <tr>
+                    <th>附件<?= e(purchase_print_cjk_no($attachmentSeq)) ?></th>
+                    <td>
+                        <?= e(purchase_print_attachment_label((array) $other)) ?>
+                        <span class="purchase-print-inline-note"><?= e((string) ($other['original_name'] ?? '')) ?></span>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+    </article>
+<?php endif; ?>
 <?php
 function purchase_print_ymd(string $date): string
 {
@@ -253,6 +299,82 @@ function purchase_print_number($value): string
 {
     $number = (float) $value;
     return floor($number) == $number ? number_format($number, 0) : number_format($number, 2);
+}
+
+/** 附件類型與標題文字。 */
+function purchase_print_attachment_label(array $attachment): string
+{
+    $labels = [
+        'quotation' => '報價單',
+        'invoice' => '發票／收據',
+        'contract' => '合約／訂單',
+        'delivery' => '驗收文件',
+        'payment' => '付款憑證',
+        'other' => '其他',
+    ];
+    $category = $labels[(string) ($attachment['category'] ?? 'other')] ?? '附件';
+    $title = trim((string) ($attachment['title'] ?? '')) ?: trim((string) ($attachment['original_name'] ?? ''));
+
+    return $title !== '' ? $category . '（' . $title . '）' : $category;
+}
+
+/** 是否為可內嵌列印的圖片附件。 */
+function purchase_print_is_image(array $attachment): bool
+{
+    $mime = strtolower((string) ($attachment['mime_type'] ?? ''));
+    if (in_array($mime, ['image/jpeg', 'image/png', 'image/gif', 'image/webp'], true)) {
+        return true;
+    }
+    $ext = strtolower(pathinfo((string) ($attachment['original_name'] ?? ''), PATHINFO_EXTENSION));
+
+    return in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'], true);
+}
+
+/** 讀取採購上傳的圖片附件為 data: URI,供列印時內嵌於文件之後。 */
+function purchase_print_image_data_uri(string $storedPath): ?string
+{
+    $storedPath = trim($storedPath);
+    if ($storedPath === '' || !str_starts_with($storedPath, 'private_uploads/purchase_requests/')) {
+        return null;
+    }
+    if (str_contains($storedPath, '..')) {
+        return null;
+    }
+    $full = storage_path($storedPath);
+    if (!is_file($full) || !is_readable($full)) {
+        return null;
+    }
+    $mimeByExt = ['png' => 'image/png', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'gif' => 'image/gif', 'webp' => 'image/webp'];
+    $ext = strtolower(pathinfo($full, PATHINFO_EXTENSION));
+    if (!isset($mimeByExt[$ext])) {
+        return null;
+    }
+    $data = @file_get_contents($full);
+    if ($data === false || $data === '') {
+        return null;
+    }
+
+    return 'data:' . $mimeByExt[$ext] . ';base64,' . base64_encode($data);
+}
+
+/** 阿拉伯數字轉國字(一、二…),供附件編號用。 */
+function purchase_print_cjk_no(int $n): string
+{
+    $digits = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
+    if ($n <= 0) {
+        return (string) $n;
+    }
+    if ($n < 10) {
+        return $digits[$n];
+    }
+    if ($n < 20) {
+        return '十' . ($n % 10 === 0 ? '' : $digits[$n % 10]);
+    }
+    if ($n < 100) {
+        return $digits[intdiv($n, 10)] . '十' . ($n % 10 === 0 ? '' : $digits[$n % 10]);
+    }
+
+    return (string) $n;
 }
 
 $content = ob_get_clean();

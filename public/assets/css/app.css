@@ -2552,6 +2552,24 @@ textarea:focus {
     font-size: 12px;
 }
 
+.purchase-print-attachment {
+    break-before: page;
+    page-break-before: always;
+}
+
+.purchase-print-attachment-caption {
+    margin: 0 0 10px;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.purchase-print-attachment-img {
+    display: block;
+    max-width: 100%;
+    max-height: 250mm;
+    margin: 0 auto;
+}
+
 .purchase-form-table th {
     width: 150px;
     background: #f6f8f7;

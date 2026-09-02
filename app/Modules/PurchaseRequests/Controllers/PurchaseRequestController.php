@@ -126,6 +126,7 @@ final class PurchaseRequestController extends Controller
             'active' => 'purchase-requests',
             'request' => $request,
             'items' => $this->items((int) $id),
+            'attachments' => $this->attachments((int) $id),
             'approvalHistory' => ApprovalFlow::history('purchase_requests', 'purchase_requests', (int) $id),
             'profile' => foundation_profile(),
         ]);
