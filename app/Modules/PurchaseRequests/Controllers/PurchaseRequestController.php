@@ -383,9 +383,10 @@ final class PurchaseRequestController extends Controller
 
         $originalName = basename((string) ($file['name'] ?? ''));
         $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
-        $allowed = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'txt'];
+        // 僅限圖片檔:確保每個附件都能於採購申請單列印時一併內嵌印出。
+        $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
         if (!in_array($extension, $allowed, true)) {
-            $this->backWithInput('/purchase-requests/' . $id, $_POST, '檔案格式不支援，請上傳 PDF、圖片、Office、CSV 或 TXT。');
+            $this->backWithInput('/purchase-requests/' . $id, $_POST, '目前僅接受圖片檔（JPG／PNG／GIF／WEBP），以便列印時一併印出。');
         }
 
         $detectedMime = $this->detectMime((string) $file['tmp_name']);
@@ -853,35 +854,19 @@ final class PurchaseRequestController extends Controller
     private function allowedUploadMime(string $extension, string $mime, string $path): bool
     {
         $allowed = [
-            'pdf' => ['application/pdf'],
             'jpg' => ['image/jpeg'],
             'jpeg' => ['image/jpeg'],
             'png' => ['image/png'],
-            'doc' => ['application/msword', 'application/octet-stream'],
-            'docx' => [
-                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                'application/zip',
-                'application/octet-stream',
-            ],
-            'xls' => ['application/vnd.ms-excel', 'application/octet-stream'],
-            'xlsx' => [
-                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                'application/zip',
-                'application/octet-stream',
-            ],
-            'csv' => ['text/csv', 'text/plain', 'application/vnd.ms-excel', 'application/octet-stream'],
-            'txt' => ['text/plain', 'application/octet-stream'],
+            'gif' => ['image/gif'],
+            'webp' => ['image/webp'],
         ];
 
         if (!in_array($mime, $allowed[$extension] ?? [], true)) {
             return false;
         }
 
-        if (in_array($extension, ['jpg', 'jpeg', 'png'], true) && @getimagesize($path) === false) {
-            return false;
-        }
-
-        return true;
+        // 圖片一律以 getimagesize 二次驗證內容確為影像。
+        return @getimagesize($path) !== false;
     }
 
     private function attachmentPathIsSafe(string $path): bool
