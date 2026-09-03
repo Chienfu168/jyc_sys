@@ -3,7 +3,7 @@
 <section class="panel purchase-attachments no-print">
     <div class="purchase-section-heading">
         <h3>採購附件</h3>
-        <p class="muted-text">保存報價單、發票、合約、驗收文件與付款憑證。</p>
+        <p class="muted-text">保存報價單、發票、合約、驗收文件與付款憑證。目前僅接受圖片檔（JPG／PNG／GIF／WEBP），列印採購申請單時會一併印出。</p>
     </div>
 
     <?php if (!empty($canManage) && ($request['status'] ?? '') !== 'voided'): ?>
@@ -24,7 +24,8 @@
             </label>
             <label class="span-2">
                 <span>選擇檔案</span>
-                <input type="file" name="attachment" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.csv,.txt" required>
+                <input type="file" name="attachment" accept="image/jpeg,image/png,image/gif,image/webp,.jpg,.jpeg,.png,.gif,.webp" capture="environment" required>
+                <span class="field-hint">僅接受圖片檔（JPG／PNG／GIF／WEBP）；手機可直接拍照上傳。</span>
             </label>
             <label class="span-2">
                 <span>備註</span>
