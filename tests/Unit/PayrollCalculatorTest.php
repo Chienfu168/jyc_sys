@@ -28,6 +28,31 @@ final class PayrollCalculatorTest extends TestCase
         $this->assertSame(9500.0, PayrollCalculator::deductionTotal(800, 600, 1500, 5000, 1000, 600));
     }
 
+    public function test_deduction_total_includes_supplementary_premium(): void
+    {
+        // 上述 9500 再加二代健保 211 = 9711
+        $this->assertSame(9711.0, PayrollCalculator::deductionTotal(800, 600, 1500, 5000, 1000, 600, 211));
+    }
+
+    public function test_supplementary_premium_defaults_to_zero(): void
+    {
+        // 未帶入二代健保時,結果與六參數版本相同(維持相容)。
+        $this->assertSame(9500.0, PayrollCalculator::deductionTotal(800, 600, 1500, 5000, 1000, 600));
+    }
+
+    public function test_employer_insurance_subtotal_sums_employer_side(): void
+    {
+        // 勞保(基) + 健保(基) + 職保
+        $this->assertSame(6926.0, PayrollCalculator::employerInsuranceSubtotal(4008, 2797, 121));
+    }
+
+    public function test_employer_burden_total_is_subtotal_plus_pension(): void
+    {
+        // 保險小計(B) 6926 + 勞退6%(C) 3600 = 10526
+        $subtotal = PayrollCalculator::employerInsuranceSubtotal(4008, 2797, 121);
+        $this->assertSame(10526.0, PayrollCalculator::employerBurdenTotal($subtotal, 3600));
+    }
+
     public function test_net_pay_is_gross_minus_deduction(): void
     {
         $this->assertSame(43500.0, PayrollCalculator::netPay(53000, 9500));

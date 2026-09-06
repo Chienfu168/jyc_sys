@@ -89,6 +89,10 @@
                 <span>其他扣款</span>
                 <input data-payroll-calc type="number" min="0" step="1" name="other_deduction" value="<?= e((string) old('other_deduction', $record['other_deduction'] ?? 0)) ?>">
             </label>
+            <label>
+                <span>二代健保(補充保費)</span>
+                <input data-payroll-calc type="number" min="0" step="1" name="supplementary_premium" value="<?= e((string) old('supplementary_premium', $record['supplementary_premium'] ?? 0)) ?>">
+            </label>
         </div>
     </div>
 
@@ -101,13 +105,35 @@
         </div>
     </div>
 
+    <div class="form-section">
+        <h3>雇主負擔(選填)</h3>
+        <div class="grid-form">
+            <label>
+                <span>勞保(雇主負擔)</span>
+                <input data-employer-calc type="number" min="0" step="1" name="employer_labor_insurance" value="<?= e((string) old('employer_labor_insurance', $record['employer_labor_insurance'] ?? 0)) ?>">
+            </label>
+            <label>
+                <span>健保(雇主負擔)</span>
+                <input data-employer-calc type="number" min="0" step="1" name="employer_health_insurance" value="<?= e((string) old('employer_health_insurance', $record['employer_health_insurance'] ?? 0)) ?>">
+            </label>
+            <label>
+                <span>職業災害保險</span>
+                <input data-employer-calc type="number" min="0" step="1" name="occupational_insurance" value="<?= e((string) old('occupational_insurance', $record['occupational_insurance'] ?? 0)) ?>">
+            </label>
+            <label>
+                <span>雇主退休金提繳(勞退6%)</span>
+                <input data-employer-calc type="number" min="0" step="1" name="employer_pension" id="payroll-employer-pension" value="<?= e((string) old('employer_pension', $record['employer_pension'] ?? 0)) ?>">
+            </label>
+        </div>
+        <div class="calc-summary">
+            <span>雇主保險小計 <strong id="payroll-employer-subtotal">0</strong></span>
+            <span>總負擔(含勞退) <strong id="payroll-employer-burden">0</strong></span>
+        </div>
+    </div>
+
     <details class="form-section">
         <summary>付款與其他(選填)</summary>
         <div class="grid-form">
-            <label>
-                <span>雇主退休金提繳</span>
-                <input type="number" min="0" step="1" name="employer_pension" id="payroll-employer-pension" value="<?= e((string) old('employer_pension', $record['employer_pension'] ?? 0)) ?>">
-            </label>
             <label>
                 <span>付款方式</span>
                 <input type="text" name="payment_method" list="payroll-payment-methods" value="<?= e((string) old('payment_method', $record['payment_method'] ?? '匯款')) ?>">
@@ -163,7 +189,7 @@
     const employee = document.getElementById('payroll-employee');
     const salary = document.getElementById('payroll-base-salary');
     const employerPension = document.getElementById('payroll-employer-pension');
-    const fields = [...document.querySelectorAll('[data-payroll-calc]')];
+    const fields = [...document.querySelectorAll('[data-payroll-calc], [data-employer-calc]')];
     const grossEl = document.getElementById('payroll-gross');
     const deductionEl = document.getElementById('payroll-deduction');
     const netEl = document.getElementById('payroll-net');
@@ -177,12 +203,23 @@
         return Math.round(value).toLocaleString('zh-TW');
     }
 
+    const employerSubtotalEl = document.getElementById('payroll-employer-subtotal');
+    const employerBurdenEl = document.getElementById('payroll-employer-burden');
+
     function calculate() {
         const gross = amount('base_salary') + amount('allowance_total') + amount('overtime_pay') + amount('bonus');
-        const deduction = amount('labor_insurance_deduction') + amount('health_insurance_deduction') + amount('pension_self_deduction') + amount('income_tax') + amount('leave_deduction') + amount('other_deduction');
+        const deduction = amount('labor_insurance_deduction') + amount('health_insurance_deduction') + amount('pension_self_deduction') + amount('income_tax') + amount('leave_deduction') + amount('other_deduction') + amount('supplementary_premium');
         grossEl.textContent = format(gross);
         deductionEl.textContent = format(deduction);
         netEl.textContent = format(gross - deduction);
+
+        const employerSubtotal = amount('employer_labor_insurance') + amount('employer_health_insurance') + amount('occupational_insurance');
+        if (employerSubtotalEl) {
+            employerSubtotalEl.textContent = format(employerSubtotal);
+        }
+        if (employerBurdenEl) {
+            employerBurdenEl.textContent = format(employerSubtotal + amount('employer_pension'));
+        }
     }
 
     employee?.addEventListener('change', () => {

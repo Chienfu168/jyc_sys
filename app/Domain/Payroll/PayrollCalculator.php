@@ -23,7 +23,9 @@ final class PayrollCalculator
     }
 
     /**
-     * 應扣總額 = 勞保 + 健保 + 自提退休金 + 所得稅 + 請假扣款 + 其他扣款。
+     * 應扣總額 = 勞保 + 健保 + 自提退休金 + 所得稅 + 請假扣款 + 其他扣款 + 二代健保。
+     *
+     * 二代健保(補充保費)為選填,預設 0,維持既有呼叫相容。
      */
     public static function deductionTotal(
         float $laborInsurance,
@@ -31,7 +33,8 @@ final class PayrollCalculator
         float $pensionSelf,
         float $incomeTax,
         float $leaveDeduction,
-        float $otherDeduction
+        float $otherDeduction,
+        float $supplementaryPremium = 0.0
     ): float {
         return round(
             $laborInsurance
@@ -39,7 +42,8 @@ final class PayrollCalculator
             + $pensionSelf
             + $incomeTax
             + $leaveDeduction
-            + $otherDeduction,
+            + $otherDeduction
+            + $supplementaryPremium,
             2
         );
     }
@@ -58,5 +62,26 @@ final class PayrollCalculator
     public static function employerPension(float $baseSalary, float $pensionRate): float
     {
         return round($baseSalary * $pensionRate / 100, 0);
+    }
+
+    /**
+     * 雇主保險小計(B)= 勞保雇主負擔 + 健保雇主負擔 + 職業災害保險。
+     */
+    public static function employerInsuranceSubtotal(
+        float $employerLaborInsurance,
+        float $employerHealthInsurance,
+        float $occupationalInsurance
+    ): float {
+        return round($employerLaborInsurance + $employerHealthInsurance + $occupationalInsurance, 2);
+    }
+
+    /**
+     * 雇主總負擔(D)= 雇主保險小計(B) + 雇主提繳退休金(C,勞退6%)。
+     */
+    public static function employerBurdenTotal(
+        float $employerInsuranceSubtotal,
+        float $employerPension
+    ): float {
+        return round($employerInsuranceSubtotal + $employerPension, 2);
     }
 }

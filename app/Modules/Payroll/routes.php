@@ -3,6 +3,7 @@
 use App\Modules\Payroll\Controllers\PayrollController;
 
 $router->get('/payroll', [PayrollController::class, 'index']);
+$router->get('/payroll/worksheet', [PayrollController::class, 'worksheet']);
 $router->get('/payroll/create', [PayrollController::class, 'create']);
 $router->post('/payroll', [PayrollController::class, 'store']);
 $router->get('/payroll/{id}', [PayrollController::class, 'show']);
