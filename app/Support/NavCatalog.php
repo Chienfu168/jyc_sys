@@ -50,6 +50,7 @@ final class NavCatalog
             ['title' => '會計與帳務', 'items' => [
                 ['perm' => 'accounting.view', 'key' => 'accounting', 'href' => '/accounting', 'icon' => '會', 'label' => '會計系統'],
                 ['perm' => 'bank_accounts.view', 'key' => 'bank-accounts', 'href' => '/bank-accounts', 'icon' => '銀', 'label' => '銀行帳戶'],
+                ['perm' => 'bank_slips.view', 'key' => 'bank-slips', 'href' => '/bank-slips', 'icon' => '匯', 'label' => '匯款單(取款條)'],
                 ['perm' => 'opening_balances.view', 'key' => 'opening-balances', 'href' => '/opening-balances', 'icon' => '初', 'label' => '期初餘額'],
             ]],
             ['title' => '主管機關核備', 'items' => [
