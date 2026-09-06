@@ -133,6 +133,12 @@ ob_start();
                 <td>請假扣款 / 其他扣款</td>
                 <td class="amount"><?= e(number_format((float) $record['leave_deduction'] + (float) $record['other_deduction'], 0)) ?></td>
             </tr>
+            <tr>
+                <td></td>
+                <td></td>
+                <td>二代健保(補充保費)</td>
+                <td class="amount"><?= e(number_format((float) ($record['supplementary_premium'] ?? 0), 0)) ?></td>
+            </tr>
             </tbody>
             <tfoot>
             <tr>
@@ -149,13 +155,33 @@ ob_start();
         </table>
     </div>
 
+    <?php
+    $employerSubtotal = (float) ($record['employer_labor_insurance'] ?? 0)
+        + (float) ($record['employer_health_insurance'] ?? 0)
+        + (float) ($record['occupational_insurance'] ?? 0);
+    $employerBurden = $employerSubtotal + (float) $record['employer_pension'];
+    ?>
     <table class="meta-table">
         <tbody>
         <tr>
-            <th>雇主退休金提繳</th>
+            <th>勞保 / 健保 / 職保(雇主)</th>
+            <td><?= e(number_format((float) ($record['employer_labor_insurance'] ?? 0), 0)) ?>
+                / <?= e(number_format((float) ($record['employer_health_insurance'] ?? 0), 0)) ?>
+                / <?= e(number_format((float) ($record['occupational_insurance'] ?? 0), 0)) ?></td>
+            <th>雇主退休金提繳(勞退6%)</th>
             <td><?= e(number_format((float) $record['employer_pension'], 0)) ?></td>
+        </tr>
+        <tr>
+            <th>雇主保險小計</th>
+            <td><?= e(number_format($employerSubtotal, 0)) ?></td>
+            <th>雇主總負擔(含勞退)</th>
+            <td><strong><?= e(number_format($employerBurden, 0)) ?></strong></td>
+        </tr>
+        <tr>
             <th>付款日期</th>
             <td><?= e(roc_date($record['paid_on'])) ?></td>
+            <th></th>
+            <td></td>
         </tr>
         <tr>
             <th>基金會付款銀行</th>

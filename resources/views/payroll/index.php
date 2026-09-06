@@ -32,6 +32,7 @@ ob_start();
         </form>
         <div class="actions">
             <a class="btn" href="/finance">返回財務會計</a>
+            <a class="btn" href="/payroll/worksheet?month=<?= e($month) ?>">本月薪資表(列印)</a>
             <?php if (\App\Core\Permission::can('payroll.manage')): ?>
                 <a class="btn primary" href="/payroll/create">新增薪資</a>
             <?php endif; ?>

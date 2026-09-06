@@ -59,6 +59,40 @@ final class PayrollController extends Controller
         ]);
     }
 
+    /** 月薪資表:單一月份全體薪資彙總,含欄位合計與用印,供列印／陳核。 */
+    public function worksheet(): void
+    {
+        $this->requirePermission('payroll.view');
+
+        $month = preg_match('/^\d{4}-\d{2}$/', (string) ($_GET['month'] ?? ''))
+            ? (string) $_GET['month']
+            : date('Y-m');
+
+        $stmt = Database::pdo()->prepare(
+            'SELECT payroll_records.*, personnel_employees.name AS employee_name,
+                    personnel_employees.employee_no, personnel_employees.department, personnel_employees.job_title,
+                    personnel_employees.employment_type
+             FROM payroll_records
+             INNER JOIN personnel_employees ON personnel_employees.id = payroll_records.employee_id
+             WHERE payroll_records.payroll_month = :month
+               AND payroll_records.payment_status != "voided"
+             ORDER BY personnel_employees.department, personnel_employees.job_title, personnel_employees.name'
+        );
+        $stmt->execute(['month' => $month]);
+        $records = $stmt->fetchAll();
+
+        $this->render('payroll.worksheet', [
+            'title' => '月薪資表',
+            'section' => '財務會計',
+            'active' => 'payroll',
+            'month' => $month,
+            'records' => $records,
+            'totals' => $this->worksheetTotals($records),
+            'profile' => foundation_profile(),
+            'printable' => true,
+        ]);
+    }
+
     public function create(): void
     {
         $this->requirePermission('payroll.manage');
@@ -82,7 +116,11 @@ final class PayrollController extends Controller
                 'income_tax' => 0,
                 'leave_deduction' => 0,
                 'other_deduction' => 0,
+                'supplementary_premium' => 0,
                 'employer_pension' => isset($employee['base_salary'], $employee['pension_rate']) ? PayrollCalculator::employerPension((float) $employee['base_salary'], (float) $employee['pension_rate']) : 0,
+                'employer_labor_insurance' => 0,
+                'employer_health_insurance' => 0,
+                'occupational_insurance' => 0,
                 'payment_method' => '匯款',
                 'payment_status' => 'draft',
                 'paid_on' => '',
@@ -104,9 +142,9 @@ final class PayrollController extends Controller
 
         Database::pdo()->prepare(
             'INSERT INTO payroll_records
-             (employee_id, payroll_month, pay_date, base_salary, allowance_total, overtime_pay, bonus, gross_pay, labor_insurance_deduction, health_insurance_deduction, pension_self_deduction, income_tax, leave_deduction, other_deduction, deduction_total, net_pay, employer_pension, payment_method, payment_status, paid_on, bank_account_id, project_id, notes, created_by, created_at, updated_at)
+             (employee_id, payroll_month, pay_date, base_salary, allowance_total, overtime_pay, bonus, gross_pay, labor_insurance_deduction, health_insurance_deduction, pension_self_deduction, income_tax, leave_deduction, other_deduction, supplementary_premium, deduction_total, net_pay, employer_pension, employer_labor_insurance, employer_health_insurance, occupational_insurance, payment_method, payment_status, paid_on, bank_account_id, project_id, notes, created_by, created_at, updated_at)
              VALUES
-             (:employee_id, :payroll_month, :pay_date, :base_salary, :allowance_total, :overtime_pay, :bonus, :gross_pay, :labor_insurance_deduction, :health_insurance_deduction, :pension_self_deduction, :income_tax, :leave_deduction, :other_deduction, :deduction_total, :net_pay, :employer_pension, :payment_method, :payment_status, :paid_on, :bank_account_id, :project_id, :notes, :created_by, :created_at, :updated_at)'
+             (:employee_id, :payroll_month, :pay_date, :base_salary, :allowance_total, :overtime_pay, :bonus, :gross_pay, :labor_insurance_deduction, :health_insurance_deduction, :pension_self_deduction, :income_tax, :leave_deduction, :other_deduction, :supplementary_premium, :deduction_total, :net_pay, :employer_pension, :employer_labor_insurance, :employer_health_insurance, :occupational_insurance, :payment_method, :payment_status, :paid_on, :bank_account_id, :project_id, :notes, :created_by, :created_at, :updated_at)'
         )->execute($this->payload() + [
             'created_by' => auth()->user()['id'] ?? null,
             'created_at' => now(),
@@ -170,9 +208,13 @@ final class PayrollController extends Controller
                  income_tax = :income_tax,
                  leave_deduction = :leave_deduction,
                  other_deduction = :other_deduction,
+                 supplementary_premium = :supplementary_premium,
                  deduction_total = :deduction_total,
                  net_pay = :net_pay,
                  employer_pension = :employer_pension,
+                 employer_labor_insurance = :employer_labor_insurance,
+                 employer_health_insurance = :employer_health_insurance,
+                 occupational_insurance = :occupational_insurance,
                  payment_method = :payment_method,
                  payment_status = :payment_status,
                  paid_on = :paid_on,
@@ -424,7 +466,7 @@ final class PayrollController extends Controller
             $this->backWithInput($path, $_POST, '同一人員同一月份已有薪資紀錄。');
         }
 
-        foreach (['base_salary', 'allowance_total', 'overtime_pay', 'bonus', 'labor_insurance_deduction', 'health_insurance_deduction', 'pension_self_deduction', 'income_tax', 'leave_deduction', 'other_deduction', 'employer_pension'] as $key) {
+        foreach (['base_salary', 'allowance_total', 'overtime_pay', 'bonus', 'labor_insurance_deduction', 'health_insurance_deduction', 'pension_self_deduction', 'income_tax', 'leave_deduction', 'other_deduction', 'supplementary_premium', 'employer_pension', 'employer_labor_insurance', 'employer_health_insurance', 'occupational_insurance'] as $key) {
             if ($this->amountValue($key) < 0) {
                 $this->backWithInput($path, $_POST, '薪資與扣款金額不可小於 0。');
             }
@@ -449,7 +491,8 @@ final class PayrollController extends Controller
             $this->amountValue('pension_self_deduction'),
             $this->amountValue('income_tax'),
             $this->amountValue('leave_deduction'),
-            $this->amountValue('other_deduction')
+            $this->amountValue('other_deduction'),
+            $this->amountValue('supplementary_premium')
         );
         $bankAccountId = (int) ($_POST['bank_account_id'] ?? 0);
         $paidOn = trim((string) ($_POST['paid_on'] ?? ''));
@@ -469,9 +512,13 @@ final class PayrollController extends Controller
             'income_tax' => $this->amountValue('income_tax'),
             'leave_deduction' => $this->amountValue('leave_deduction'),
             'other_deduction' => $this->amountValue('other_deduction'),
+            'supplementary_premium' => $this->amountValue('supplementary_premium'),
             'deduction_total' => $deduction,
             'net_pay' => PayrollCalculator::netPay($gross, $deduction),
             'employer_pension' => $this->amountValue('employer_pension'),
+            'employer_labor_insurance' => $this->amountValue('employer_labor_insurance'),
+            'employer_health_insurance' => $this->amountValue('employer_health_insurance'),
+            'occupational_insurance' => $this->amountValue('occupational_insurance'),
             'payment_method' => trim((string) ($_POST['payment_method'] ?? '')),
             'payment_status' => (string) ($_POST['payment_status'] ?? 'draft'),
             'paid_on' => $paidOn !== '' ? $paidOn : null,
@@ -592,6 +639,37 @@ final class PayrollController extends Controller
             'deduction' => $deduction,
             'net' => $net,
         ];
+    }
+
+    /** 月薪資表欄位合計(不含作廢),含雇主保險小計 B 與總負擔 D。 */
+    private function worksheetTotals(array $records): array
+    {
+        $sum = array_fill_keys([
+            'base_salary', 'allowance_total', 'overtime_pay', 'bonus', 'gross_pay',
+            'income_tax', 'labor_insurance_deduction', 'health_insurance_deduction',
+            'pension_self_deduction', 'leave_deduction', 'other_deduction',
+            'supplementary_premium', 'deduction_total', 'net_pay',
+            'employer_labor_insurance', 'employer_health_insurance', 'occupational_insurance',
+            'employer_insurance_subtotal', 'employer_pension', 'employer_burden_total',
+        ], 0.0);
+
+        foreach ($records as $record) {
+            foreach ($sum as $key => $value) {
+                if (in_array($key, ['employer_insurance_subtotal', 'employer_burden_total'], true)) {
+                    continue;
+                }
+                $sum[$key] += (float) ($record[$key] ?? 0);
+            }
+            $subtotal = PayrollCalculator::employerInsuranceSubtotal(
+                (float) ($record['employer_labor_insurance'] ?? 0),
+                (float) ($record['employer_health_insurance'] ?? 0),
+                (float) ($record['occupational_insurance'] ?? 0)
+            );
+            $sum['employer_insurance_subtotal'] += $subtotal;
+            $sum['employer_burden_total'] += PayrollCalculator::employerBurdenTotal($subtotal, (float) ($record['employer_pension'] ?? 0));
+        }
+
+        return $sum;
     }
 
     private function nullableDate(string $key): ?string
