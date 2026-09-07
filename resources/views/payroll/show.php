@@ -36,6 +36,12 @@ ob_start();
                 <?php if (!empty($record['accounting_voucher_id'])): ?>
                     <a class="btn" href="/accounting/vouchers/<?= e((string) $record['accounting_voucher_id']) ?>">查看傳票</a>
                 <?php endif; ?>
+                <?php if (\App\Core\Permission::can('bank_slips.manage') && $record['payment_status'] !== 'voided' && (float) $record['net_pay'] > 0): ?>
+                    <form method="post" action="/payroll/<?= e((string) $record['id']) ?>/remittance">
+                        <?= csrf_field() ?>
+                        <button class="btn primary" type="submit">產生匯款單</button>
+                    </form>
+                <?php endif; ?>
                 <?php if ($record['payment_status'] !== 'voided'): ?>
                     <form method="post" action="/payroll/<?= e((string) $record['id']) ?>/void">
                         <?= csrf_field() ?>
