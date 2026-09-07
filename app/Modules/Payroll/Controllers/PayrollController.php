@@ -235,8 +235,10 @@ final class PayrollController extends Controller
             flash('error', '已作廢的薪資紀錄無法產生匯款單。');
             redirect('/payroll/' . $id);
         }
-        if ((float) $record['net_pay'] <= 0) {
-            flash('error', '實發金額為 0,無法產生匯款單。');
+        // 實付合計 = 實發薪資 + 差旅費代墊核銷(隨薪資一起發放者)。
+        $payTotal = (float) $record['net_pay'] + (float) ($record['travel_reimbursement'] ?? 0);
+        if ($payTotal <= 0) {
+            flash('error', '應付金額為 0,無法產生匯款單。');
             redirect('/payroll/' . $id);
         }
 
@@ -269,8 +271,8 @@ final class PayrollController extends Controller
             'payee_name' => (string) ($record['employee_bank_account_name'] ?: $record['employee_name']),
             'payee_account' => (string) ($record['employee_bank_account_no'] ?? ''),
             'paying_bank_name' => trim($payingBank),
-            'amount' => (int) round((float) $record['net_pay']),
-            'message' => mb_substr($record['payroll_month'] . ' 薪資', 0, 30),
+            'amount' => (int) round($payTotal),
+            'message' => mb_substr($record['payroll_month'] . ' 薪資' . ((float) ($record['travel_reimbursement'] ?? 0) > 0 ? '含差旅費' : ''), 0, 30),
             'sms_mobile' => '',
             'source_type' => 'payroll_records',
             'source_id' => (int) $record['id'],
@@ -328,14 +330,145 @@ final class PayrollController extends Controller
     public function show(string $id): void
     {
         $this->requirePermission('payroll.view');
+        $record = $this->findRecord((int) $id);
 
         $this->render('payroll.show', [
             'title' => '薪資明細',
             'section' => '財務會計',
             'active' => 'payroll',
-            'record' => $this->findRecord((int) $id),
+            'record' => $record,
+            'linkedTravel' => $this->linkedTravel((int) $id),
+            'candidateTravel' => $this->candidateTravel($record),
+            'travelTableReady' => $this->travelTableReady(),
             'profile' => foundation_profile(),
         ]);
+    }
+
+    /** 將選取的出差費用併入此薪資單一起發放(帳上仍為差旅費,非課稅薪資)。 */
+    public function attachTravel(string $id): void
+    {
+        $this->requirePermission('payroll.manage');
+        $record = $this->findRecord((int) $id);
+        if (!$this->travelTableReady()) {
+            flash('error', '出差費用整合欄位尚未建立,請先執行資料庫更新。');
+            redirect('/payroll/' . $id);
+        }
+
+        $ids = array_values(array_filter(array_map('intval', (array) ($_POST['travel_ids'] ?? [])), static fn (int $v): bool => $v > 0));
+        if (!$ids) {
+            $this->backWithInput('/payroll/' . $id, $_POST, '請選擇要併入的出差費用。');
+        }
+
+        // 僅允許併入「該員工當月、待付、尚未併入」者。
+        $candidates = array_column($this->candidateTravel($record), 'id');
+        $ids = array_values(array_intersect($ids, array_map('intval', $candidates)));
+        if (!$ids) {
+            $this->backWithInput('/payroll/' . $id, $_POST, '選取的出差費用不可併入(可能已付款或已併入)。');
+        }
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $stmt = Database::pdo()->prepare(
+            'UPDATE travel_expenses
+             SET settlement_method = "payroll", payroll_record_id = ?, payroll_month = ?,
+                 payment_status = "paid", paid_on = COALESCE(paid_on, ?), updated_at = ?
+             WHERE id IN (' . $placeholders . ')'
+        );
+        $stmt->execute(array_merge([(int) $id, (string) $record['payroll_month'], date('Y-m-d'), now()], $ids));
+
+        $this->recomputeTravelReimbursement((int) $id);
+        AuditLog::write('attach_travel', 'payroll', 'payroll_records', (int) $id, ['travel_ids' => $ids]);
+        flash('success', '已將 ' . count($ids) . ' 筆出差費用併入本薪資單發放。');
+        redirect('/payroll/' . $id);
+    }
+
+    public function detachTravel(string $id): void
+    {
+        $this->requirePermission('payroll.manage');
+        $this->findRecord((int) $id);
+
+        $travelId = (int) ($_POST['travel_id'] ?? 0);
+        if ($travelId > 0) {
+            Database::pdo()->prepare(
+                'UPDATE travel_expenses
+                 SET settlement_method = "separate", payroll_record_id = NULL, payroll_month = NULL,
+                     payment_status = "pending", paid_on = NULL, updated_at = ?
+                 WHERE id = ? AND payroll_record_id = ?'
+            )->execute([now(), $travelId, (int) $id]);
+            $this->recomputeTravelReimbursement((int) $id);
+            AuditLog::write('detach_travel', 'payroll', 'payroll_records', (int) $id, ['travel_id' => $travelId]);
+            flash('success', '已將該筆出差費用移出本薪資單。');
+        }
+        redirect('/payroll/' . $id);
+    }
+
+    private function recomputeTravelReimbursement(int $payrollId): void
+    {
+        Database::pdo()->prepare(
+            'UPDATE payroll_records SET travel_reimbursement =
+                COALESCE((SELECT SUM(reimbursable_amount) FROM travel_expenses WHERE payroll_record_id = :pid), 0),
+                updated_at = :updated_at
+             WHERE id = :id'
+        )->execute(['pid' => $payrollId, 'updated_at' => now(), 'id' => $payrollId]);
+    }
+
+    /** @return array<int, array<string, mixed>> 已併入此薪資單的出差費用。 */
+    private function linkedTravel(int $payrollId): array
+    {
+        if (!$this->travelTableReady()) {
+            return [];
+        }
+        $stmt = Database::pdo()->prepare(
+            'SELECT id, traveler_name, travel_start, travel_end, destination, reimbursable_amount
+             FROM travel_expenses WHERE payroll_record_id = :pid ORDER BY travel_start, id'
+        );
+        $stmt->execute(['pid' => $payrollId]);
+
+        return $stmt->fetchAll();
+    }
+
+    /** @return array<int, array<string, mixed>> 可併入的出差費用(該員工當月、待付、未併入)。 */
+    private function candidateTravel(array $record): array
+    {
+        if (!$this->travelTableReady()) {
+            return [];
+        }
+        $userId = (int) ($record['employee_user_id'] ?? 0);
+        $stmt = Database::pdo()->prepare(
+            'SELECT id, traveler_name, travel_start, travel_end, destination, reimbursable_amount
+             FROM travel_expenses
+             WHERE payment_status = "pending" AND settlement_method = "separate" AND payroll_record_id IS NULL
+               AND DATE_FORMAT(travel_start, "%Y-%m") = :month
+               AND (( :uid > 0 AND traveler_user_id = :uid2 ) OR traveler_name = :name)
+             ORDER BY travel_start, id'
+        );
+        $stmt->execute([
+            'month' => (string) $record['payroll_month'],
+            'uid' => $userId,
+            'uid2' => $userId,
+            'name' => (string) $record['employee_name'],
+        ]);
+
+        return $stmt->fetchAll();
+    }
+
+    private function travelTableReady(): bool
+    {
+        static $ready = null;
+        if ($ready !== null) {
+            return $ready;
+        }
+        try {
+            $stmt = Database::pdo()->prepare(
+                'SELECT COUNT(*) FROM information_schema.COLUMNS
+                 WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = "travel_expenses" AND COLUMN_NAME = "payroll_record_id"'
+            );
+            $stmt->execute();
+            $ready = (bool) $stmt->fetchColumn();
+        } catch (\Throwable) {
+            $ready = false;
+        }
+
+        return $ready;
     }
 
     public function edit(string $id): void
@@ -701,6 +834,7 @@ final class PayrollController extends Controller
         $stmt = Database::pdo()->prepare(
             'SELECT payroll_records.*, personnel_employees.name AS employee_name,
                     personnel_employees.employee_no, personnel_employees.department, personnel_employees.job_title,
+                    personnel_employees.user_id AS employee_user_id,
                     personnel_employees.bank_name AS employee_bank_name,
                     personnel_employees.bank_branch AS employee_bank_branch,
                     personnel_employees.bank_account_no AS employee_bank_account_no,

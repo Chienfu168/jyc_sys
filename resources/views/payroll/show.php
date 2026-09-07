@@ -157,9 +157,75 @@ ob_start();
                 <th colspan="3">實發金額</th>
                 <th class="amount"><?= e(number_format((float) $record['net_pay'], 0)) ?></th>
             </tr>
+            <?php $travelReimb = (float) ($record['travel_reimbursement'] ?? 0); ?>
+            <?php if ($travelReimb > 0): ?>
+                <tr>
+                    <th colspan="3">差旅費代墊核銷(隨薪發放，非課稅薪資)</th>
+                    <th class="amount"><?= e(number_format($travelReimb, 0)) ?></th>
+                </tr>
+                <tr>
+                    <th colspan="3">本次實付合計</th>
+                    <th class="amount"><?= e(number_format((float) $record['net_pay'] + $travelReimb, 0)) ?></th>
+                </tr>
+            <?php endif; ?>
             </tfoot>
         </table>
     </div>
+
+    <?php if (!empty($travelTableReady)): ?>
+        <?php $linkedTravel = $linkedTravel ?? []; $candidateTravel = $candidateTravel ?? []; ?>
+        <section class="panel no-print" style="border:1px solid #e2e6e4;border-radius:8px;padding:14px;margin-top:14px">
+            <h3 style="margin:0 0 6px">差旅費代墊核銷（併入本薪資一起發放）</h3>
+            <p class="muted-text" style="margin:0 0 10px">出差費在帳上仍為差旅費（不計入課稅薪資與勞健保），此處僅將該員工當月出差費「隨薪資一起匯款」發放。</p>
+
+            <?php if ($linkedTravel): ?>
+                <table class="data-table" style="margin-bottom:10px">
+                    <thead><tr><th>日期</th><th>目的地</th><th class="amount">應核銷</th><th class="actions">操作</th></tr></thead>
+                    <tbody>
+                    <?php foreach ($linkedTravel as $t): ?>
+                        <tr>
+                            <td><?= e(roc_date($t['travel_start'])) ?></td>
+                            <td><?= e($t['destination']) ?></td>
+                            <td class="amount"><?= e(number_format((float) $t['reimbursable_amount'], 0)) ?></td>
+                            <td class="actions">
+                                <?php if (\App\Core\Permission::can('payroll.manage')): ?>
+                                    <form method="post" action="/payroll/<?= e((string) $record['id']) ?>/travel/detach" onsubmit="return confirm('確定將此筆移出本薪資單？');">
+                                        <?= csrf_field() ?>
+                                        <input type="hidden" name="travel_id" value="<?= e((string) $t['id']) ?>">
+                                        <button class="btn small" type="submit">移出</button>
+                                    </form>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+            <?php endif; ?>
+
+            <?php if (\App\Core\Permission::can('payroll.manage') && $candidateTravel): ?>
+                <form method="post" action="/payroll/<?= e((string) $record['id']) ?>/travel/attach">
+                    <?= csrf_field() ?>
+                    <p class="muted-text" style="margin:0 0 6px">當月可併入的出差費用（待付款）：</p>
+                    <table class="data-table" style="margin-bottom:10px">
+                        <thead><tr><th style="width:44px"></th><th>日期</th><th>目的地</th><th class="amount">應核銷</th></tr></thead>
+                        <tbody>
+                        <?php foreach ($candidateTravel as $t): ?>
+                            <tr>
+                                <td><input type="checkbox" name="travel_ids[]" value="<?= e((string) $t['id']) ?>"></td>
+                                <td><?= e(roc_date($t['travel_start'])) ?></td>
+                                <td><?= e($t['destination']) ?></td>
+                                <td class="amount"><?= e(number_format((float) $t['reimbursable_amount'], 0)) ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                    <button class="btn" type="submit">併入選取的出差費用</button>
+                </form>
+            <?php elseif (!$linkedTravel): ?>
+                <p class="muted-text" style="margin:0">當月查無可併入的出差費用（需為此員工、當月、待付款者）。</p>
+            <?php endif; ?>
+        </section>
+    <?php endif; ?>
 
     <?php
     $employerSubtotal = (float) ($record['employer_labor_insurance'] ?? 0)

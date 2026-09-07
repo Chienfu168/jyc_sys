@@ -17,4 +17,6 @@ $router->post('/payroll/{id}/confirm', [PayrollController::class, 'confirm']);
 $router->post('/payroll/{id}/mark-paid', [PayrollController::class, 'markPaid']);
 $router->post('/payroll/{id}/void', [PayrollController::class, 'void']);
 $router->post('/payroll/{id}/remittance', [PayrollController::class, 'remittance']);
+$router->post('/payroll/{id}/travel/attach', [PayrollController::class, 'attachTravel']);
+$router->post('/payroll/{id}/travel/detach', [PayrollController::class, 'detachTravel']);
 $router->post('/payroll/{id}/delete', [PayrollController::class, 'destroy']);

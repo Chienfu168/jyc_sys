@@ -31,6 +31,7 @@ ob_start();
         </form>
         <div class="actions">
             <a class="btn" href="/finance">返回財務會計</a>
+            <a class="btn" href="/travel-expenses/monthly?month=<?= e($month) ?>">出差月報表(列印)</a>
             <?php if (\App\Core\Permission::can('travel_expenses.manage')): ?>
                 <a class="btn primary" href="/travel-expenses/create">新增出差費用</a>
             <?php endif; ?>
