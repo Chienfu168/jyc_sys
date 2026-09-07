@@ -58,6 +58,50 @@ final class TravelExpenseController extends Controller
         ]);
     }
 
+    /** 出差月報表:單一月份逐項出差,依出差人分組彙整(小計、總計),可列印。 */
+    public function monthly(): void
+    {
+        $this->requirePermission('travel_expenses.view');
+
+        $month = preg_match('/^\d{4}-\d{2}$/', (string) ($_GET['month'] ?? ''))
+            ? (string) $_GET['month']
+            : date('Y-m');
+
+        $stmt = Database::pdo()->prepare(
+            'SELECT * FROM travel_expenses
+             WHERE payment_status != "voided" AND DATE_FORMAT(travel_start, "%Y-%m") = :month
+             ORDER BY traveler_name, travel_start, id'
+        );
+        $stmt->execute(['month' => $month]);
+        $rows = $stmt->fetchAll();
+
+        // 依出差人分組,計算每人小計與全月總計。
+        $groups = [];
+        $grand = ['transportation_fee' => 0.0, 'accommodation_fee' => 0.0, 'meal_fee' => 0.0, 'miscellaneous_fee' => 0.0, 'advance_amount' => 0.0, 'total_amount' => 0.0, 'reimbursable_amount' => 0.0];
+        foreach ($rows as $row) {
+            $key = ($row['traveler_user_id'] ?? '0') . '|' . $row['traveler_name'];
+            if (!isset($groups[$key])) {
+                $groups[$key] = ['name' => $row['traveler_name'], 'items' => [], 'subtotal' => array_fill_keys(array_keys($grand), 0.0)];
+            }
+            $groups[$key]['items'][] = $row;
+            foreach ($grand as $f => $_) {
+                $groups[$key]['subtotal'][$f] += (float) $row[$f];
+                $grand[$f] += (float) $row[$f];
+            }
+        }
+
+        $this->render('travel-expenses.monthly', [
+            'title' => '出差月報表',
+            'section' => '財務會計',
+            'active' => 'travel-expenses',
+            'month' => $month,
+            'groups' => array_values($groups),
+            'grand' => $grand,
+            'profile' => foundation_profile(),
+            'printable' => true,
+        ]);
+    }
+
     public function create(): void
     {
         $this->requirePermission('travel_expenses.manage');

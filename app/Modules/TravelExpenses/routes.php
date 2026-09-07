@@ -3,6 +3,7 @@
 use App\Modules\TravelExpenses\Controllers\TravelExpenseController;
 
 $router->get('/travel-expenses', [TravelExpenseController::class, 'index']);
+$router->get('/travel-expenses/monthly', [TravelExpenseController::class, 'monthly']);
 $router->get('/travel-expenses/create', [TravelExpenseController::class, 'create']);
 $router->post('/travel-expenses', [TravelExpenseController::class, 'store']);
 $router->get('/travel-expenses/{id}', [TravelExpenseController::class, 'show']);
