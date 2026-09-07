@@ -12,6 +12,12 @@ $attachmentFiles = array_values(array_filter($files, static fn (array $f): bool 
 $attachmentImages = array_values(array_filter($attachmentFiles, static fn (array $f): bool => str_starts_with((string) ($f['mime_type'] ?? ''), 'image/')));
 ob_start();
 ?>
+<style>
+/* 董事會議議程／紀錄:四週邊界 2.5 公分(僅此文件,不影響其他列印)。 */
+@media print {
+    @page { size: A4 portrait; margin: 25mm; }
+}
+</style>
 <section class="panel no-print">
     <div class="panel-header">
         <div>
@@ -87,10 +93,10 @@ ob_start();
                         $bmProposal = trim((string) ($item['proposal'] ?? ''));
                         ?>
                         <div class="bm-agenda-item">
-                            <p>案由<?= e(board_meeting_case_no($index + 1)) ?>：<?= nl2br(e($item['subject'])) ?></p>
-                            <?php if ($bmExplain !== ''): ?><p class="bm-agenda-sub">說　明：<?= nl2br(e($bmExplain)) ?></p><?php endif; ?>
-                            <?php if ($bmProposal !== ''): ?><p class="bm-agenda-sub">擬　辦：<?= nl2br(e($bmProposal)) ?></p><?php endif; ?>
-                            <?php if ($type === 'minutes'): ?><p class="bm-agenda-sub">決　議：<?= trim((string) ($item['resolution'] ?? '')) !== '' ? nl2br(e($item['resolution'])) : '照案通過' ?></p><?php endif; ?>
+                            <?= board_meeting_clause('案由' . board_meeting_case_no($index + 1) . '：', (string) ($item['subject'] ?? '')) ?>
+                            <?php if ($bmExplain !== ''): ?><?= board_meeting_clause('說　明：', $bmExplain) ?><?php endif; ?>
+                            <?php if ($bmProposal !== ''): ?><?= board_meeting_clause('擬　辦：', $bmProposal) ?><?php endif; ?>
+                            <?php if ($type === 'minutes'): ?><?= board_meeting_clause('決　議：', trim((string) ($item['resolution'] ?? '')) !== '' ? (string) $item['resolution'] : '照案通過') ?><?php endif; ?>
                         </div>
                     <?php endforeach; ?>
                 <?php else: ?>
@@ -150,6 +156,35 @@ function board_meeting_case_no(int $n): string
         return $digits[intdiv($n, 10)] . '十' . ($n % 10 === 0 ? '' : $digits[$n % 10]);
     }
     return (string) $n;
+}
+
+/**
+ * 討論案由的「案由／說明／擬辦／決議」單元排版:標籤(4 全形字)靠左對齊,內容自標籤後起,
+ * 內文若為「一、二、三…」或「（一）（二）…」多點,各點換行並懸掛縮排,續行對齊該點文字。
+ */
+function board_meeting_clause(string $label, string $text): string
+{
+    $lines = preg_split('/\r\n|\r|\n/', trim($text)) ?: [];
+    $body = '';
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if ($line === '') {
+            continue;
+        }
+        $cls = 'bm-clause-line';
+        if (preg_match('/^（[一二三四五六七八九十]+）/u', $line)) {
+            $cls .= ' is-bracket';
+        } elseif (preg_match('/^[一二三四五六七八九十百]+、/u', $line) || preg_match('/^\d+[、.)]/u', $line)) {
+            $cls .= ' is-numbered';
+        }
+        $body .= '<p class="' . $cls . '">' . e($line) . '</p>';
+    }
+    if ($body === '') {
+        $body = '<p class="bm-clause-line">　</p>';
+    }
+
+    return '<div class="bm-clause"><span class="bm-clause-label">' . e($label) . '</span>'
+        . '<div class="bm-clause-body">' . $body . '</div></div>';
 }
 
 /** 讀取董事會議上傳的圖片附件為 data: URI,供列印時內嵌於文件之後。 */
