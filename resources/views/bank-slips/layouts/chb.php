@@ -2,6 +2,7 @@
 $active = 'bank-slips';
 $slip = $slip ?? [];
 $amountUppercase = $amountUppercase ?? '';
+$amountColumns = $amountColumns ?? [];
 
 $rocDate = ['y' => '', 'm' => '', 'd' => ''];
 if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', (string) ($slip['slip_date'] ?? ''), $md)) {
@@ -46,8 +47,11 @@ table.chb { width: 100%; border-collapse: collapse; table-layout: fixed; }
 .chb .vlbl { background: #fdf6c9; text-align: center; font-weight: 600; width: 22px; }
 .chb .vlbl span { writing-mode: vertical-rl; text-orientation: upright; letter-spacing: 2px; }
 .chb .val { text-align: left; }
-.chb .amt-guide { letter-spacing: 6px; color: #333; font-size: 12px; }
-.chb .amt-upper { font-size: 14px; font-weight: 700; }
+.chb .amt-line { padding: 3px 10px; }
+.chb .amt-row { display: flex; justify-content: space-around; align-items: baseline; }
+.chb .amt-pos { display: inline-flex; align-items: baseline; }
+.chb .amt-num { font-size: 16px; font-weight: 700; }
+.chb .amt-den { color: #666; font-size: 13px; letter-spacing: 1px; }
 .chb-acct { width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 2px; }
 .chb-acct td { border: 1px solid #000; height: 20px; text-align: center; font-size: 13px; }
 .chb-seal-area { min-height: 66mm; position: relative; }
@@ -146,14 +150,22 @@ table.chb { width: 100%; border-collapse: collapse; table-layout: fixed; }
                 <td class="val"><?= $e($slip['sms_mobile'] ?? '') ?></td>
             </tr>
         </table>
-        <!-- 匯款金額(大寫) -->
+        <!-- 匯款金額(大寫):大寫數字逐位對齊位值,填於各位之前 -->
+        <?php
+        $chbDenoms = ['拾', '億', '仟', '佰', '拾', '萬', '仟', '佰', '拾', '元'];
+        $chbUp = ['', '壹', '貳', '參', '肆', '伍', '陸', '柒', '捌', '玖'];
+        ?>
         <table class="chb">
             <colgroup><col style="width:16%"><col></colgroup>
             <tr>
                 <td class="lbl">匯款金額<br>新臺幣(大寫)</td>
-                <td class="val">
-                    <div class="amt-upper"><?= $e($amountUppercase) ?></div>
-                    <div class="amt-guide">拾　億　仟　佰　拾　萬　仟　佰　拾　元整</div>
+                <td class="val amt-line">
+                    <div class="amt-row">
+                        <?php for ($i = 0; $i < 10; $i++): ?>
+                            <?php $d = (string) ($amountColumns[$i] ?? ''); $num = ($d !== '' && $d !== '0') ? ($chbUp[(int) $d] ?? '') : ''; ?>
+                            <span class="amt-pos"><span class="amt-num"><?= $e($num) ?></span><span class="amt-den"><?= $e($chbDenoms[$i] . ($i === 9 ? '整' : '')) ?></span></span>
+                        <?php endfor; ?>
+                    </div>
                 </td>
             </tr>
         </table>
