@@ -1695,15 +1695,42 @@ textarea:focus {
 }
 
 .bm-agenda-item {
-    margin: 6px 0 6px 1em;
-    padding: 8px 12px;
-    border-left: 2px solid #999999;
+    margin: 10px 0 10px 1em;
+    padding: 4px 0 4px 14px;
+    border-left: 2px solid #b8b8b8;
 }
 
-.bm-agenda-item p {
-    margin: 2px 0;
-    padding-left: 4em;
-    text-indent: -4em;
+/* 案由／說明／擬辦／決議:標籤固定 4 全形字寬靠左,內容自標籤後對齊。 */
+.bm-clause {
+    display: flex;
+    align-items: baseline;
+    margin: 3px 0;
+}
+
+.bm-clause-label {
+    flex: 0 0 4em;
+    white-space: nowrap;
+}
+
+.bm-clause-body {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.bm-clause-body p {
+    margin: 0;
+}
+
+/* 內文多點:「一、二、三…」續行對齊該點文字(懸掛縮排)。 */
+.bm-clause-body p.is-numbered {
+    padding-left: 2em;
+    text-indent: -2em;
+}
+
+/* 內文多點:「（一）（二）…」續行對齊。 */
+.bm-clause-body p.is-bracket {
+    padding-left: 2.6em;
+    text-indent: -2.6em;
 }
 
 .bm-multiline {
