@@ -10,9 +10,19 @@
                 <select name="employee_id" id="payroll-employee" required>
                     <option value="">選擇人員</option>
                     <?php foreach ($employees as $employee): ?>
+                        <?php $fill = [
+                            'base_salary' => (float) ($employee['fill_base_salary'] ?? 0),
+                            'allowance_total' => (float) ($employee['fill_allowance_total'] ?? 0),
+                            'labor_insurance_deduction' => (float) ($employee['fill_labor_insurance_deduction'] ?? 0),
+                            'health_insurance_deduction' => (float) ($employee['fill_health_insurance_deduction'] ?? 0),
+                            'pension_self_deduction' => (float) ($employee['fill_pension_self_deduction'] ?? 0),
+                            'employer_pension' => (float) ($employee['fill_employer_pension'] ?? 0),
+                            'employer_labor_insurance' => (float) ($employee['fill_employer_labor_insurance'] ?? 0),
+                            'employer_health_insurance' => (float) ($employee['fill_employer_health_insurance'] ?? 0),
+                            'occupational_insurance' => (float) ($employee['fill_occupational_insurance'] ?? 0),
+                        ]; ?>
                         <option value="<?= e((string) $employee['id']) ?>"
-                                data-salary="<?= e((string) $employee['base_salary']) ?>"
-                                data-pension="<?= e((string) $employee['pension_rate']) ?>"
+                                data-fill="<?= e(json_encode($fill)) ?>"
                                 <?= $selectedEmployee === (string) $employee['id'] ? 'selected' : '' ?>>
                             <?= e($employee['name'] . ' / ' . ($employee['department'] ?: '-') . ' / ' . ($employee['job_title'] ?: '-')) ?>
                         </option>
@@ -227,12 +237,15 @@
         if (!selected || !selected.value) {
             return;
         }
-        if ((!salary.value || Number(salary.value) === 0) && selected.dataset.salary) {
-            salary.value = selected.dataset.salary;
-        }
-        if ((!employerPension.value || Number(employerPension.value) === 0) && selected.dataset.pension) {
-            employerPension.value = Math.round(Number(salary.value || 0) * Number(selected.dataset.pension || 0) / 100);
-        }
+        // 自動帶出該員工的薪資基本資料(固定金額),減少每月重複輸入。
+        let fill = {};
+        try { fill = JSON.parse(selected.dataset.fill || '{}'); } catch (e) { fill = {}; }
+        Object.keys(fill).forEach((name) => {
+            const field = document.querySelector(`[name="${name}"]`);
+            if (field) {
+                field.value = Math.round(Number(fill[name]) || 0);
+            }
+        });
         calculate();
     });
 

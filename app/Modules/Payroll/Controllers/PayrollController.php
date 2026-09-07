@@ -6,7 +6,9 @@ use App\Core\AuditLog;
 use App\Core\Controller;
 use App\Core\Database;
 use App\Core\Validator;
+use App\Domain\Bank\BankSlipSettings;
 use App\Domain\Payroll\PayrollCalculator;
+use App\Support\BankSlipCatalog;
 use App\Support\DateScope;
 use PDO;
 
@@ -97,30 +99,23 @@ final class PayrollController extends Controller
     {
         $this->requirePermission('payroll.manage');
         $employee = $this->selectedEmployee((int) ($_GET['employee_id'] ?? 0));
+        // 帶出該員工的「薪資基本資料」(最新固定金額),減少每月重複輸入。
+        $standing = $this->standingFor($employee);
 
         $this->render('payroll.create', [
             'title' => '新增薪資紀錄',
             'section' => '財務會計',
             'active' => 'payroll',
-            'record' => [
+            'record' => $standing + [
                 'employee_id' => $employee['id'] ?? '',
                 'payroll_month' => date('Y-m'),
                 'pay_date' => date('Y-m-t'),
-                'base_salary' => $employee['base_salary'] ?? 0,
-                'allowance_total' => 0,
                 'overtime_pay' => 0,
                 'bonus' => 0,
-                'labor_insurance_deduction' => 0,
-                'health_insurance_deduction' => 0,
-                'pension_self_deduction' => 0,
                 'income_tax' => 0,
                 'leave_deduction' => 0,
                 'other_deduction' => 0,
                 'supplementary_premium' => 0,
-                'employer_pension' => isset($employee['base_salary'], $employee['pension_rate']) ? PayrollCalculator::employerPension((float) $employee['base_salary'], (float) $employee['pension_rate']) : 0,
-                'employer_labor_insurance' => 0,
-                'employer_health_insurance' => 0,
-                'occupational_insurance' => 0,
                 'payment_method' => '匯款',
                 'payment_status' => 'draft',
                 'paid_on' => '',
@@ -133,6 +128,179 @@ final class PayrollController extends Controller
             'projects' => $this->projects(),
             'action' => '/payroll',
         ]);
+    }
+
+    /** 薪資基本資料:列出在職員工與其固定薪資／勞健保／雇主負擔預設值。 */
+    public function defaults(): void
+    {
+        $this->requirePermission('payroll.manage');
+
+        if (!$this->defaultsTableExists()) {
+            flash('error', '薪資基本資料表尚未建立,請先於「資料庫更新與檢查」執行更新。');
+            redirect('/payroll');
+        }
+
+        $rows = Database::pdo()->query(
+            'SELECT e.id, e.employee_no, e.name, e.department, e.job_title, e.base_salary,
+                    d.base_salary AS d_base_salary, d.allowance_total, d.labor_insurance_deduction,
+                    d.health_insurance_deduction, d.pension_self_deduction, d.employer_pension,
+                    d.employer_labor_insurance, d.employer_health_insurance, d.occupational_insurance,
+                    d.updated_at AS d_updated_at
+             FROM personnel_employees e
+             LEFT JOIN employee_payroll_defaults d ON d.employee_id = e.id
+             WHERE e.status = "active"
+             ORDER BY e.department, e.name'
+        )->fetchAll();
+
+        $this->render('payroll.defaults-index', [
+            'title' => '薪資基本資料',
+            'section' => '財務會計',
+            'active' => 'payroll',
+            'rows' => $rows,
+        ]);
+    }
+
+    public function editDefaults(string $employeeId): void
+    {
+        $this->requirePermission('payroll.manage');
+        $employee = $this->employeeRow((int) $employeeId);
+        $defaults = $this->payrollDefaultsFor((int) $employeeId);
+
+        $this->render('payroll.defaults-form', [
+            'title' => '薪資基本資料 - ' . ($employee['name'] ?? ''),
+            'section' => '財務會計',
+            'active' => 'payroll',
+            'employee' => $employee,
+            'defaults' => $defaults,
+            'action' => '/payroll/defaults/' . (int) $employeeId,
+        ]);
+    }
+
+    public function saveDefaults(string $employeeId): void
+    {
+        $this->requirePermission('payroll.manage');
+        if (!$this->defaultsTableExists()) {
+            flash('error', '薪資基本資料表尚未建立,請先執行資料庫更新。');
+            redirect('/payroll');
+        }
+        $this->employeeRow((int) $employeeId);
+
+        foreach (self::STANDING_FIELDS as $field) {
+            if ($this->amountValue($field) < 0) {
+                $this->backWithInput('/payroll/defaults/' . (int) $employeeId . '/edit', $_POST, '金額不可小於 0。');
+            }
+        }
+
+        $params = ['employee_id' => (int) $employeeId];
+        foreach (self::STANDING_FIELDS as $field) {
+            $params[$field] = $this->amountValue($field);
+        }
+        $params['notes'] = mb_substr(trim((string) ($_POST['notes'] ?? '')), 0, 255);
+        $params['updated_by'] = auth()->user()['id'] ?? null;
+        $params['created_at'] = now();
+        $params['updated_at'] = now();
+
+        Database::pdo()->prepare(
+            'INSERT INTO employee_payroll_defaults
+             (employee_id, base_salary, allowance_total, labor_insurance_deduction, health_insurance_deduction,
+              pension_self_deduction, employer_pension, employer_labor_insurance, employer_health_insurance,
+              occupational_insurance, notes, updated_by, created_at, updated_at)
+             VALUES
+             (:employee_id, :base_salary, :allowance_total, :labor_insurance_deduction, :health_insurance_deduction,
+              :pension_self_deduction, :employer_pension, :employer_labor_insurance, :employer_health_insurance,
+              :occupational_insurance, :notes, :updated_by, :created_at, :updated_at)
+             ON DUPLICATE KEY UPDATE
+              base_salary = VALUES(base_salary), allowance_total = VALUES(allowance_total),
+              labor_insurance_deduction = VALUES(labor_insurance_deduction),
+              health_insurance_deduction = VALUES(health_insurance_deduction),
+              pension_self_deduction = VALUES(pension_self_deduction), employer_pension = VALUES(employer_pension),
+              employer_labor_insurance = VALUES(employer_labor_insurance),
+              employer_health_insurance = VALUES(employer_health_insurance),
+              occupational_insurance = VALUES(occupational_insurance), notes = VALUES(notes),
+              updated_by = VALUES(updated_by), updated_at = VALUES(updated_at)'
+        )->execute($params);
+
+        AuditLog::write('update_defaults', 'payroll', 'employee_payroll_defaults', (int) $employeeId);
+        flash('success', '薪資基本資料已儲存,下次建立薪資將自動帶出。');
+        redirect('/payroll/defaults');
+    }
+
+    /** 依薪資紀錄產生一張銀行匯款單(取款憑條),帶入收款人、帳號與實發金額。 */
+    public function remittance(string $id): void
+    {
+        $this->requirePermission('bank_slips.manage');
+        $record = $this->findRecord((int) $id);
+
+        if ($record['payment_status'] === 'voided') {
+            flash('error', '已作廢的薪資紀錄無法產生匯款單。');
+            redirect('/payroll/' . $id);
+        }
+        if ((float) $record['net_pay'] <= 0) {
+            flash('error', '實發金額為 0,無法產生匯款單。');
+            redirect('/payroll/' . $id);
+        }
+
+        $bankCode = BankSlipCatalog::defaultCode();
+        if (!BankSlipSettings::isUsable($bankCode)) {
+            flash('error', BankSlipCatalog::name($bankCode) . ' 匯款單尚未啟用或設定,請先於「匯款單設定」完成設定。');
+            redirect('/bank-slips/settings');
+        }
+
+        $settings = BankSlipSettings::forBank($bankCode);
+        $profile = foundation_profile();
+        $payingBank = trim((string) ($record['employee_bank_name'] ?? '') . ' ' . (string) ($record['employee_bank_branch'] ?? ''));
+
+        Database::pdo()->prepare(
+            'INSERT INTO bank_slips
+             (bank_code, slip_date, remittance_type, withdrawal_bank_account_id, remitter_name, remitter_id_no, remitter_phone, agent_name,
+              payee_name, payee_account, paying_bank_name, amount, message, sms_mobile, source_type, source_id, notes, created_by, created_at, updated_at)
+             VALUES
+             (:bank_code, :slip_date, :remittance_type, :withdrawal_bank_account_id, :remitter_name, :remitter_id_no, :remitter_phone, :agent_name,
+              :payee_name, :payee_account, :paying_bank_name, :amount, :message, :sms_mobile, :source_type, :source_id, :notes, :created_by, :created_at, :updated_at)'
+        )->execute([
+            'bank_code' => $bankCode,
+            'slip_date' => date('Y-m-d'),
+            'remittance_type' => $settings['default_remittance_type'] ?: '一般跨行匯款(11)',
+            'withdrawal_bank_account_id' => $settings['withdrawal_bank_account_id'] ?: null,
+            'remitter_name' => $settings['remitter_name'] ?: ($profile['foundation_name'] ?? ''),
+            'remitter_id_no' => $settings['remitter_id_no'] ?: ($profile['tax_id'] ?? ''),
+            'remitter_phone' => $settings['remitter_phone'] ?: ($profile['phone'] ?? ''),
+            'agent_name' => '',
+            'payee_name' => (string) ($record['employee_bank_account_name'] ?: $record['employee_name']),
+            'payee_account' => (string) ($record['employee_bank_account_no'] ?? ''),
+            'paying_bank_name' => trim($payingBank),
+            'amount' => (int) round((float) $record['net_pay']),
+            'message' => mb_substr($record['payroll_month'] . ' 薪資', 0, 30),
+            'sms_mobile' => '',
+            'source_type' => 'payroll_records',
+            'source_id' => (int) $record['id'],
+            'notes' => '由薪資紀錄產生',
+            'created_by' => auth()->user()['id'] ?? null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $slipId = (int) Database::pdo()->lastInsertId();
+        AuditLog::write('create_remittance', 'payroll', 'bank_slips', $slipId, ['payroll_id' => (int) $record['id']]);
+        flash('success', '已產生匯款單,請確認收款帳號後列印。');
+        redirect('/bank-slips/' . $slipId);
+    }
+
+    private function employeeRow(int $id): array
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT id, employee_no, name, department, job_title, base_salary, pension_rate
+             FROM personnel_employees WHERE id = :id LIMIT 1'
+        );
+        $stmt->execute(['id' => $id]);
+        $employee = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$employee) {
+            http_response_code(404);
+            view('errors.404', ['title' => '找不到員工']);
+            exit;
+        }
+
+        return $employee;
     }
 
     public function store(): void
@@ -560,14 +728,36 @@ final class PayrollController extends Controller
         return $record;
     }
 
+    /** 薪資「基本資料」中固定沿用的欄位(每月自動帶出)。 */
+    private const STANDING_FIELDS = [
+        'base_salary', 'allowance_total', 'labor_insurance_deduction', 'health_insurance_deduction',
+        'pension_self_deduction', 'employer_pension', 'employer_labor_insurance',
+        'employer_health_insurance', 'occupational_insurance',
+    ];
+
     private function employees(): array
     {
-        return Database::pdo()->query(
-            'SELECT id, employee_no, name, department, job_title, base_salary, pension_rate
-             FROM personnel_employees
-             WHERE status = "active"
-             ORDER BY department, name'
-        )->fetchAll();
+        $hasDefaults = $this->defaultsTableExists();
+        // 每位員工帶出「基本資料」的預填值:優先採 employee_payroll_defaults,否則以人事本薪與提繳率推算。
+        $baseFill = $hasDefaults ? 'COALESCE(NULLIF(d.base_salary, 0), e.base_salary)' : 'e.base_salary';
+        $pensionFill = $hasDefaults
+            ? 'COALESCE(NULLIF(d.employer_pension, 0), ROUND(e.base_salary * e.pension_rate / 100, 0))'
+            : 'ROUND(e.base_salary * e.pension_rate / 100, 0)';
+
+        $cols = [
+            'e.id', 'e.employee_no', 'e.name', 'e.department', 'e.job_title', 'e.base_salary', 'e.pension_rate',
+            $baseFill . ' AS fill_base_salary',
+            $pensionFill . ' AS fill_employer_pension',
+        ];
+        foreach (['allowance_total', 'labor_insurance_deduction', 'health_insurance_deduction', 'pension_self_deduction', 'employer_labor_insurance', 'employer_health_insurance', 'occupational_insurance'] as $f) {
+            $cols[] = ($hasDefaults ? "COALESCE(d.$f, 0)" : '0') . " AS fill_$f";
+        }
+
+        $sql = 'SELECT ' . implode(', ', $cols) . ' FROM personnel_employees e'
+            . ($hasDefaults ? ' LEFT JOIN employee_payroll_defaults d ON d.employee_id = e.id' : '')
+            . ' WHERE e.status = "active" ORDER BY e.department, e.name';
+
+        return Database::pdo()->query($sql)->fetchAll();
     }
 
     private function selectedEmployee(int $id): ?array
@@ -581,6 +771,60 @@ final class PayrollController extends Controller
         $employee = $stmt->fetch(PDO::FETCH_ASSOC);
 
         return $employee ?: null;
+    }
+
+    /** 依員工的基本資料組出薪資固定欄位預填值(供伺服器端初次帶入)。 */
+    private function standingFor(?array $employee): array
+    {
+        $out = array_fill_keys(self::STANDING_FIELDS, 0);
+        if (!$employee) {
+            return $out;
+        }
+
+        $out['base_salary'] = $employee['base_salary'] ?? 0;
+        if (isset($employee['base_salary'], $employee['pension_rate'])) {
+            $out['employer_pension'] = PayrollCalculator::employerPension((float) $employee['base_salary'], (float) $employee['pension_rate']);
+        }
+
+        $defaults = $this->payrollDefaultsFor((int) ($employee['id'] ?? 0));
+        foreach (self::STANDING_FIELDS as $field) {
+            if (array_key_exists($field, $defaults) && (float) $defaults[$field] != 0.0) {
+                $out[$field] = $defaults[$field];
+            }
+        }
+
+        return $out;
+    }
+
+    private function payrollDefaultsFor(int $employeeId): array
+    {
+        if ($employeeId <= 0 || !$this->defaultsTableExists()) {
+            return [];
+        }
+        $stmt = Database::pdo()->prepare('SELECT * FROM employee_payroll_defaults WHERE employee_id = :id LIMIT 1');
+        $stmt->execute(['id' => $employeeId]);
+
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    private function defaultsTableExists(): bool
+    {
+        static $exists = null;
+        if ($exists !== null) {
+            return $exists;
+        }
+        try {
+            $stmt = Database::pdo()->prepare(
+                'SELECT COUNT(*) FROM information_schema.TABLES
+                 WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :t'
+            );
+            $stmt->execute(['t' => 'employee_payroll_defaults']);
+            $exists = (bool) $stmt->fetchColumn();
+        } catch (\Throwable) {
+            $exists = false;
+        }
+
+        return $exists;
     }
 
     private function bankAccounts(): array

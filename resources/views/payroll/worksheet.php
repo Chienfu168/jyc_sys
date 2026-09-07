@@ -21,7 +21,8 @@ ob_start();
 ?>
 <style>
 @media print {
-    @page { size: A4 landscape; margin: 10mm; }
+    /* 月薪資表欄位多,預設 A3 橫向以完整呈現;如需 A4 可於列印視窗調整紙張。 */
+    @page { size: A3 landscape; margin: 10mm; }
 }
 .payroll-ws-wrap { overflow-x: auto; }
 .payroll-ws {
