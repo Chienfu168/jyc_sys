@@ -74,6 +74,7 @@ final class ExpenseRequestController extends Controller
                 'bank_account_name' => '',
                 'status' => 'draft',
             ],
+            'requestItems' => [],
             'items' => $this->pettyCashItems(),
             'action' => '/expense-requests',
         ]);
@@ -88,6 +89,7 @@ final class ExpenseRequestController extends Controller
         $now = now();
         $userId = $this->currentUserId();
         $date = (string) $_POST['occurred_on'];
+        $lines = $this->parseItems();
 
         Database::pdo()->prepare(
             'INSERT INTO expense_requests
@@ -102,9 +104,9 @@ final class ExpenseRequestController extends Controller
             'request_no' => $this->nextRequestNo($date),
             'applicant_id' => $userId ?: null,
             'occurred_on' => $date,
-            'petty_cash_item_id' => $this->selectedItemId(),
-            'item_name' => $this->itemNameValue(),
-            'amount' => $this->amountValue(),
+            'petty_cash_item_id' => $lines[0]['petty_cash_item_id'] ?? null,
+            'item_name' => $this->summaryName($lines),
+            'amount' => $this->totalAmount($lines),
             'reason' => $this->nullable('reason'),
             'payment_type' => $this->paymentType(),
             'bank_name' => $this->nullable('bank_name'),
@@ -119,6 +121,7 @@ final class ExpenseRequestController extends Controller
         ]);
 
         $id = (int) Database::pdo()->lastInsertId();
+        $this->writeItems($id, $lines);
         $stored = $this->storeUploadedReceipts($id);
         if ($submit) {
             ApprovalFlow::submit('expense_requests', 'expense_requests', $id, $this->nullable('reason'));
@@ -139,6 +142,7 @@ final class ExpenseRequestController extends Controller
             'section' => '支出與核銷',
             'active' => 'expense-requests',
             'request' => $request,
+            'requestItems' => $this->loadItems((int) $id),
             'attachments' => $this->attachments((int) $id),
             'approvalHistory' => ApprovalFlow::history('expense_requests', 'expense_requests', (int) $id),
             'canApprove' => Permission::can('expense_requests.approve'),
@@ -158,6 +162,7 @@ final class ExpenseRequestController extends Controller
             'section' => '支出與核銷',
             'active' => 'expense-requests',
             'request' => $request,
+            'requestItems' => $this->loadItems((int) $request['id']),
             'items' => $this->pettyCashItems(),
             'action' => '/expense-requests/' . $id,
         ]);
@@ -173,6 +178,7 @@ final class ExpenseRequestController extends Controller
         $submit = ($_POST['action'] ?? '') === 'submit';
         $now = now();
         $date = (string) $_POST['occurred_on'];
+        $lines = $this->parseItems();
 
         Database::pdo()->prepare(
             'UPDATE expense_requests SET
@@ -184,9 +190,9 @@ final class ExpenseRequestController extends Controller
              WHERE id = :id'
         )->execute([
             'occurred_on' => $date,
-            'petty_cash_item_id' => $this->selectedItemId(),
-            'item_name' => $this->itemNameValue(),
-            'amount' => $this->amountValue(),
+            'petty_cash_item_id' => $lines[0]['petty_cash_item_id'] ?? null,
+            'item_name' => $this->summaryName($lines),
+            'amount' => $this->totalAmount($lines),
             'reason' => $this->nullable('reason'),
             'payment_type' => $this->paymentType(),
             'bank_name' => $this->nullable('bank_name'),
@@ -199,6 +205,7 @@ final class ExpenseRequestController extends Controller
             'id' => (int) $request['id'],
         ]);
 
+        $this->writeItems((int) $request['id'], $lines);
         $this->storeUploadedReceipts((int) $request['id']);
         if ($submit) {
             ApprovalFlow::submit('expense_requests', 'expense_requests', (int) $request['id'], $this->nullable('reason'));
@@ -440,22 +447,123 @@ final class ExpenseRequestController extends Controller
     {
         if ($error = Validator::required($_POST, [
             'occurred_on' => '費用日期',
-            'amount' => '金額',
         ])) {
             $this->backWithInput($path, $_POST, $error);
         }
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $_POST['occurred_on'])) {
             $this->backWithInput($path, $_POST, '日期格式不正確。');
         }
-        if ($this->amountValue() <= 0) {
-            $this->backWithInput($path, $_POST, '金額必須大於 0。');
+
+        $lines = $this->parseItems();
+        if ($lines === []) {
+            $this->backWithInput($path, $_POST, '請至少填寫一筆費用項目（名稱與金額）。');
         }
-        if ($this->itemNameValue() === '') {
-            $this->backWithInput($path, $_POST, '請選擇常用項目或輸入費用項目名稱。');
+        foreach ($lines as $line) {
+            if ($line['item_name'] === '') {
+                $this->backWithInput($path, $_POST, '每筆費用都需填寫項目名稱。');
+            }
+            if ($line['amount'] <= 0) {
+                $this->backWithInput($path, $_POST, '每筆費用金額必須大於 0。');
+            }
         }
         if ($this->paymentType() === 'bank' && trim((string) ($_POST['bank_account'] ?? '')) === '') {
             $this->backWithInput($path, $_POST, '選擇匯款時,請填寫收款帳號。');
         }
+    }
+
+    /**
+     * 解析表單的多筆費用明細(item_name[]/amount[]/petty_cash_item_id[]),
+     * 略過完全空白的列。回傳每筆的常用項目 id、名稱與金額。
+     *
+     * @return array<int, array{petty_cash_item_id: ?int, item_name: string, amount: float}>
+     */
+    private function parseItems(): array
+    {
+        $names = (array) ($_POST['item_name'] ?? []);
+        $amounts = (array) ($_POST['amount'] ?? []);
+        $itemIds = (array) ($_POST['petty_cash_item_id'] ?? []);
+
+        $lines = [];
+        $count = max(count($names), count($amounts), count($itemIds));
+        for ($i = 0; $i < $count; $i++) {
+            $itemId = (int) ($itemIds[$i] ?? 0);
+            $itemId = $itemId > 0 ? $itemId : null;
+            $name = trim((string) ($names[$i] ?? ''));
+            if ($name === '' && $itemId !== null) {
+                $name = $this->pettyCashItemName($itemId);
+            }
+            $amount = round((float) ($amounts[$i] ?? 0), 2);
+
+            if ($name === '' && $amount <= 0) {
+                continue; // 完全空白列
+            }
+            $lines[] = ['petty_cash_item_id' => $itemId, 'item_name' => $name, 'amount' => $amount];
+        }
+
+        return $lines;
+    }
+
+    /** 重寫某申請的費用明細:先清除既有,再依序寫入。 */
+    private function writeItems(int $requestId, array $lines): void
+    {
+        Database::pdo()->prepare('DELETE FROM expense_request_items WHERE expense_request_id = :id')
+            ->execute(['id' => $requestId]);
+
+        $stmt = Database::pdo()->prepare(
+            'INSERT INTO expense_request_items
+             (expense_request_id, petty_cash_item_id, item_name, amount, sort_order, created_at)
+             VALUES (:req, :petty_cash_item_id, :item_name, :amount, :sort_order, :created_at)'
+        );
+        $now = now();
+        foreach (array_values($lines) as $i => $line) {
+            $stmt->execute([
+                'req' => $requestId,
+                'petty_cash_item_id' => $line['petty_cash_item_id'],
+                'item_name' => $line['item_name'],
+                'amount' => $line['amount'],
+                'sort_order' => $i,
+                'created_at' => $now,
+            ]);
+        }
+    }
+
+    /** 讀取某申請的費用明細(依 sort_order);無明細時以彙總列合成一筆,相容舊資料。 */
+    private function loadItems(int $requestId): array
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT id, petty_cash_item_id, item_name, amount, sort_order
+             FROM expense_request_items WHERE expense_request_id = :id ORDER BY sort_order, id'
+        );
+        $stmt->execute(['id' => $requestId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /** 彙總名稱:單筆為該名稱,多筆為「首項 等N項」。 */
+    private function summaryName(array $lines): string
+    {
+        if ($lines === []) {
+            return '';
+        }
+        $first = (string) $lines[0]['item_name'];
+        $n = count($lines);
+        return $n > 1 ? $first . ' 等' . $n . '項' : $first;
+    }
+
+    /** 明細金額合計。 */
+    private function totalAmount(array $lines): float
+    {
+        $sum = 0.0;
+        foreach ($lines as $line) {
+            $sum += (float) $line['amount'];
+        }
+        return round($sum, 2);
+    }
+
+    private function pettyCashItemName(int $id): string
+    {
+        $stmt = Database::pdo()->prepare('SELECT name FROM petty_cash_items WHERE id = :id LIMIT 1');
+        $stmt->execute(['id' => $id]);
+        return (string) ($stmt->fetchColumn() ?: '');
     }
 
     private function requireEditable(array $request): void
@@ -530,32 +638,6 @@ final class ExpenseRequestController extends Controller
         return Database::pdo()->query(
             'SELECT * FROM petty_cash_items WHERE status = "active" AND item_type = "expense" ORDER BY sort_order, name'
         )->fetchAll();
-    }
-
-    private function selectedItemId(): ?int
-    {
-        $id = (int) ($_POST['petty_cash_item_id'] ?? 0);
-        return $id > 0 ? $id : null;
-    }
-
-    private function itemNameValue(): string
-    {
-        $name = trim((string) ($_POST['item_name'] ?? ''));
-        if ($name !== '') {
-            return $name;
-        }
-        $id = $this->selectedItemId();
-        if ($id !== null) {
-            $stmt = Database::pdo()->prepare('SELECT name FROM petty_cash_items WHERE id = :id LIMIT 1');
-            $stmt->execute(['id' => $id]);
-            return (string) ($stmt->fetchColumn() ?: '');
-        }
-        return '';
-    }
-
-    private function amountValue(): float
-    {
-        return round((float) ($_POST['amount'] ?? 0), 2);
     }
 
     private function paymentType(): string

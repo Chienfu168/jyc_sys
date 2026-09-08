@@ -3,11 +3,41 @@ use App\Domain\ExpenseRequests\ExpenseRequestSupport;
 $active = 'expense-requests';
 $request = $request ?? [];
 $attachments = $attachments ?? [];
+$requestItems = $requestItems ?? [];
 $status = (string) $request['status'];
 $statusColors = ['draft' => '#6b7280', 'submitted' => '#9a6a00', 'approved' => '#1d5fa8', 'rejected' => '#b32d2d', 'paid' => '#1b7a43'];
 $editable = in_array($status, ['draft', 'rejected'], true) && (!empty($isOwner) || !empty($canApprove));
+$documentTitle = '費用申請單';
+
+// 無明細（相容舊資料）時,以彙總列合成一筆顯示。
+if (!$requestItems) {
+    $requestItems = [[
+        'item_name' => $request['item_name'] ?? '',
+        'amount' => $request['amount'] ?? 0,
+    ]];
+}
+$money = static fn ($v): string => number_format((float) $v, 0);
+
+// 列印用印區:申請人 / 會計。
+$signatureRoles = [
+    ['label' => '申請人', 'name' => $request['applicant_name'] ?? ''],
+    ['label' => '會計', 'name' => ''],
+];
 ob_start();
 ?>
+<style>
+.er-detail { width: 100%; border-collapse: collapse; margin-top: 6px; }
+.er-detail th, .er-detail td { border: 1px solid #cfd6d2; padding: 6px 10px; }
+.er-detail thead th { background: #f1f4f3; text-align: left; }
+.er-detail td.amount, .er-detail th.amount { text-align: right; width: 140px; }
+.er-detail tfoot td { background: #f6f8f7; font-weight: 700; }
+@media print {
+    .er-sign-print .signature-grid { margin-top: 28px; }
+}
+</style>
+
+<?php require base_path('resources/views/shared/print-header.php'); ?>
+
 <section class="panel">
     <div class="panel-header">
         <div>
@@ -16,7 +46,7 @@ ob_start();
                 <span style="color:<?= e($statusColors[$status] ?? '#333') ?>;font-weight:600"><?= e(ExpenseRequestSupport::statusLabel($status)) ?></span>
             </p>
         </div>
-        <div class="actions">
+        <div class="actions no-print">
             <a class="btn" href="/expense-requests">返回清單</a>
             <?php if ($editable): ?>
                 <a class="btn" href="/expense-requests/<?= e((string) $request['id']) ?>/edit">編輯</a>
@@ -40,11 +70,11 @@ ob_start();
         <tbody>
         <tr>
             <th>申請人</th><td><?= e($request['applicant_name'] ?? '-') ?></td>
-            <th>金額</th><td><?= e(number_format((float) $request['amount'])) ?> 元</td>
+            <th>費用日期</th><td><?= e(roc_date($request['occurred_on'])) ?></td>
         </tr>
         <tr>
-            <th>費用項目</th><td><?= e($request['item_name']) ?></td>
             <th>收款方式</th><td><?= e(ExpenseRequestSupport::paymentLabel($request['payment_type'])) ?></td>
+            <th>合計金額</th><td><strong><?= e($money($request['amount'])) ?></strong> 元</td>
         </tr>
         <?php if ($request['payment_type'] === 'bank'): ?>
         <tr>
@@ -73,8 +103,34 @@ ob_start();
         </tbody>
     </table>
 
+    <h3 style="margin:16px 0 0">費用明細</h3>
+    <table class="er-detail">
+        <thead>
+            <tr>
+                <th style="width:60px">項次</th>
+                <th>費用項目</th>
+                <th class="amount">金額</th>
+            </tr>
+        </thead>
+        <tbody>
+        <?php foreach ($requestItems as $i => $it): ?>
+            <tr>
+                <td style="text-align:center"><?= e((string) ($i + 1)) ?></td>
+                <td><?= e($it['item_name']) ?></td>
+                <td class="amount"><?= e($money($it['amount'])) ?></td>
+            </tr>
+        <?php endforeach; ?>
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="2" style="text-align:right">合計</td>
+                <td class="amount"><?= e($money($request['amount'])) ?> 元</td>
+            </tr>
+        </tfoot>
+    </table>
+
     <?php if ($status === 'submitted' && !empty($canApprove)): ?>
-        <div class="form-section">
+        <div class="form-section no-print">
             <h3>核定</h3>
             <form method="post" action="/expense-requests/<?= e((string) $request['id']) ?>/approve">
                 <?= csrf_field() ?>
@@ -92,7 +148,7 @@ ob_start();
     <?php endif; ?>
 
     <?php if ($status === 'approved' && !empty($canPay)): ?>
-        <div class="form-section">
+        <div class="form-section no-print">
             <h3>確認付款</h3>
             <p class="muted-text">已核定並併入零用金<?= !empty($request['petty_cash_entry_id']) ? '（零用金 #' . e((string) $request['petty_cash_entry_id']) . '）' : '' ?>。確認支付給申請者後標記為已付款。</p>
             <form method="post" action="/expense-requests/<?= e((string) $request['id']) ?>/pay">
@@ -116,9 +172,13 @@ ob_start();
             </form>
         </div>
     <?php endif; ?>
+
+    <div class="er-sign-print">
+        <?php require base_path('resources/views/shared/signatures.php'); ?>
+    </div>
 </section>
 
-<section class="panel">
+<section class="panel<?= $attachments ? '' : ' no-print' ?>">
     <div class="panel-header">
         <div><h2>憑證附件</h2><p class="muted-text">代墊費用的憑證照片（已壓縮）。</p></div>
     </div>
@@ -134,7 +194,7 @@ ob_start();
                             <span class="pcq-attach__file">PDF</span>
                         <?php endif; ?>
                     </a>
-                    <figcaption>
+                    <figcaption class="no-print">
                         <span class="muted-text"><?= e(number_format(((int) ($file['file_size'] ?? 0)) / 1024, 0)) ?> KB</span>
                         <?php if (!empty($isOwner) || !empty($canApprove)): ?>
                             <form method="post" action="/expense-requests/<?= e((string) $request['id']) ?>/attachments/<?= e((string) $file['id']) ?>/delete" onsubmit="return confirm('確定要刪除此憑證？');">
@@ -150,7 +210,7 @@ ob_start();
         <p class="muted-text">尚無憑證附件。</p>
     <?php endif; ?>
     <?php if (!empty($isOwner) || !empty($canApprove)): ?>
-        <form method="post" action="/expense-requests/<?= e((string) $request['id']) ?>/attachments" enctype="multipart/form-data" class="form" style="margin-top:14px">
+        <form method="post" action="/expense-requests/<?= e((string) $request['id']) ?>/attachments" enctype="multipart/form-data" class="form no-print" style="margin-top:14px">
             <?= csrf_field() ?>
             <label class="pcq-field">
                 <span class="pcq-label">新增憑證（照片會自動壓縮）</span>
@@ -164,7 +224,7 @@ ob_start();
 </section>
 
 <?php if (!empty($approvalHistory)): ?>
-<section class="panel">
+<section class="panel no-print">
     <div class="panel-header"><div><h2>簽核紀錄</h2></div></div>
     <table class="data-table">
         <thead><tr><th>動作</th><th>狀態</th><th>意見</th><th>時間</th></tr></thead>
