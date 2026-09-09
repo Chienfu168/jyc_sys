@@ -76,6 +76,10 @@ ob_start();
                         <a class="btn small" href="/contacts/<?= e((string) $c['id']) ?>">檢視</a>
                         <?php if (!empty($canManage)): ?>
                             <a class="btn small" href="/contacts/<?= e((string) $c['id']) ?>/edit">編輯</a>
+                            <form method="post" action="/contacts/<?= e((string) $c['id']) ?>/delete" onsubmit="return confirm('確定要刪除此聯絡人？此操作無法復原。');">
+                                <?= csrf_field() ?>
+                                <button class="btn small" type="submit">刪除</button>
+                            </form>
                         <?php endif; ?>
                     </td>
                 </tr>
