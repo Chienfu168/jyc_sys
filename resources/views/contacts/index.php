@@ -14,7 +14,9 @@ ob_start();
 }
 </style>
 
-<?php require base_path('resources/views/shared/print-header.php'); ?>
+<div class="print-only" style="text-align:center;margin-bottom:8px">
+    <strong style="font-size:16px"><?= e(foundation_name()) ?> — 通訊錄</strong>
+</div>
 
 <section class="panel">
     <div class="panel-header">
