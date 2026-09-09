@@ -2,7 +2,17 @@
 use App\Domain\ExpenseRequests\ExpenseRequestSupport;
 $active = 'expense-requests';
 $requests = $requests ?? [];
+$currentUserId = (int) ($currentUserId ?? 0);
 $statusColors = ['draft' => '#6b7280', 'submitted' => '#9a6a00', 'approved' => '#1d5fa8', 'rejected' => '#b32d2d', 'paid' => '#1b7a43'];
+// 是否可編輯／刪除該筆:限草稿或退回件,且為本人(申請人／建立者)或具核定權限者。
+$canEditRow = static function (array $r) use ($currentUserId, $canApprove): bool {
+    if (!in_array($r['status'], ['draft', 'rejected'], true)) {
+        return false;
+    }
+    $owns = $currentUserId > 0
+        && ((int) ($r['applicant_id'] ?? 0) === $currentUserId || (int) ($r['created_by'] ?? 0) === $currentUserId);
+    return $owns || !empty($canApprove);
+};
 ob_start();
 ?>
 <section class="panel">
@@ -40,7 +50,16 @@ ob_start();
                     <td style="text-align:right"><?= e(number_format((float) $r['amount'])) ?></td>
                     <td><?= e(ExpenseRequestSupport::paymentLabel($r['payment_type'])) ?></td>
                     <td><span style="color:<?= e($statusColors[$r['status']] ?? '#333') ?>;font-weight:600"><?= e(ExpenseRequestSupport::statusLabel($r['status'])) ?></span></td>
-                    <td><a class="btn" href="/expense-requests/<?= e((string) $r['id']) ?>">檢視</a></td>
+                    <td class="actions">
+                        <a class="btn small" href="/expense-requests/<?= e((string) $r['id']) ?>">檢視</a>
+                        <?php if ($canEditRow($r)): ?>
+                            <a class="btn small" href="/expense-requests/<?= e((string) $r['id']) ?>/edit">編輯</a>
+                            <form method="post" action="/expense-requests/<?= e((string) $r['id']) ?>/delete" onsubmit="return confirm('確定要刪除此費用申請？此操作無法復原。');">
+                                <?= csrf_field() ?>
+                                <button class="btn small" type="submit">刪除</button>
+                            </form>
+                        <?php endif; ?>
+                    </td>
                 </tr>
             <?php endforeach; ?>
             <?php if (!$requests): ?>

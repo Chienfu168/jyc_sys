@@ -50,6 +50,7 @@ final class ExpenseRequestController extends Controller
             'canReview' => $canReview,
             'canApprove' => Permission::can('expense_requests.approve'),
             'canPay' => Permission::can('expense_requests.pay'),
+            'currentUserId' => $this->currentUserId(),
         ]);
     }
 
