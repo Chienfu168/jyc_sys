@@ -22,6 +22,7 @@ $navWorkflow = [
         ['perm' => 'personnel.view', 'key' => 'personnel', 'href' => '/personnel', 'icon' => '人', 'label' => '人事管理'],
         ['perm' => 'leave_requests.view', 'key' => 'leave-requests', 'href' => '/leave-requests', 'icon' => '假', 'label' => '人事請假'],
         ['perm' => 'payroll.view', 'key' => 'payroll', 'href' => '/payroll', 'icon' => '薪', 'label' => '薪資管理'],
+        ['perm' => 'rewards.view', 'key' => 'rewards', 'href' => '/rewards', 'icon' => '獎', 'label' => '員工獎勵申請'],
     ]],
     ['title' => '支出與核銷', 'items' => [
         ['perm' => 'purchase_requests.view', 'key' => 'purchase-requests', 'href' => '/purchase-requests', 'icon' => '購', 'label' => '採購申請'],
