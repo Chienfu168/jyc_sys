@@ -3602,6 +3602,47 @@ textarea:focus {
     .budget-line .btn {
         width: 100%;
     }
+
+    /* ---- 行動版版型優化(功能不變,僅避免內容超出畫面寬度) ---- */
+
+    /* 簽核／用印欄:窄螢幕改為兩欄,避免整列超出畫面被裁切。 */
+    .signature-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 22px;
+    }
+    .signature-box .signature-stamp {
+        max-width: none;
+        height: 62px;
+    }
+
+    /* 面板留白縮小,爭取內容寬度。 */
+    .panel {
+        padding: 14px 12px;
+    }
+
+    /* 文件型表格(明細、資料表)於窄螢幕允許換行,避免固定 nowrap 造成水平溢出。 */
+    .panel th,
+    .panel td {
+        white-space: normal;
+        word-break: break-word;
+        padding: 8px 8px;
+    }
+    /* 清單型表格維持不換行,改以容器水平捲動呈現(既有 .table-wrap 行為)。 */
+    .table-wrap th,
+    .table-wrap td {
+        white-space: nowrap;
+        word-break: normal;
+    }
+
+    /* 查詢／篩選列在窄螢幕換行,欄位可自動伸縮。 */
+    .search {
+        flex-wrap: wrap;
+    }
+    .search > * {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
 }
 
 /* 表單分區:基本資料常駐,其餘以 <details> 收合,減少一次顯示的欄位量。 */
