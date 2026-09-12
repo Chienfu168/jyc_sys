@@ -635,6 +635,10 @@ final class AnnualBudgetController extends Controller
             'groups' => ['income' => [], 'expense' => []],
         ];
 
+        // 依主管機關(新北市教育局)經費預算表格式:增(減)比率% = (C)/(A)*100(以本年度預算數 A 為分母)。
+        $rateByCurrent = static fn (float $current, float $previous): float =>
+            $current != 0.0 ? round((($current - $previous) / $current) * 100, 2) : 0.0;
+
         foreach ($items as $item) {
             $type = $item['item_type'] === 'expense' ? 'expense' : 'income';
             $current = (float) $item['amount'];
@@ -653,7 +657,7 @@ final class AnnualBudgetController extends Controller
             }
 
             $item['variance_amount'] = $current - $previous;
-            $item['variance_rate'] = BudgetSummary::variancePercent($current, $previous);
+            $item['variance_rate'] = $rateByCurrent($current, $previous);
             $summary['groups'][$type][$groupKey]['current'] += $current;
             $summary['groups'][$type][$groupKey]['previous'] += $previous;
             $summary['groups'][$type][$groupKey]['items'][] = $item;
@@ -661,11 +665,11 @@ final class AnnualBudgetController extends Controller
 
         foreach (['income', 'expense'] as $type) {
             $summary[$type]['variance'] = $summary[$type]['current'] - $summary[$type]['previous'];
-            $summary[$type]['variance_rate'] = BudgetSummary::variancePercent($summary[$type]['current'], $summary[$type]['previous']);
+            $summary[$type]['variance_rate'] = $rateByCurrent($summary[$type]['current'], $summary[$type]['previous']);
 
             foreach ($summary['groups'][$type] as &$group) {
                 $group['variance'] = $group['current'] - $group['previous'];
-                $group['variance_rate'] = BudgetSummary::variancePercent($group['current'], $group['previous']);
+                $group['variance_rate'] = $rateByCurrent($group['current'], $group['previous']);
             }
             unset($group);
         }
@@ -675,7 +679,7 @@ final class AnnualBudgetController extends Controller
             'previous' => $summary['income']['previous'] - $summary['expense']['previous'],
         ];
         $summary['balance']['variance'] = $summary['balance']['current'] - $summary['balance']['previous'];
-        $summary['balance']['variance_rate'] = BudgetSummary::variancePercent($summary['balance']['current'], $summary['balance']['previous']);
+        $summary['balance']['variance_rate'] = $rateByCurrent($summary['balance']['current'], $summary['balance']['previous']);
 
         return $summary;
     }
