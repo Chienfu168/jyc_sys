@@ -3643,6 +3643,69 @@ textarea:focus {
         flex: 1 1 auto;
         min-width: 0;
     }
+
+    /* 多欄輸入表格(獎勵人員、費用明細)在窄螢幕改為堆疊卡片:每欄獨立一列並顯示欄位標籤,
+       避免欄位被壓到過窄而無法正常輸入。 */
+    .entry-table thead {
+        display: none;
+    }
+    .entry-table,
+    .entry-table tbody,
+    .entry-table tbody tr,
+    .entry-table tbody td {
+        display: block;
+        width: 100%;
+    }
+    .entry-table tbody tr {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 10px 12px;
+        margin-bottom: 12px;
+        background: #fff;
+    }
+    .entry-table tbody td {
+        border: 0;
+        padding: 6px 0;
+    }
+    .entry-table tbody td[data-label]::before {
+        content: attr(data-label);
+        display: block;
+        font-size: 12px;
+        color: var(--muted);
+        margin-bottom: 4px;
+    }
+    .entry-table input,
+    .entry-table select,
+    .entry-table textarea {
+        width: 100%;
+        box-sizing: border-box;
+    }
+    .entry-table .rw-remove,
+    .entry-table .er-item-remove {
+        width: 100%;
+    }
+    .entry-table .rw-remove::after,
+    .entry-table .er-item-remove::after {
+        content: " 刪除此列";
+    }
+    /* 合計列單行呈現。 */
+    .entry-table tfoot tr {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-top: 2px solid var(--line);
+        padding-top: 8px;
+    }
+    .entry-table tfoot td {
+        display: inline-block;
+        width: auto;
+        border: 0;
+        padding: 0;
+        text-align: right;
+    }
+    .entry-table tfoot td:empty {
+        display: none;
+    }
 }
 
 /* 表單分區:基本資料常駐,其餘以 <details> 收合,減少一次顯示的欄位量。 */

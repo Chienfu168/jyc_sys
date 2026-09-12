@@ -29,7 +29,7 @@ if (!$rows) {
 
 $renderRow = static function (array $row, array $items): void { ?>
     <tr class="er-item-row">
-        <td>
+        <td data-label="常用項目（選填）">
             <select name="petty_cash_item_id[]" class="er-item-select">
                 <option value="">— 自行輸入 —</option>
                 <?php foreach ($items as $it): ?>
@@ -38,10 +38,10 @@ $renderRow = static function (array $row, array $items): void { ?>
                 <?php endforeach; ?>
             </select>
         </td>
-        <td>
+        <td data-label="費用項目名稱">
             <input type="text" name="item_name[]" class="er-item-name" maxlength="160" placeholder="例如：車資、郵資、文具" value="<?= e((string) ($row['item_name'] ?? '')) ?>">
         </td>
-        <td>
+        <td data-label="金額">
             <input type="number" name="amount[]" class="er-item-amount" inputmode="decimal" step="1" min="0" placeholder="0" value="<?= e((string) ($row['amount'] ?? '')) ?>" style="text-align:right">
         </td>
         <td class="er-item-remove-cell">
@@ -91,7 +91,7 @@ ob_start();
         <div class="form-section">
             <h3>費用明細</h3>
             <p class="muted-text">可新增多筆費用（例:車資 1、車資 2…）,金額將自動加總。</p>
-            <table class="er-items" id="erItems">
+            <table class="er-items entry-table" id="erItems">
                 <thead>
                     <tr>
                         <th style="width:32%">常用項目（選填）</th>
