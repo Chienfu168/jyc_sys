@@ -66,7 +66,10 @@ INSERT INTO permissions (code, name, module, created_at, updated_at) VALUES
   ('payroll.view', '檢視薪資管理', 'payroll', NOW(), NOW()),
   ('payroll.manage', '管理薪資管理', 'payroll', NOW(), NOW()),
   ('leave_requests.view', '檢視人事請假', 'leave_requests', NOW(), NOW()),
-  ('leave_requests.manage', '管理人事請假', 'leave_requests', NOW(), NOW())
+  ('leave_requests.manage', '管理人事請假', 'leave_requests', NOW(), NOW()),
+  ('rewards.view', '檢視員工獎勵申請', 'rewards', NOW(), NOW()),
+  ('rewards.manage', '管理員工獎勵申請', 'rewards', NOW(), NOW()),
+  ('rewards.approve', '核定員工獎勵申請', 'rewards', NOW(), NOW())
 ON DUPLICATE KEY UPDATE
   name = VALUES(name),
   module = VALUES(module),
@@ -107,7 +110,10 @@ WHERE code IN (
   'lecturer_expenses.view',
   'travel_expenses.view',
   'payroll.view',
-  'leave_requests.view'
+  'leave_requests.view',
+  'rewards.view',
+  'rewards.manage',
+  'rewards.approve'
 );
 
 INSERT IGNORE INTO role_permissions (role_id, permission_id)
@@ -153,7 +159,9 @@ WHERE code IN (
   'travel_expenses.view',
   'travel_expenses.manage',
   'leave_requests.view',
-  'leave_requests.manage'
+  'leave_requests.manage',
+  'rewards.view',
+  'rewards.manage'
 );
 
 INSERT IGNORE INTO role_permissions (role_id, permission_id)
