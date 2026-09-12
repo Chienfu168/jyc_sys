@@ -211,7 +211,6 @@ function applyBudgetLineKind(line, kind) {
     const category = line.querySelector('[data-budget-field="category"]');
     const itemName = line.querySelector('[data-budget-field="item_name"]');
     const subtotal = line.querySelector('[data-budget-field="is_subtotal"]');
-    const quantity = line.querySelector('[data-budget-field="quantity"]');
 
     if (kind === 'income') {
         type.value = 'income';
@@ -227,26 +226,10 @@ function applyBudgetLineKind(line, kind) {
         category.value = '';
         itemName.value = '';
     }
-
-    if (quantity && quantity.value === '') {
-        quantity.value = '1';
-    }
 }
 
 function bindBudgetLineEvents(line) {
-    line.querySelectorAll('[data-auto-amount]').forEach((field) => {
-        field.addEventListener('input', () => updateLineAmount(line));
-    });
     wireGovLevels(line);
-}
-
-function updateLineAmount(line) {
-    const quantity = Number(line.querySelector('[data-budget-field="quantity"]')?.value || 0);
-    const unitPrice = Number(line.querySelector('[data-budget-field="unit_price"]')?.value || 0);
-    const amount = line.querySelector('[data-budget-field="amount"]');
-    if (amount && quantity > 0 && unitPrice > 0) {
-        amount.value = Math.round(quantity * unitPrice);
-    }
 }
 
 function removeBudgetLine(button) {
