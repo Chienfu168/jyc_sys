@@ -56,18 +56,6 @@
     </select>
 </label>
 <label>
-    <span>單位</span>
-    <input type="text" name="items[<?= e((string) $index) ?>][unit]" value="<?= e((string) ($item['unit'] ?? '')) ?>">
-</label>
-<label>
-    <span>數量</span>
-    <input data-budget-field="quantity" data-auto-amount type="number" step="0.01" min="0" name="items[<?= e((string) $index) ?>][quantity]" value="<?= e((string) ($item['quantity'] ?? '1')) ?>">
-</label>
-<label>
-    <span>單價</span>
-    <input data-budget-field="unit_price" data-auto-amount type="number" step="1" min="0" name="items[<?= e((string) $index) ?>][unit_price]" value="<?= e((string) ($item['unit_price'] ?? '')) ?>">
-</label>
-<label>
     <span>本年度預算</span>
     <input data-budget-field="amount" type="number" step="1" min="0" name="items[<?= e((string) $index) ?>][amount]" value="<?= e((string) ($item['amount'] ?? '')) ?>">
 </label>
