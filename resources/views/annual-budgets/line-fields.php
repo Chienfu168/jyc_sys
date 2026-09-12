@@ -17,23 +17,23 @@
 </label>
 <label>
     <span>款（選填）</span>
-    <input type="text" name="items[<?= e((string) $index) ?>][gov_level1]" value="<?= e((string) ($item['gov_level1'] ?? '')) ?>">
+    <input class="gov-level-input" data-gov-level="1" type="text" autocomplete="off" placeholder="可選擇或輸入" name="items[<?= e((string) $index) ?>][gov_level1]" value="<?= e((string) ($item['gov_level1'] ?? '')) ?>">
 </label>
 <label>
     <span>項（選填）</span>
-    <input type="text" name="items[<?= e((string) $index) ?>][gov_level2]" value="<?= e((string) ($item['gov_level2'] ?? '')) ?>">
+    <input class="gov-level-input" data-gov-level="2" type="text" autocomplete="off" placeholder="可選擇或輸入" name="items[<?= e((string) $index) ?>][gov_level2]" value="<?= e((string) ($item['gov_level2'] ?? '')) ?>">
 </label>
 <label>
     <span>目（選填）</span>
-    <input type="text" name="items[<?= e((string) $index) ?>][gov_level3]" value="<?= e((string) ($item['gov_level3'] ?? '')) ?>">
+    <input class="gov-level-input" data-gov-level="3" type="text" autocomplete="off" placeholder="可選擇或輸入" name="items[<?= e((string) $index) ?>][gov_level3]" value="<?= e((string) ($item['gov_level3'] ?? '')) ?>">
 </label>
 <label>
     <span>次（選填）</span>
-    <input type="text" name="items[<?= e((string) $index) ?>][gov_level4]" value="<?= e((string) ($item['gov_level4'] ?? '')) ?>">
+    <input class="gov-level-input" data-gov-level="4" type="text" autocomplete="off" placeholder="可選擇或輸入" name="items[<?= e((string) $index) ?>][gov_level4]" value="<?= e((string) ($item['gov_level4'] ?? '')) ?>">
 </label>
 <label>
     <span>節（選填）</span>
-    <input type="text" name="items[<?= e((string) $index) ?>][gov_level5]" value="<?= e((string) ($item['gov_level5'] ?? '')) ?>">
+    <input class="gov-level-input" data-gov-level="5" type="text" autocomplete="off" placeholder="可選擇或輸入" name="items[<?= e((string) $index) ?>][gov_level5]" value="<?= e((string) ($item['gov_level5'] ?? '')) ?>">
 </label>
 <label>
     <span>分類</span>

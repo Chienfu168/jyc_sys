@@ -89,7 +89,7 @@ $commonCategories = ['收益', '業務費', '人事費用', '辦公行政費', '
     <div class="panel-header budget-editor-header">
         <div>
             <h2>經費項目</h2>
-            <p class="muted-text">項目可自由新增、刪除、複製與排序；款、項、目、次、節皆為選填，需要送主管機關格式時再填即可。</p>
+            <p class="muted-text">項目可自由新增、刪除、複製與排序；款、項、目、次、節皆為選填，可**點選帶出下層**（半自動階層，依收益／費損分開）或自行輸入，需要送主管機關格式時再填即可。</p>
         </div>
         <div class="actions">
             <button class="btn small" type="button" onclick="addBudgetLine('income')">新增收益</button>
@@ -133,6 +133,60 @@ $commonCategories = ['收益', '業務費', '人事費用', '辦公行政費', '
 
 <script>
 let budgetLineIndex = <?= count($items ?? []) ?>;
+
+// 款／項／目／次／節 階層樹(收益 income／費損 expense),供「半自動選擇」使用;使用者仍可自行輸入。
+const GOV_TREE = <?= json_encode($govHierarchy ?? ['income' => new stdClass(), 'expense' => new stdClass()], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+let govListSeq = 0;
+
+// 依已選父層取得該層可用的下層節點;父層未選或非已知值則回傳 null(該層無建議、可自由輸入)。
+function govNodeFor(type, values, uptoLevel) {
+    let node = (GOV_TREE && GOV_TREE[type]) || {};
+    for (let i = 1; i < uptoLevel; i++) {
+        const v = (values[i] || '').trim();
+        if (v && node && typeof node === 'object' && Object.prototype.hasOwnProperty.call(node, v)) {
+            node = node[v];
+        } else {
+            return null;
+        }
+    }
+    return node;
+}
+
+// 依目前各層輸入值,重新計算每一層的建議清單(cascade)。
+function repopulateGov(line) {
+    const typeSel = line.querySelector('[data-budget-field="item_type"]');
+    const type = (typeSel && typeSel.value === 'income') ? 'income' : 'expense';
+    const inputs = line.querySelectorAll('.gov-level-input');
+    const values = {};
+    inputs.forEach((inp) => { values[parseInt(inp.dataset.govLevel, 10)] = inp.value; });
+    inputs.forEach((inp) => {
+        const lvl = parseInt(inp.dataset.govLevel, 10);
+        const node = govNodeFor(type, values, lvl);
+        const opts = (node && typeof node === 'object') ? Object.keys(node) : [];
+        const dl = inp.__govList;
+        if (!dl) { return; }
+        dl.innerHTML = '';
+        opts.forEach((o) => { const op = document.createElement('option'); op.value = o; dl.appendChild(op); });
+    });
+}
+
+// 將一列的 5 個層級輸入接上動態 datalist(選擇即帶出、可自行輸入),並隨父層變動更新下層建議。
+function wireGovLevels(line) {
+    line.querySelectorAll('datalist.gov-datalist').forEach((d) => d.remove()); // 移除 clone 帶入的舊 datalist,避免 id 重複。
+    const inputs = line.querySelectorAll('.gov-level-input');
+    inputs.forEach((inp) => {
+        const dl = document.createElement('datalist');
+        dl.className = 'gov-datalist';
+        dl.id = 'govlist-' + (govListSeq++);
+        inp.setAttribute('list', dl.id);
+        inp.parentNode.appendChild(dl);
+        inp.__govList = dl;
+        ['input', 'focus', 'change'].forEach((ev) => inp.addEventListener(ev, () => repopulateGov(line)));
+    });
+    const typeSel = line.querySelector('[data-budget-field="item_type"]');
+    if (typeSel) { typeSel.addEventListener('change', () => repopulateGov(line)); }
+    repopulateGov(line);
+}
 
 function addBudgetLine(kind = 'expense') {
     const line = createBudgetLine(kind);
@@ -183,6 +237,7 @@ function bindBudgetLineEvents(line) {
     line.querySelectorAll('[data-auto-amount]').forEach((field) => {
         field.addEventListener('input', () => updateLineAmount(line));
     });
+    wireGovLevels(line);
 }
 
 function updateLineAmount(line) {

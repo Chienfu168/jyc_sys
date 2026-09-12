@@ -66,6 +66,7 @@ final class AnnualBudgetController extends Controller
             ],
             'items' => $this->defaultItems(),
             'accounts' => $this->budgetAccounts(),
+            'govHierarchy' => $this->govHierarchy(),
             'action' => '/annual-budgets',
         ]);
     }
@@ -178,6 +179,7 @@ final class AnnualBudgetController extends Controller
             'budget' => $budget,
             'items' => $this->items((int) $id),
             'accounts' => $this->budgetAccounts(),
+            'govHierarchy' => $this->govHierarchy(),
             'action' => '/annual-budgets/' . $id,
         ]);
     }
@@ -520,6 +522,104 @@ final class AnnualBudgetController extends Controller
                AND account_type IN ("income", "expense")
              ORDER BY account_type, sort_order, code'
         )->fetchAll();
+    }
+
+    /**
+     * 款／項／目／次／節階層樹(依 收益 income／費損 expense 分開)。
+     * 以常用財團法人收支科目為預設種子,並合併本機構既有預算項目實際使用過的組合,
+     * 供表單以「半自動選擇」呈現階層;使用者仍可自行輸入未列出的層級。
+     *
+     * @return array{income: array<string, mixed>, expense: array<string, mixed>}
+     */
+    private function govHierarchy(): array
+    {
+        $tree = $this->govDefaults();
+
+        try {
+            $rows = Database::pdo()->query(
+                'SELECT DISTINCT item_type, gov_level1, gov_level2, gov_level3, gov_level4, gov_level5
+                 FROM annual_budget_items
+                 WHERE COALESCE(gov_level1, "") <> ""'
+            )->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            $rows = [];
+        }
+
+        foreach ($rows as $row) {
+            $type = ($row['item_type'] ?? '') === 'income' ? 'income' : 'expense';
+            $path = [];
+            foreach (['gov_level1', 'gov_level2', 'gov_level3', 'gov_level4', 'gov_level5'] as $col) {
+                $seg = trim((string) ($row[$col] ?? ''));
+                if ($seg === '') {
+                    break; // 階層不跳層,遇空即止。
+                }
+                $path[] = $seg;
+            }
+            if ($path === []) {
+                continue;
+            }
+            $node = &$tree[$type];
+            foreach ($path as $seg) {
+                if (!isset($node[$seg]) || !is_array($node[$seg])) {
+                    $node[$seg] = [];
+                }
+                $node = &$node[$seg];
+            }
+            unset($node);
+        }
+
+        return $tree;
+    }
+
+    /**
+     * 常用財團法人收支科目階層種子(收益／費損)。空陣列代表該層為葉節點(可再自行輸入)。
+     *
+     * @return array{income: array<string, mixed>, expense: array<string, mixed>}
+     */
+    private function govDefaults(): array
+    {
+        return [
+            'income' => [
+                '業務收入' => [
+                    '捐贈收入' => [],
+                    '政府補助收入' => [],
+                    '方案服務收入' => [],
+                ],
+                '非業務收入' => [
+                    '利息收入' => [],
+                    '其他收入' => [],
+                ],
+            ],
+            'expense' => [
+                '業務費用' => [
+                    '業務活動費' => [],
+                    '業務推廣費' => [],
+                    '會議費' => [],
+                    '講師鐘點費' => [],
+                    '差旅費' => [],
+                ],
+                '管理費用' => [
+                    '人事費用' => [
+                        '薪資' => [],
+                        '勞保費' => [],
+                        '健保費' => [],
+                        '勞退金' => [],
+                        '獎金' => [],
+                    ],
+                    '辦公費用' => [
+                        '文具印刷費' => [],
+                        '郵電費' => [],
+                        '水電費' => [],
+                    ],
+                    '租金支出' => [],
+                    '專業服務費' => [],
+                ],
+                '其他費用' => [
+                    '預備金' => [],
+                    '雜項支出' => [],
+                ],
+            ],
+        ];
     }
 
     private function totals(array $items): array
