@@ -25,10 +25,10 @@ if (!$rows) {
 
 $renderRow = static function (array $row): void { ?>
     <tr class="rw-row">
-        <td><input type="text" name="recipient_name[]" class="rw-name" maxlength="120" value="<?= e((string) ($row['name'] ?? '')) ?>"></td>
-        <td><input type="text" name="recipient_title[]" maxlength="120" value="<?= e((string) ($row['job_title'] ?? '')) ?>"></td>
-        <td><textarea name="recipient_contribution[]" rows="2" placeholder="參與性質／貢獻說明"><?= e((string) ($row['contribution'] ?? '')) ?></textarea></td>
-        <td><input type="number" name="recipient_amount[]" class="rw-amount" inputmode="decimal" step="1" min="0" placeholder="0" value="<?= e((string) ($row['amount'] ?? '')) ?>" style="text-align:right"></td>
+        <td data-label="人員"><input type="text" name="recipient_name[]" class="rw-name" maxlength="120" value="<?= e((string) ($row['name'] ?? '')) ?>"></td>
+        <td data-label="職務"><input type="text" name="recipient_title[]" maxlength="120" value="<?= e((string) ($row['job_title'] ?? '')) ?>"></td>
+        <td data-label="參與性質／貢獻"><textarea name="recipient_contribution[]" rows="2" placeholder="參與性質／貢獻說明"><?= e((string) ($row['contribution'] ?? '')) ?></textarea></td>
+        <td data-label="建議獎勵金額"><input type="number" name="recipient_amount[]" class="rw-amount" inputmode="decimal" step="1" min="0" placeholder="0" value="<?= e((string) ($row['amount'] ?? '')) ?>" style="text-align:right"></td>
         <td class="rw-remove-cell"><button type="button" class="btn rw-remove" title="刪除此列" aria-label="刪除此列">✕</button></td>
     </tr>
 <?php };
@@ -82,7 +82,7 @@ ob_start();
         <div class="form-section">
             <h3>二、獎勵人員及金額</h3>
             <p class="muted-text">可新增多筆獎勵人員,金額將自動加總。</p>
-            <table class="rw-items" id="rwItems">
+            <table class="rw-items entry-table" id="rwItems">
                 <thead>
                     <tr>
                         <th style="width:18%">人員</th>
