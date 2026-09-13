@@ -474,19 +474,21 @@ final class ExpenseRequestController extends Controller
     }
 
     /**
-     * 解析表單的多筆費用明細(item_name[]/amount[]/petty_cash_item_id[]),
-     * 略過完全空白的列。回傳每筆的常用項目 id、名稱與金額。
+     * 解析表單的多筆費用明細(item_name[]/payee[]/receipt_type[]/amount[]/petty_cash_item_id[]),
+     * 略過完全空白的列。回傳每筆的常用項目 id、名稱、給誰、憑證類型與金額。
      *
-     * @return array<int, array{petty_cash_item_id: ?int, item_name: string, amount: float}>
+     * @return array<int, array{petty_cash_item_id: ?int, item_name: string, payee: string, receipt_type: string, amount: float}>
      */
     private function parseItems(): array
     {
         $names = (array) ($_POST['item_name'] ?? []);
         $amounts = (array) ($_POST['amount'] ?? []);
         $itemIds = (array) ($_POST['petty_cash_item_id'] ?? []);
+        $payees = (array) ($_POST['payee'] ?? []);
+        $receiptTypes = (array) ($_POST['receipt_type'] ?? []);
 
         $lines = [];
-        $count = max(count($names), count($amounts), count($itemIds));
+        $count = max(count($names), count($amounts), count($itemIds), count($payees), count($receiptTypes));
         for ($i = 0; $i < $count; $i++) {
             $itemId = (int) ($itemIds[$i] ?? 0);
             $itemId = $itemId > 0 ? $itemId : null;
@@ -495,14 +497,28 @@ final class ExpenseRequestController extends Controller
                 $name = $this->pettyCashItemName($itemId);
             }
             $amount = round((float) ($amounts[$i] ?? 0), 2);
+            $payee = trim((string) ($payees[$i] ?? ''));
+            $receiptType = $this->normalizeReceiptType((string) ($receiptTypes[$i] ?? 'none'));
 
-            if ($name === '' && $amount <= 0) {
+            if ($name === '' && $amount <= 0 && $payee === '') {
                 continue; // 完全空白列
             }
-            $lines[] = ['petty_cash_item_id' => $itemId, 'item_name' => $name, 'amount' => $amount];
+            $lines[] = [
+                'petty_cash_item_id' => $itemId,
+                'item_name' => $name,
+                'payee' => $payee,
+                'receipt_type' => $receiptType,
+                'amount' => $amount,
+            ];
         }
 
         return $lines;
+    }
+
+    /** 將憑證類型正規化為 invoice／receipt／none。 */
+    private function normalizeReceiptType(string $value): string
+    {
+        return in_array($value, ['invoice', 'receipt', 'none'], true) ? $value : 'none';
     }
 
     /** 重寫某申請的費用明細:先清除既有,再依序寫入。 */
@@ -513,8 +529,8 @@ final class ExpenseRequestController extends Controller
 
         $stmt = Database::pdo()->prepare(
             'INSERT INTO expense_request_items
-             (expense_request_id, petty_cash_item_id, item_name, amount, sort_order, created_at)
-             VALUES (:req, :petty_cash_item_id, :item_name, :amount, :sort_order, :created_at)'
+             (expense_request_id, petty_cash_item_id, item_name, payee, receipt_type, amount, sort_order, created_at)
+             VALUES (:req, :petty_cash_item_id, :item_name, :payee, :receipt_type, :amount, :sort_order, :created_at)'
         );
         $now = now();
         foreach (array_values($lines) as $i => $line) {
@@ -522,6 +538,8 @@ final class ExpenseRequestController extends Controller
                 'req' => $requestId,
                 'petty_cash_item_id' => $line['petty_cash_item_id'],
                 'item_name' => $line['item_name'],
+                'payee' => ($line['payee'] ?? '') !== '' ? $line['payee'] : null,
+                'receipt_type' => $line['receipt_type'] ?? 'none',
                 'amount' => $line['amount'],
                 'sort_order' => $i,
                 'created_at' => $now,
@@ -533,7 +551,7 @@ final class ExpenseRequestController extends Controller
     private function loadItems(int $requestId): array
     {
         $stmt = Database::pdo()->prepare(
-            'SELECT id, petty_cash_item_id, item_name, amount, sort_order
+            'SELECT id, petty_cash_item_id, item_name, payee, receipt_type, amount, sort_order
              FROM expense_request_items WHERE expense_request_id = :id ORDER BY sort_order, id'
         );
         $stmt->execute(['id' => $requestId]);
