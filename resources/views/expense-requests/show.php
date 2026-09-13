@@ -109,6 +109,8 @@ ob_start();
             <tr>
                 <th style="width:60px">項次</th>
                 <th>費用項目</th>
+                <th>給誰（廠商／對象）</th>
+                <th style="width:80px">憑證</th>
                 <th class="amount">金額</th>
             </tr>
         </thead>
@@ -117,13 +119,15 @@ ob_start();
             <tr>
                 <td style="text-align:center"><?= e((string) ($i + 1)) ?></td>
                 <td><?= e($it['item_name']) ?></td>
+                <td><?= e(($it['payee'] ?? '') !== '' ? $it['payee'] : '—') ?></td>
+                <td style="text-align:center"><?= e(ExpenseRequestSupport::receiptTypeLabel($it['receipt_type'] ?? 'none')) ?></td>
                 <td class="amount"><?= e($money($it['amount'])) ?></td>
             </tr>
         <?php endforeach; ?>
         </tbody>
         <tfoot>
             <tr>
-                <td colspan="2" style="text-align:right">合計</td>
+                <td colspan="4" style="text-align:right">合計</td>
                 <td class="amount"><?= e($money($request['amount'])) ?> 元</td>
             </tr>
         </tfoot>

@@ -25,6 +25,12 @@ final class ExpenseRequestSupport
         return ['bank' => '匯款', 'cash' => '現金'][$type ?? ''] ?? '-';
     }
 
+    /** 憑證類型標籤:invoice=發票、receipt=收據、none=無。 */
+    public static function receiptTypeLabel(?string $type): string
+    {
+        return ['invoice' => '發票', 'receipt' => '收據', 'none' => '無'][$type ?? 'none'] ?? '無';
+    }
+
     /** 依日期與當日流水號組出申請單號,如 ER20260830-003。 */
     public static function formatNo(string $date, int $seq): string
     {

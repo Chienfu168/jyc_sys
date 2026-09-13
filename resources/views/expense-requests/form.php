@@ -6,25 +6,30 @@ $requestItems = $requestItems ?? [];
 $paymentType = old('payment_type', $request['payment_type'] ?? 'cash');
 
 // 組出要顯示的費用明細列:優先採用驗證失敗回填的陣列,其次為編輯時既有明細,最後給一列空白。
+$blankRow = ['petty_cash_item_id' => '', 'item_name' => '', 'payee' => '', 'receipt_type' => 'none', 'amount' => ''];
 $oldNames = old('item_name');
 if (is_array($oldNames)) {
     $oldAmounts = is_array(old('amount')) ? old('amount') : [];
     $oldItemIds = is_array(old('petty_cash_item_id')) ? old('petty_cash_item_id') : [];
+    $oldPayees = is_array(old('payee')) ? old('payee') : [];
+    $oldReceiptTypes = is_array(old('receipt_type')) ? old('receipt_type') : [];
     $rows = [];
     foreach ($oldNames as $i => $n) {
         $rows[] = [
             'petty_cash_item_id' => $oldItemIds[$i] ?? '',
             'item_name' => $n,
+            'payee' => $oldPayees[$i] ?? '',
+            'receipt_type' => $oldReceiptTypes[$i] ?? 'none',
             'amount' => $oldAmounts[$i] ?? '',
         ];
     }
 } elseif ($requestItems) {
     $rows = $requestItems;
 } else {
-    $rows = [['petty_cash_item_id' => '', 'item_name' => '', 'amount' => '']];
+    $rows = [$blankRow];
 }
 if (!$rows) {
-    $rows = [['petty_cash_item_id' => '', 'item_name' => '', 'amount' => '']];
+    $rows = [$blankRow];
 }
 
 $renderRow = static function (array $row, array $items): void { ?>
@@ -41,7 +46,18 @@ $renderRow = static function (array $row, array $items): void { ?>
         <td data-label="費用項目名稱">
             <input type="text" name="item_name[]" class="er-item-name" maxlength="160" placeholder="例如：車資、郵資、文具" value="<?= e((string) ($row['item_name'] ?? '')) ?>">
         </td>
-        <td data-label="金額">
+        <td data-label="給誰（廠商／對象）">
+            <input type="text" name="payee[]" class="er-item-payee" maxlength="160" placeholder="例如：遠振資訊科技" value="<?= e((string) ($row['payee'] ?? '')) ?>">
+        </td>
+        <td data-label="憑證">
+            <?php $rt = (string) ($row['receipt_type'] ?? 'none'); ?>
+            <select name="receipt_type[]" class="er-item-receipt">
+                <option value="none"<?= $rt === 'none' ? ' selected' : '' ?>>無</option>
+                <option value="invoice"<?= $rt === 'invoice' ? ' selected' : '' ?>>發票</option>
+                <option value="receipt"<?= $rt === 'receipt' ? ' selected' : '' ?>>收據</option>
+            </select>
+        </td>
+        <td data-label="金額" class="amount">
             <input type="number" name="amount[]" class="er-item-amount" inputmode="decimal" step="1" min="0" placeholder="0" value="<?= e((string) ($row['amount'] ?? '')) ?>" style="text-align:right">
         </td>
         <td class="er-item-remove-cell">
@@ -94,8 +110,10 @@ ob_start();
             <table class="er-items entry-table" id="erItems">
                 <thead>
                     <tr>
-                        <th style="width:32%">常用項目（選填）</th>
+                        <th style="width:22%">常用項目（選填）</th>
                         <th>費用項目名稱</th>
+                        <th>給誰（廠商／對象）</th>
+                        <th style="width:96px">憑證</th>
                         <th class="amount">金額</th>
                         <th></th>
                     </tr>
@@ -105,7 +123,7 @@ ob_start();
                 </tbody>
                 <tfoot>
                     <tr>
-                        <td colspan="2" class="er-items-total">合計</td>
+                        <td colspan="4" class="er-items-total">合計</td>
                         <td class="amount"><span id="erTotal">0</span> 元</td>
                         <td></td>
                     </tr>
@@ -161,7 +179,7 @@ ob_start();
 </section>
 
 <template id="erRowTemplate">
-    <?php $renderRow(['petty_cash_item_id' => '', 'item_name' => '', 'amount' => ''], $items); ?>
+    <?php $renderRow($blankRow, $items); ?>
 </template>
 
 <script>
@@ -203,6 +221,10 @@ ob_start();
                     if (select) { select.value = ''; }
                     if (name) { name.value = ''; }
                     if (amount) { amount.value = ''; }
+                    var payee = row.querySelector('.er-item-payee');
+                    if (payee) { payee.value = ''; }
+                    var receipt = row.querySelector('.er-item-receipt');
+                    if (receipt) { receipt.value = 'none'; }
                 } else {
                     row.parentNode.removeChild(row);
                 }
