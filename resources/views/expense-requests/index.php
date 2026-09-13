@@ -4,9 +4,9 @@ $active = 'expense-requests';
 $requests = $requests ?? [];
 $currentUserId = (int) ($currentUserId ?? 0);
 $statusColors = ['draft' => '#6b7280', 'submitted' => '#9a6a00', 'approved' => '#1d5fa8', 'rejected' => '#b32d2d', 'paid' => '#1b7a43'];
-// 是否可編輯／刪除該筆:限草稿或退回件,且為本人(申請人／建立者)或具核定權限者。
+// 是否可編輯／刪除該筆:限尚未核定(草稿／待核定／退回),且為本人(申請人／建立者)或具核定權限者。
 $canEditRow = static function (array $r) use ($currentUserId, $canApprove): bool {
-    if (!in_array($r['status'], ['draft', 'rejected'], true)) {
+    if (!in_array($r['status'], ['draft', 'rejected', 'submitted'], true)) {
         return false;
     }
     $owns = $currentUserId > 0

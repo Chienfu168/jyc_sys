@@ -361,13 +361,14 @@ final class ExpenseRequestController extends Controller
         $this->requirePermission('expense_requests.view');
         $request = $this->findRequest((int) $id);
 
-        // 一般員工僅能刪除自己且尚未送出/核定的申請;有核定權限者可刪除草稿或退回件。
+        // 尚未核定(草稿／待核定／退回)的申請可刪除:本人或具核定權限者。
+        // 已核定／已付款者已併入零用金,不可直接刪除。
         $canManage = Permission::can('expense_requests.approve');
         if (!$canManage && !$this->ownsRequest($request)) {
             $this->forbid();
         }
-        if (!in_array($request['status'], ['draft', 'rejected'], true)) {
-            flash('error', '已送出或已核定的申請不可刪除,請改為退回。');
+        if (!in_array($request['status'], ['draft', 'rejected', 'submitted'], true)) {
+            flash('error', '已核定或已付款的申請不可刪除。');
             redirect('/expense-requests/' . $id);
         }
 
@@ -569,8 +570,9 @@ final class ExpenseRequestController extends Controller
 
     private function requireEditable(array $request): void
     {
-        if (!in_array($request['status'], ['draft', 'rejected'], true)) {
-            flash('error', '已送出或已核定的申請不可編輯。');
+        // 草稿／待核定／退回件可編輯;已核定、已付款(已併入零用金)不可再改。
+        if (!in_array($request['status'], ['draft', 'rejected', 'submitted'], true)) {
+            flash('error', '已核定或已付款的申請不可編輯。');
             redirect('/expense-requests/' . $request['id']);
         }
         if (!Permission::can('expense_requests.approve') && !$this->ownsRequest($request)) {

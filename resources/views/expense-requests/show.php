@@ -6,7 +6,7 @@ $attachments = $attachments ?? [];
 $requestItems = $requestItems ?? [];
 $status = (string) $request['status'];
 $statusColors = ['draft' => '#6b7280', 'submitted' => '#9a6a00', 'approved' => '#1d5fa8', 'rejected' => '#b32d2d', 'paid' => '#1b7a43'];
-$editable = in_array($status, ['draft', 'rejected'], true) && (!empty($isOwner) || !empty($canApprove));
+$editable = in_array($status, ['draft', 'rejected', 'submitted'], true) && (!empty($isOwner) || !empty($canApprove));
 $documentTitle = '費用申請單';
 
 // 無明細（相容舊資料）時,以彙總列合成一筆顯示。
@@ -57,7 +57,7 @@ ob_start();
                     <button class="btn primary" type="submit">送出申請</button>
                 </form>
             <?php endif; ?>
-            <?php if (in_array($status, ['draft', 'rejected'], true) && (!empty($isOwner) || !empty($canApprove))): ?>
+            <?php if (in_array($status, ['draft', 'rejected', 'submitted'], true) && (!empty($isOwner) || !empty($canApprove))): ?>
                 <form method="post" action="/expense-requests/<?= e((string) $request['id']) ?>/delete" onsubmit="return confirm('確定要刪除此費用申請？');">
                     <?= csrf_field() ?>
                     <button class="btn" type="submit">刪除</button>
