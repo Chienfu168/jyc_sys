@@ -3343,6 +3343,49 @@ textarea:focus {
         margin-top: 12px;
         font-size: 10px;
     }
+
+    /* 費用申請憑證附件:列印時接續於申請單後,另起新頁,依 A4 版面編排。
+       單欄呈現,每張憑證完整顯示(不裁切),避免跨頁被切開,約每頁兩張。 */
+    .er-attach-section {
+        break-before: page;
+        page-break-before: always;
+    }
+
+    .er-attach-grid {
+        display: block !important;
+    }
+
+    .er-attach-grid .pcq-attach {
+        break-inside: avoid;
+        page-break-inside: avoid;
+        border: 0;
+        margin: 0 0 8mm;
+        text-align: center;
+    }
+
+    .er-attach-grid .er-attach-caption {
+        margin-bottom: 4px;
+        font-size: 11px;
+        color: #444444;
+        text-align: left;
+    }
+
+    .er-attach-grid .pcq-attach img {
+        width: auto;
+        max-width: 100%;
+        height: auto;
+        max-height: 120mm;
+        object-fit: contain;
+    }
+
+    .er-attach-grid .pcq-attach__file {
+        display: inline-block;
+        height: auto;
+        padding: 12px 20px;
+        background: transparent;
+        border: 1px dashed #999999;
+        color: #333333;
+    }
 }
 
 @media screen and (max-width: 900px) {

@@ -182,20 +182,21 @@ ob_start();
     </div>
 </section>
 
-<section class="panel<?= $attachments ? '' : ' no-print' ?>">
+<section class="panel er-attach-section<?= $attachments ? '' : ' no-print' ?>">
     <div class="panel-header">
-        <div><h2>憑證附件</h2><p class="muted-text">代墊費用的憑證照片（已壓縮）。</p></div>
+        <div><h2>憑證附件</h2><p class="muted-text">代墊費用的憑證照片（已壓縮）。列印時將接續於申請單後,依 A4 版面編排。</p></div>
     </div>
     <?php if ($attachments): ?>
-        <div class="pcq-attach-grid">
-            <?php foreach ($attachments as $file): ?>
+        <div class="pcq-attach-grid er-attach-grid">
+            <?php foreach ($attachments as $idx => $file): ?>
                 <?php $isImage = str_starts_with((string) ($file['mime_type'] ?? ''), 'image/'); ?>
                 <figure class="pcq-attach">
+                    <div class="er-attach-caption print-only">附件 <?= e((string) ($idx + 1)) ?> ／ <?= e($request['request_no']) ?></div>
                     <a href="/expense-requests/<?= e((string) $request['id']) ?>/attachments/<?= e((string) $file['id']) ?>" target="_blank" rel="noopener">
                         <?php if ($isImage): ?>
-                            <img src="/expense-requests/<?= e((string) $request['id']) ?>/attachments/<?= e((string) $file['id']) ?>" alt="憑證" loading="lazy">
+                            <img src="/expense-requests/<?= e((string) $request['id']) ?>/attachments/<?= e((string) $file['id']) ?>" alt="憑證附件 <?= e((string) ($idx + 1)) ?>" loading="lazy">
                         <?php else: ?>
-                            <span class="pcq-attach__file">PDF</span>
+                            <span class="pcq-attach__file">PDF 附件<span class="print-only">（請另行列印）</span></span>
                         <?php endif; ?>
                     </a>
                     <figcaption class="no-print">

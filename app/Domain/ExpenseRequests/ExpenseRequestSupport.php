@@ -25,10 +25,20 @@ final class ExpenseRequestSupport
         return ['bank' => '匯款', 'cash' => '現金'][$type ?? ''] ?? '-';
     }
 
-    /** 憑證類型標籤:invoice=發票、receipt=收據、none=無。 */
+    /**
+     * 憑證類型標籤。
+     * invoice=發票、receipt=收據、stub=票根、other=其他憑證、none=無。
+     * (交通費如高鐵、台鐵、計程車常無正式發票／收據,以票根或一般憑證核銷。)
+     */
     public static function receiptTypeLabel(?string $type): string
     {
-        return ['invoice' => '發票', 'receipt' => '收據', 'none' => '無'][$type ?? 'none'] ?? '無';
+        return [
+            'invoice' => '發票',
+            'receipt' => '收據',
+            'stub' => '票根',
+            'other' => '其他憑證',
+            'none' => '無',
+        ][$type ?? 'none'] ?? '無';
     }
 
     /** 依日期與當日流水號組出申請單號,如 ER20260830-003。 */

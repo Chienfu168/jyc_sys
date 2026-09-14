@@ -515,10 +515,10 @@ final class ExpenseRequestController extends Controller
         return $lines;
     }
 
-    /** 將憑證類型正規化為 invoice／receipt／none。 */
+    /** 將憑證類型正規化為 invoice／receipt／stub／other／none。 */
     private function normalizeReceiptType(string $value): string
     {
-        return in_array($value, ['invoice', 'receipt', 'none'], true) ? $value : 'none';
+        return in_array($value, ['invoice', 'receipt', 'stub', 'other', 'none'], true) ? $value : 'none';
     }
 
     /** 重寫某申請的費用明細:先清除既有,再依序寫入。 */

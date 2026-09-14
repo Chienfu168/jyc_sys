@@ -55,6 +55,8 @@ $renderRow = static function (array $row, array $items): void { ?>
                 <option value="none"<?= $rt === 'none' ? ' selected' : '' ?>>無</option>
                 <option value="invoice"<?= $rt === 'invoice' ? ' selected' : '' ?>>發票</option>
                 <option value="receipt"<?= $rt === 'receipt' ? ' selected' : '' ?>>收據</option>
+                <option value="stub"<?= $rt === 'stub' ? ' selected' : '' ?>>票根</option>
+                <option value="other"<?= $rt === 'other' ? ' selected' : '' ?>>其他憑證</option>
             </select>
         </td>
         <td data-label="金額" class="amount">
@@ -113,7 +115,7 @@ ob_start();
                         <th style="width:22%">常用項目（選填）</th>
                         <th>費用項目名稱</th>
                         <th>給誰（廠商／對象）</th>
-                        <th style="width:96px">憑證</th>
+                        <th style="width:124px">憑證</th>
                         <th class="amount">金額</th>
                         <th></th>
                     </tr>
