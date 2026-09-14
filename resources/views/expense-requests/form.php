@@ -101,8 +101,12 @@ ob_start();
                 <input type="date" name="occurred_on" value="<?= e((string) old('occurred_on', $request['occurred_on'] ?? date('Y-m-d'))) ?>" required>
             </label>
             <label class="span-2">
-                <span>事由／說明（選填）</span>
-                <textarea name="reason" rows="2"><?= e((string) old('reason', $request['reason'] ?? '')) ?></textarea>
+                <span>事由（基本事由，選填）</span>
+                <textarea name="reason" rows="2" placeholder="例如：出差交通費"><?= e((string) old('reason', $request['reason'] ?? '')) ?></textarea>
+            </label>
+            <label class="span-2">
+                <span>備註（補充說明，選填）</span>
+                <textarea name="notes" rows="3" placeholder="可補充說明，可長可短"><?= e((string) old('notes', $request['notes'] ?? '')) ?></textarea>
             </label>
         </div>
 

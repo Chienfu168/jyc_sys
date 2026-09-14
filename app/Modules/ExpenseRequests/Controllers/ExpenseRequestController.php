@@ -94,11 +94,11 @@ final class ExpenseRequestController extends Controller
 
         Database::pdo()->prepare(
             'INSERT INTO expense_requests
-             (request_no, applicant_id, occurred_on, petty_cash_item_id, item_name, amount, reason,
+             (request_no, applicant_id, occurred_on, petty_cash_item_id, item_name, amount, reason, notes,
               payment_type, bank_name, bank_branch, bank_account, bank_account_name,
               status, submitted_at, created_by, created_at, updated_at)
              VALUES
-             (:request_no, :applicant_id, :occurred_on, :petty_cash_item_id, :item_name, :amount, :reason,
+             (:request_no, :applicant_id, :occurred_on, :petty_cash_item_id, :item_name, :amount, :reason, :notes,
               :payment_type, :bank_name, :bank_branch, :bank_account, :bank_account_name,
               :status, :submitted_at, :created_by, :created_at, :updated_at)'
         )->execute([
@@ -109,6 +109,7 @@ final class ExpenseRequestController extends Controller
             'item_name' => $this->summaryName($lines),
             'amount' => $this->totalAmount($lines),
             'reason' => $this->nullable('reason'),
+            'notes' => $this->nullable('notes'),
             'payment_type' => $this->paymentType(),
             'bank_name' => $this->nullable('bank_name'),
             'bank_branch' => $this->nullable('bank_branch'),
@@ -184,7 +185,7 @@ final class ExpenseRequestController extends Controller
         Database::pdo()->prepare(
             'UPDATE expense_requests SET
                 occurred_on = :occurred_on, petty_cash_item_id = :petty_cash_item_id, item_name = :item_name,
-                amount = :amount, reason = :reason, payment_type = :payment_type,
+                amount = :amount, reason = :reason, notes = :notes, payment_type = :payment_type,
                 bank_name = :bank_name, bank_branch = :bank_branch, bank_account = :bank_account,
                 bank_account_name = :bank_account_name, status = :status, submitted_at = :submitted_at,
                 updated_at = :updated_at
@@ -195,6 +196,7 @@ final class ExpenseRequestController extends Controller
             'item_name' => $this->summaryName($lines),
             'amount' => $this->totalAmount($lines),
             'reason' => $this->nullable('reason'),
+            'notes' => $this->nullable('notes'),
             'payment_type' => $this->paymentType(),
             'bank_name' => $this->nullable('bank_name'),
             'bank_branch' => $this->nullable('bank_branch'),
