@@ -83,7 +83,10 @@ ob_start();
         </tr>
         <?php endif; ?>
         <?php if (!empty($request['reason'])): ?>
-        <tr><th>事由／說明</th><td colspan="3"><?= nl2br(e($request['reason'])) ?></td></tr>
+        <tr><th>事由</th><td colspan="3"><?= nl2br(e($request['reason'])) ?></td></tr>
+        <?php endif; ?>
+        <?php if (!empty($request['notes'])): ?>
+        <tr><th>備註</th><td colspan="3"><?= nl2br(e($request['notes'])) ?></td></tr>
         <?php endif; ?>
         <?php if (!empty($request['reviewed_by_name'])): ?>
         <tr>
