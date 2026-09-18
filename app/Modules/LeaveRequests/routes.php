@@ -5,6 +5,7 @@ use App\Modules\LeaveRequests\Controllers\LeaveRequestController;
 $router->get('/leave-requests', [LeaveRequestController::class, 'index']);
 $router->get('/leave-requests/create', [LeaveRequestController::class, 'create']);
 $router->post('/leave-requests', [LeaveRequestController::class, 'store']);
+$router->get('/leave-requests/{id}/duplicate', [LeaveRequestController::class, 'duplicate']);
 $router->get('/leave-requests/{id}', [LeaveRequestController::class, 'show']);
 $router->get('/leave-requests/{id}/edit', [LeaveRequestController::class, 'edit']);
 $router->post('/leave-requests/{id}', [LeaveRequestController::class, 'update']);

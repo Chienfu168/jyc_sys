@@ -52,6 +52,7 @@ ob_start();
                     <td><span style="color:<?= e($statusColors[$r['status']] ?? '#333') ?>;font-weight:600"><?= e(ExpenseRequestSupport::statusLabel($r['status'])) ?></span></td>
                     <td class="actions">
                         <a class="btn small" href="/expense-requests/<?= e((string) $r['id']) ?>">檢視</a>
+                        <a class="btn small" href="/expense-requests/<?= e((string) $r['id']) ?>/duplicate">複製</a>
                         <?php if ($canEditRow($r)): ?>
                             <a class="btn small" href="/expense-requests/<?= e((string) $r['id']) ?>/edit">編輯</a>
                             <form method="post" action="/expense-requests/<?= e((string) $r['id']) ?>/delete" onsubmit="return confirm('確定要刪除此費用申請？此操作無法復原。');">

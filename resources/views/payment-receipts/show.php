@@ -28,6 +28,9 @@ ob_start();
     <div class="actions purchase-detail-actions">
         <a class="btn" href="/payment-receipts?month=<?= e(substr((string) $receipt['receipt_date'], 0, 7)) ?>">返回列表</a>
         <a class="btn primary" href="/payment-receipts/<?= e((string) $receipt['id']) ?>/print">列印領據</a>
+        <?php if ($canManage): ?>
+            <a class="btn" href="/payment-receipts/<?= e((string) $receipt['id']) ?>/duplicate">複製</a>
+        <?php endif; ?>
         <?php if ($canManage && $receipt['status'] !== 'voided'): ?>
             <a class="btn" href="/payment-receipts/<?= e((string) $receipt['id']) ?>/edit">編輯</a>
             <?php if ($receipt['status'] === 'draft'): ?>

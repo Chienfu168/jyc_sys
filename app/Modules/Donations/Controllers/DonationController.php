@@ -221,6 +221,31 @@ final class DonationController extends Controller
         ]);
     }
 
+    /**
+     * 以既有捐款紀錄為範本開新表單並帶入原資料（日期預設今天，供「同一捐款人、相同用途、僅日期不同」快速複製再編輯）。
+     * 不建立新資料，僅預填;送出後才由 store() 建立新捐款(收據狀態重設為未開立)。
+     */
+    public function duplicate(string $id): void
+    {
+        $this->requirePermission('donations.manage');
+        $source = $this->findDonation((int) $id);
+
+        $source['donated_at'] = date('Y-m-d');
+        $source['receipt_no'] = '';
+        $source['receipt_status'] = 'pending';
+        unset($source['id']);
+
+        $this->render('donations.create', [
+            'title' => '複製捐款',
+            'section' => '財務會計',
+            'active' => 'donations',
+            'donation' => $source,
+            'donors' => $this->donors(),
+            'action' => '/donations',
+            'duplicateFromName' => (string) ($source['donor_name'] ?? ''),
+        ]);
+    }
+
     public function store(): void
     {
         $this->requirePermission('donations.manage');

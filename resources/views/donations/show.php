@@ -16,6 +16,9 @@ ob_start();
         <div class="actions">
             <a class="btn" href="/donations">返回列表</a>
             <a class="btn" href="/donors/<?= e((string) $donation['donor_id']) ?>">捐款人資料</a>
+            <?php if ($canManage): ?>
+                <a class="btn" href="/donations/<?= e((string) $donation['id']) ?>/duplicate">複製</a>
+            <?php endif; ?>
             <?php if ($canManage && $donation['receipt_status'] === 'pending'): ?>
                 <form method="post" action="/donations/<?= e((string) $donation['id']) ?>/issue-receipt">
                     <?= csrf_field() ?>

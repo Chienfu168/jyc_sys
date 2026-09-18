@@ -130,6 +130,9 @@ ob_start();
                     <td class="amount"><?= e(donation_index_money($donation['amount'])) ?></td>
                     <td class="actions">
                         <a class="btn small" href="/donations/<?= e((string) $donation['id']) ?>">檢視</a>
+                        <?php if (\App\Core\Permission::can('donations.manage')): ?>
+                            <a class="btn small" href="/donations/<?= e((string) $donation['id']) ?>/duplicate">複製</a>
+                        <?php endif; ?>
                         <?php if (\App\Core\Permission::can('donations.manage') && $donation['receipt_status'] === 'pending'): ?>
                             <form method="post" action="/donations/<?= e((string) $donation['id']) ?>/issue-receipt">
                                 <?= csrf_field() ?>

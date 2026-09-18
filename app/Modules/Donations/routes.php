@@ -7,6 +7,7 @@ $router->get('/donations/report', [DonationController::class, 'report']);
 $router->get('/donations/income-list', [DonationController::class, 'incomeList']);
 $router->get('/donations/export', [DonationController::class, 'export']);
 $router->get('/donations/create', [DonationController::class, 'create']);
+$router->get('/donations/{id}/duplicate', [DonationController::class, 'duplicate']);
 $router->get('/donations/receipts/print', [DonationController::class, 'printReceipts']);
 $router->post('/donations', [DonationController::class, 'store']);
 $router->post('/donations/bulk-issue-receipts', [DonationController::class, 'bulkIssueReceipts']);

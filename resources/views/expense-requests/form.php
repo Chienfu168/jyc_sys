@@ -86,8 +86,12 @@ ob_start();
 <section class="panel narrow">
     <div class="panel-header">
         <div>
-            <h2><?= empty($request['id']) ? '新增費用申請' : '編輯費用申請' ?></h2>
-            <p class="muted-text">員工代墊的小額費用（如車資、郵資、文具等）於此申請;可一次申請多筆費用。核定後併入零用金,由會計確認後付款。</p>
+            <h2><?= !empty($duplicateFromNo) ? '複製費用申請' : (empty($request['id']) ? '新增費用申請' : '編輯費用申請') ?></h2>
+            <?php if (!empty($duplicateFromNo)): ?>
+                <p class="muted-text">由 <?= e($duplicateFromNo) ?> 複製;日期已預設為今天,請確認內容後送出,將另建立新的申請單號。</p>
+            <?php else: ?>
+                <p class="muted-text">員工代墊的小額費用（如車資、郵資、文具等）於此申請;可一次申請多筆費用。核定後併入零用金,由會計確認後付款。</p>
+            <?php endif; ?>
         </div>
         <a class="btn" href="/expense-requests">返回清單</a>
     </div>

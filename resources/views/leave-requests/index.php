@@ -69,6 +69,7 @@ ob_start();
                     <td class="table-actions no-print">
                         <a class="btn small" href="/leave-requests/<?= e((string) $request['id']) ?>">查看</a>
                         <?php if ($canManage): ?>
+                            <a class="btn small" href="/leave-requests/<?= e((string) $request['id']) ?>/duplicate">複製</a>
                             <a class="btn small" href="/leave-requests/<?= e((string) $request['id']) ?>/edit">編輯</a>
                             <?php if (in_array($request['status'], ['draft', 'rejected'], true)): ?>
                                 <form method="post" action="/leave-requests/<?= e((string) $request['id']) ?>/submit">

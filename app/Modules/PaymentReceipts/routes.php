@@ -16,6 +16,7 @@ $router->post('/payment-receipt-payees/{id}/delete', [PaymentReceiptPayeeControl
 $router->get('/payment-receipts', [PaymentReceiptController::class, 'index']);
 $router->get('/payment-receipts/create', [PaymentReceiptController::class, 'create']);
 $router->post('/payment-receipts', [PaymentReceiptController::class, 'store']);
+$router->get('/payment-receipts/{id}/duplicate', [PaymentReceiptController::class, 'duplicate']);
 $router->get('/payment-receipts/{id}/print', [PaymentReceiptController::class, 'printForm']);
 $router->get('/payment-receipts/{id}/edit', [PaymentReceiptController::class, 'edit']);
 $router->post('/payment-receipts/{id}', [PaymentReceiptController::class, 'update']);
