@@ -5,6 +5,7 @@ use App\Modules\ExpenseRequests\Controllers\ExpenseRequestController;
 $router->get('/expense-requests', [ExpenseRequestController::class, 'index']);
 $router->get('/expense-requests/create', [ExpenseRequestController::class, 'create']);
 $router->post('/expense-requests', [ExpenseRequestController::class, 'store']);
+$router->get('/expense-requests/{id}/duplicate', [ExpenseRequestController::class, 'duplicate']);
 $router->get('/expense-requests/{id}', [ExpenseRequestController::class, 'show']);
 $router->get('/expense-requests/{id}/edit', [ExpenseRequestController::class, 'edit']);
 $router->post('/expense-requests/{id}', [ExpenseRequestController::class, 'update']);

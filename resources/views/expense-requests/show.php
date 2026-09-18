@@ -48,6 +48,7 @@ ob_start();
         </div>
         <div class="actions no-print">
             <a class="btn" href="/expense-requests">返回清單</a>
+            <a class="btn" href="/expense-requests/<?= e((string) $request['id']) ?>/duplicate">複製</a>
             <?php if ($editable): ?>
                 <a class="btn" href="/expense-requests/<?= e((string) $request['id']) ?>/edit">編輯</a>
             <?php endif; ?>

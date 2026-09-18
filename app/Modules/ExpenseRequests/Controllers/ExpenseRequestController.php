@@ -81,6 +81,34 @@ final class ExpenseRequestController extends Controller
         ]);
     }
 
+    /**
+     * 以既有申請為範本，開新的申請表單並帶入原資料（日期預設為今天，供「同樣事情、僅日期不同」快速複製再編輯）。
+     * 不建立新資料，僅預填表單；送出後才由 store() 產生新單號的新申請。
+     */
+    public function duplicate(string $id): void
+    {
+        $this->requirePermission('expense_requests.view');
+        $source = $this->findRequest((int) $id, true);
+        $items = $this->loadItems((int) $id);
+        $sourceNo = (string) ($source['request_no'] ?? '');
+
+        // 帶入原資料，但重設身分與狀態，日期預設今天。
+        $source['occurred_on'] = date('Y-m-d');
+        $source['status'] = 'draft';
+        unset($source['id'], $source['request_no']);
+
+        $this->render('expense-requests.form', [
+            'title' => '複製費用申請',
+            'section' => '支出與核銷',
+            'active' => 'expense-requests',
+            'request' => $source,
+            'requestItems' => $items,
+            'items' => $this->pettyCashItems(),
+            'action' => '/expense-requests',
+            'duplicateFromNo' => $sourceNo,
+        ]);
+    }
+
     public function store(): void
     {
         $this->requirePermission('expense_requests.view');

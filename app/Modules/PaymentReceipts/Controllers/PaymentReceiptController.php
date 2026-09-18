@@ -51,6 +51,32 @@ final class PaymentReceiptController extends Controller
         ]);
     }
 
+    /**
+     * 以既有領款收據為範本開新表單並帶入原資料（日期預設今天，供「同樣對象與費用、僅日期不同」快速複製再編輯）。
+     * 不建立新資料，僅預填;送出後才由 store() 產生新單號的新收據。
+     */
+    public function duplicate(string $id): void
+    {
+        $this->requirePermission('payment_receipts.manage');
+        $source = $this->findReceipt((int) $id);
+        $sourceNo = (string) ($source['receipt_no'] ?? '');
+
+        $source['receipt_date'] = date('Y-m-d');
+        $source['receipt_no'] = '';
+        $source['status'] = 'draft';
+        unset($source['id']);
+
+        $this->render('payment-receipts.create', [
+            'title' => '複製領款收據',
+            'section' => '財務會計',
+            'active' => 'payment-receipts',
+            'receipt' => $source,
+            'payees' => $this->activePayees(),
+            'action' => '/payment-receipts',
+            'duplicateFromNo' => $sourceNo,
+        ]);
+    }
+
     public function store(): void
     {
         $this->requirePermission('payment_receipts.manage');

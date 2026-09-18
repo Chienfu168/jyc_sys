@@ -89,6 +89,32 @@ final class LeaveRequestController extends Controller
         ]);
     }
 
+    /**
+     * 以既有請假申請為範本開新表單並帶入原資料（起訖日期預設今天，供「同樣事由、僅日期不同」快速複製再編輯）。
+     * 不建立新資料，僅預填;送出後才由 store() 建立新申請。
+     */
+    public function duplicate(string $id): void
+    {
+        $this->requirePermission('leave_requests.manage');
+        $source = $this->findRequest((int) $id);
+
+        $source['start_date'] = date('Y-m-d');
+        $source['end_date'] = date('Y-m-d');
+        $source['status'] = 'submitted';
+        unset($source['id']);
+
+        $this->render('leave-requests.create', [
+            'title' => '複製請假申請',
+            'section' => '業務與人事',
+            'active' => 'leave-requests',
+            'request' => $source,
+            'employees' => $this->employees(),
+            'leaveTypes' => $this->leaveTypes(),
+            'action' => '/leave-requests',
+            'duplicateFromName' => (string) ($source['employee_name'] ?? ''),
+        ]);
+    }
+
     public function store(): void
     {
         $this->requirePermission('leave_requests.manage');
