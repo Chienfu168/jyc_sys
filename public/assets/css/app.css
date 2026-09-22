@@ -923,6 +923,30 @@ textarea:focus {
     align-items: flex-end;
 }
 
+/* 經費項目底部「合計自動加總」資訊列。 */
+.budget-lines-totals {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px 18px;
+    margin: 12px 0 4px;
+    padding: 10px 14px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface, #f6f8f7);
+    font-size: 14px;
+}
+.budget-lines-totals strong {
+    font-variant-numeric: tabular-nums;
+}
+/* 自動加總的小計／合計列金額欄(唯讀)以淡底標示。 */
+.budget-line input.is-autosum {
+    background: #eef3f1;
+    color: #333;
+    cursor: not-allowed;
+}
+
 .flexible-budget-lines {
     gap: 16px;
 }
