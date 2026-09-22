@@ -44,18 +44,6 @@
     <input data-budget-field="item_name" type="text" list="annual-budget-common-items" name="items[<?= e((string) $index) ?>][item_name]" value="<?= e((string) ($item['item_name'] ?? '')) ?>">
 </label>
 <label>
-    <span>會計科目</span>
-    <?php $selectedAccountId = (int) ($item['account_id'] ?? 0); ?>
-    <select name="items[<?= e((string) $index) ?>][account_id]">
-        <option value="">未對應</option>
-        <?php foreach (($accounts ?? []) as $account): ?>
-            <option value="<?= e((string) $account['id']) ?>" <?= $selectedAccountId === (int) $account['id'] ? 'selected' : '' ?>>
-                <?= e($account['code'] . ' ' . $account['name']) ?>
-            </option>
-        <?php endforeach; ?>
-    </select>
-</label>
-<label>
     <span>本年度預算</span>
     <input data-budget-field="amount" type="number" step="1" min="0" name="items[<?= e((string) $index) ?>][amount]" value="<?= e((string) ($item['amount'] ?? '')) ?>">
 </label>

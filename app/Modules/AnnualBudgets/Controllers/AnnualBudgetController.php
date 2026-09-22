@@ -68,7 +68,6 @@ final class AnnualBudgetController extends Controller
                 'board_meeting_no' => '',
             ],
             'items' => $useTemplate ? $this->budgetTemplate115() : $this->defaultItems(),
-            'accounts' => $this->budgetAccounts(),
             'govHierarchy' => $this->govHierarchy(),
             'budgetTemplate' => $this->budgetTemplate115(),
             'templateApplied' => $useTemplate,
@@ -100,7 +99,6 @@ final class AnnualBudgetController extends Controller
             'active' => 'annual-budgets',
             'budget' => $source,
             'items' => $items,
-            'accounts' => $this->budgetAccounts(),
             'govHierarchy' => $this->govHierarchy(),
             'budgetTemplate' => $this->budgetTemplate115(),
             'duplicateFromYear' => $sourceYear,
@@ -178,27 +176,6 @@ final class AnnualBudgetController extends Controller
         ]);
     }
 
-    public function execution(string $id): void
-    {
-        $this->requirePermission('annual_budgets.view');
-        $budget = $this->findBudget((int) $id);
-        $start = (string) ($budget['period_start'] ?: $budget['fiscal_year'] . '-01-01');
-        $end = (string) ($budget['period_end'] ?: $budget['fiscal_year'] . '-12-31');
-        $items = $this->executionItems((int) $id, $start, $end);
-
-        $this->render('annual-budgets.execution', [
-            'title' => '預算執行報表',
-            'section' => '主管機關核備',
-            'active' => 'annual-budgets',
-            'budget' => $budget,
-            'startDate' => $start,
-            'endDate' => $end,
-            'items' => $items,
-            'totals' => $this->executionTotals($items),
-            'profile' => foundation_profile(),
-        ]);
-    }
-
     public function edit(string $id): void
     {
         $this->requirePermission('annual_budgets.manage');
@@ -215,7 +192,6 @@ final class AnnualBudgetController extends Controller
             'active' => 'annual-budgets',
             'budget' => $budget,
             'items' => $this->items((int) $id),
-            'accounts' => $this->budgetAccounts(),
             'govHierarchy' => $this->govHierarchy(),
             'budgetTemplate' => $this->budgetTemplate115(),
             'action' => '/annual-budgets/' . $id,
@@ -398,8 +374,8 @@ final class AnnualBudgetController extends Controller
 
         $stmt = Database::pdo()->prepare(
             'INSERT INTO annual_budget_items
-             (annual_budget_id, item_type, account_id, gov_level1, gov_level2, gov_level3, gov_level4, gov_level5, category, item_name, description, unit, quantity, unit_price, amount, previous_amount, comparison_note, is_subtotal, funding_source, sort_order, notes, created_at, updated_at)
-             VALUES (:annual_budget_id, :item_type, :account_id, :gov_level1, :gov_level2, :gov_level3, :gov_level4, :gov_level5, :category, :item_name, :description, :unit, :quantity, :unit_price, :amount, :previous_amount, :comparison_note, :is_subtotal, :funding_source, :sort_order, :notes, :created_at, :updated_at)'
+             (annual_budget_id, item_type, gov_level1, gov_level2, gov_level3, gov_level4, gov_level5, category, item_name, description, unit, quantity, unit_price, amount, previous_amount, comparison_note, is_subtotal, funding_source, sort_order, notes, created_at, updated_at)
+             VALUES (:annual_budget_id, :item_type, :gov_level1, :gov_level2, :gov_level3, :gov_level4, :gov_level5, :category, :item_name, :description, :unit, :quantity, :unit_price, :amount, :previous_amount, :comparison_note, :is_subtotal, :funding_source, :sort_order, :notes, :created_at, :updated_at)'
         );
 
         $sort = 1;
@@ -434,7 +410,6 @@ final class AnnualBudgetController extends Controller
             $stmt->execute([
                 'annual_budget_id' => $budgetId,
                 'item_type' => ($item['item_type'] ?? '') === 'expense' ? 'expense' : 'income',
-                'account_id' => $this->nullablePositiveInt($item['account_id'] ?? null),
                 'gov_level1' => $this->shortText($item['gov_level1'] ?? ''),
                 'gov_level2' => $this->shortText($item['gov_level2'] ?? ''),
                 'gov_level3' => $this->shortText($item['gov_level3'] ?? ''),
@@ -484,82 +459,14 @@ final class AnnualBudgetController extends Controller
     private function items(int $budgetId): array
     {
         $stmt = Database::pdo()->prepare(
-            'SELECT annual_budget_items.*,
-                    accounting_accounts.code AS account_code,
-                    accounting_accounts.name AS account_name
+            'SELECT annual_budget_items.*
              FROM annual_budget_items
-             LEFT JOIN accounting_accounts ON accounting_accounts.id = annual_budget_items.account_id
              WHERE annual_budget_id = :annual_budget_id
              ORDER BY annual_budget_items.sort_order, annual_budget_items.id'
         );
         $stmt->execute(['annual_budget_id' => $budgetId]);
 
         return $stmt->fetchAll();
-    }
-
-    private function executionItems(int $budgetId, string $start, string $end): array
-    {
-        $stmt = Database::pdo()->prepare(
-            'SELECT annual_budget_items.*,
-                    accounting_accounts.code AS account_code,
-                    accounting_accounts.name AS account_name,
-                    accounting_accounts.normal_balance,
-                    COALESCE(actuals.debit_total, 0) AS debit_total,
-                    COALESCE(actuals.credit_total, 0) AS credit_total
-             FROM annual_budget_items
-             LEFT JOIN accounting_accounts ON accounting_accounts.id = annual_budget_items.account_id
-             LEFT JOIN (
-                SELECT accounting_voucher_lines.account_id,
-                       SUM(accounting_voucher_lines.debit) AS debit_total,
-                       SUM(accounting_voucher_lines.credit) AS credit_total
-                FROM accounting_voucher_lines
-                INNER JOIN accounting_vouchers ON accounting_vouchers.id = accounting_voucher_lines.voucher_id
-                WHERE accounting_vouchers.status = "posted"
-                  AND accounting_vouchers.voucher_date BETWEEN :start_date AND :end_date
-                GROUP BY accounting_voucher_lines.account_id
-             ) AS actuals ON actuals.account_id = annual_budget_items.account_id
-             WHERE annual_budget_items.annual_budget_id = :annual_budget_id
-             ORDER BY annual_budget_items.sort_order, annual_budget_items.id'
-        );
-        $stmt->execute([
-            'start_date' => $start,
-            'end_date' => $end,
-            'annual_budget_id' => $budgetId,
-        ]);
-
-        $items = $stmt->fetchAll();
-        foreach ($items as &$item) {
-            $actual = 0.0;
-            if (!empty($item['account_id'])) {
-                $actual = $item['normal_balance'] === 'credit'
-                    ? (float) $item['credit_total'] - (float) $item['debit_total']
-                    : (float) $item['debit_total'] - (float) $item['credit_total'];
-            }
-
-            $budget = (float) $item['amount'];
-            $item['actual_amount'] = max(0, $actual);
-            $item['remaining_amount'] = $budget - (float) $item['actual_amount'];
-            $item['execution_rate'] = $budget > 0 ? round(((float) $item['actual_amount'] / $budget) * 100, 2) : 0;
-        }
-        unset($item);
-
-        return $items;
-    }
-
-    private function executionTotals(array $items): array
-    {
-        return BudgetSummary::executionTotals($items);
-    }
-
-    private function budgetAccounts(): array
-    {
-        return Database::pdo()->query(
-            'SELECT id, code, name, account_type
-             FROM accounting_accounts
-             WHERE status = "active"
-               AND account_type IN ("income", "expense")
-             ORDER BY account_type, sort_order, code'
-        )->fetchAll();
     }
 
     /**
