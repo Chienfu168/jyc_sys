@@ -89,7 +89,7 @@ $commonCategories = ['收益', '業務費', '人事費用', '辦公行政費', '
     <div class="panel-header budget-editor-header">
         <div>
             <h2>經費項目</h2>
-            <p class="muted-text">可按「套用 115 年度預算範本」一鍵帶入主管機關格式的完整款／項／目／次／節與金額,再依實際調整。<strong>勾選「小計 / 合計列」</strong>的列即為小計／合計:其<strong>本年度與上年度</strong>金額都會自動加總下方(或上方)對應明細、欄位轉為唯讀並以底色標示,且不計入下方的收益／費損合計(避免重複計算);<strong>未勾選</strong>的列則為一般明細,本年度與上年度金額皆可自由編輯並計入合計。修改明細金額時,其所屬各層小計與合計會即時連動更新。</p>
+            <p class="muted-text">可按「套用 115 年度預算範本」一鍵帶入主管機關格式的完整款／項／目／次／節與金額,再依實際調整。<strong>勾選「小計 / 合計列」</strong>的列即為小計／合計:其<strong>本年度與上年度</strong>金額都會自動加總對應明細、欄位轉為唯讀並以底色標示,且不計入下方的收益／費損合計。若上年度有本年度未編列的項目,可於該小計列另勾<strong>「上年度自行輸入」</strong>,上年度即改為可自行輸入、不受自動加總覆寫(本年度仍自動加總)。<strong>未勾選</strong>的列則為一般明細,金額皆可自由編輯並計入合計。修改明細金額時,其所屬各層小計與合計會即時連動更新。</p>
         </div>
         <div class="actions">
             <?php if (!empty($budgetTemplate)): ?>
@@ -253,6 +253,10 @@ function budgetLineIsSubtotal(line) {
     const c = line.querySelector('[data-budget-field="is_subtotal"]');
     return !!(c && c.checked);
 }
+function budgetLinePrevManual(line) {
+    const c = line.querySelector('[data-budget-field="previous_manual"]');
+    return !!(c && c.checked);
+}
 function budgetLineLevel(line) {
     for (let l = 5; l >= 1; l--) {
         const inp = line.querySelector('.gov-level-input[data-gov-level="' + l + '"]');
@@ -260,16 +264,22 @@ function budgetLineLevel(line) {
     }
     return 0;
 }
-// 勾選「小計 / 合計列」的列:本年度與上年度金額皆自動加總,設為唯讀並標示;
+// 勾選「小計 / 合計列」的列:本年度自動加總並唯讀;上年度預設自動加總並唯讀,
+// 但若另勾「上年度自行輸入」,則上年度轉為可編輯(彈性自行輸入),不被自動覆寫。
 // 未勾選之明細列本年度、上年度皆可自由編輯。同時於整列切換 is-subtotal-row 樣式。
-function setSubtotalReadonly(line, isSubtotal) {
+function setSubtotalReadonly(line, isSubtotal, prevManual) {
     const io = budgetLineAmountInputs(line);
-    [io.amount, io.previous].forEach((inp) => {
-        if (!inp) { return; }
-        inp.readOnly = isSubtotal;
-        inp.classList.toggle('is-autosum', isSubtotal);
-    });
+    if (io.amount) {
+        io.amount.readOnly = isSubtotal;
+        io.amount.classList.toggle('is-autosum', isSubtotal);
+    }
+    if (io.previous) {
+        const prevAuto = isSubtotal && !prevManual; // 小計列且未勾自行輸入 → 上年度自動加總、唯讀。
+        io.previous.readOnly = prevAuto;
+        io.previous.classList.toggle('is-autosum', prevAuto);
+    }
     line.classList.toggle('is-subtotal-row', isSubtotal);
+    line.classList.toggle('prev-manual-on', isSubtotal && prevManual);
 }
 
 // 重新計算所有「小計 / 合計列」的本年度金額(規則與後端 BudgetSummary::applySubtotals 一致):
@@ -285,13 +295,14 @@ function recalcBudgetTotals() {
         type: budgetLineType(line),
         level: budgetLineLevel(line),
         sub: budgetLineIsSubtotal(line),
+        prevManual: budgetLinePrevManual(line),
         io: budgetLineAmountInputs(line),
     }));
     const n = info.length;
     const val = (inp) => parseFloat(inp && inp.value) || 0;
 
     info.forEach((row, i) => {
-        setSubtotalReadonly(row.line, row.sub);
+        setSubtotalReadonly(row.line, row.sub, row.prevManual);
         if (!row.sub) { return; } // 只有勾選的小計 / 合計列才自動加總。
         let a = 0, p = 0;
         if (i + 1 < n && info[i + 1].level > row.level) {
@@ -310,7 +321,8 @@ function recalcBudgetTotals() {
             }
         }
         if (row.io.amount) { row.io.amount.value = a ? String(a) : '0'; }
-        if (row.io.previous) { row.io.previous.value = p ? String(p) : '0'; }
+        // 上年度:自行輸入者保留使用者輸入;否則自動加總。
+        if (row.io.previous && !row.prevManual) { row.io.previous.value = p ? String(p) : '0'; }
     });
 
     let inc = 0, exp = 0;
@@ -332,6 +344,11 @@ function bindBudgetLineEvents(line) {
     const cb = line.querySelector('[data-budget-field="is_subtotal"]');
     if (cb) {
         cb.addEventListener('change', recalcBudgetTotals);
+    }
+    const pm = line.querySelector('[data-budget-field="previous_manual"]');
+    if (pm) {
+        // 切換「上年度自行輸入」:開→保留現值供編輯;關→立即恢復自動加總。
+        pm.addEventListener('change', recalcBudgetTotals);
     }
     const io = budgetLineAmountInputs(line);
     [io.amount, io.previous].forEach((inp) => { if (inp) { inp.addEventListener('input', recalcBudgetTotals); } });
@@ -400,6 +417,8 @@ function applyBudgetTemplate() {
         }
         const sub = line.querySelector('[data-budget-field="is_subtotal"]');
         if (sub) { sub.checked = (r.is_subtotal === true || r.is_subtotal === 1 || r.is_subtotal === '1'); }
+        const pm = line.querySelector('[data-budget-field="previous_manual"]');
+        if (pm) { pm.checked = (r.previous_is_manual === true || r.previous_is_manual === 1 || r.previous_is_manual === '1'); }
         container.appendChild(line);
         repopulateGov(line); // 依帶入的層級值刷新下層建議清單
     });

@@ -60,7 +60,9 @@ final class BudgetSummary
      *    略過子樹中其他已勾選之小計列以免重複。
      *  - 否則(無較深子項之獨立小計列,如「業務費合計」):
      *    金額 = 其上方直到上一個已勾選小計列前、同收益／費損之明細加總。
-     * 本年度(amount)與上年度(previous_amount)皆依上述規則加總,使各層小計一致。
+     * 本年度(amount)一律依上述規則加總。上年度(previous_amount)預設同樣加總,
+     * 但若該小計列標記 previous_is_manual(上年度自行輸入),則保留使用者輸入之上年度數
+     * 不覆寫 —— 因本年度可能未編列而上年度有的項目,允許上年度小計彈性自行輸入。
      *
      * @param array<int, array<string, mixed>> $items
      * @return array<int, array<string, mixed>>
@@ -125,7 +127,10 @@ final class BudgetSummary
             }
 
             $items[$i]['amount'] = round($sumA, 2);
-            $items[$i]['previous_amount'] = round($sumB, 2);
+            // 上年度自行輸入者保留使用者輸入;否則同步加總。
+            if (empty($items[$i]['previous_is_manual'])) {
+                $items[$i]['previous_amount'] = round($sumB, 2);
+            }
         }
 
         return $items;

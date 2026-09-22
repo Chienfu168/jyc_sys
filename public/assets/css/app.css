@@ -920,6 +920,11 @@ textarea:focus {
     font-weight: 600;
 }
 
+/* 「上年度自行輸入」僅對小計 / 合計列有意義,一般明細列隱藏。 */
+.budget-line:not(.is-subtotal-row) .prev-manual-label {
+    display: none;
+}
+
 .span-wide {
     min-width: 0;
 }
