@@ -10,7 +10,7 @@ ob_start();
     <div class="stat-card"><span>上年度比較</span><strong><?= e(number_format((float) $statement['balance']['variance'], 0)) ?></strong></div>
 </section>
 
-<section class="panel budget-statement">
+<section class="panel budget-statement print-scale-root">
     <div class="panel-header no-print">
         <div>
             <p class="eyebrow">主管機關格式</p>
@@ -19,7 +19,7 @@ ob_start();
         </div>
         <div class="actions">
             <a class="btn" href="/annual-budgets/<?= e((string) $budget['id']) ?>">返回預算</a>
-            <button class="btn primary" type="button" onclick="window.print()">列印 / 另存 PDF</button>
+            <?php require base_path('resources/views/shared/print-options.php'); ?>
         </div>
     </div>
 

@@ -124,4 +124,39 @@ final class BudgetSummaryTest extends TestCase
     {
         $this->assertSame(0.0, BudgetSummary::variancePercent(5000, 0));
     }
+
+    public function test_apply_subtotals_sums_hierarchical_descendants(): void
+    {
+        // 聚合列由階層(下一列較深)判定,與 is_subtotal 無關;
+        // 目(level3)含兩個次(level4),各次含其節(level5)葉節點。
+        $items = [
+            ['item_type' => 'expense', 'gov_level3' => '1', 'amount' => 0, 'previous_amount' => 0],       // 0 業務活動費用(目,聚合)
+            ['item_type' => 'expense', 'gov_level4' => '1', 'is_subtotal' => 1, 'amount' => 999],          // 1 深耕(次,聚合)
+            ['item_type' => 'expense', 'gov_level5' => '1', 'is_subtotal' => 1, 'amount' => 100, 'previous_amount' => 10],
+            ['item_type' => 'expense', 'gov_level5' => '2', 'is_subtotal' => 1, 'amount' => 200, 'previous_amount' => 20],
+            ['item_type' => 'expense', 'gov_level4' => '2', 'is_subtotal' => 1, 'amount' => 0],             // 4 玩聚(次,聚合)
+            ['item_type' => 'expense', 'gov_level5' => '1', 'is_subtotal' => 1, 'amount' => 300, 'previous_amount' => 30],
+        ];
+
+        $out = BudgetSummary::applySubtotals($items);
+
+        $this->assertSame(300.0, $out[1]['amount']);   // 深耕 = 100 + 200
+        $this->assertSame(30.0, $out[1]['previous_amount']);
+        $this->assertSame(300.0, $out[4]['amount']);   // 玩聚 = 300
+        $this->assertSame(600.0, $out[0]['amount']);   // 業務活動費用 = 100+200+300(只算葉節點)
+        $this->assertSame(60.0, $out[0]['previous_amount']);
+    }
+
+    public function test_apply_subtotals_non_hierarchical_sums_block_above(): void
+    {
+        $items = [
+            ['item_type' => 'expense', 'amount' => 300],
+            ['item_type' => 'expense', 'amount' => 150],
+            ['item_type' => 'expense', 'is_subtotal' => 1, 'amount' => 0],
+        ];
+
+        $out = BudgetSummary::applySubtotals($items);
+
+        $this->assertSame(450.0, $out[2]['amount']);
+    }
 }

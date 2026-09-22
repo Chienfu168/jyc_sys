@@ -89,7 +89,7 @@ $commonCategories = ['收益', '業務費', '人事費用', '辦公行政費', '
     <div class="panel-header budget-editor-header">
         <div>
             <h2>經費項目</h2>
-            <p class="muted-text">可按「套用 115 年度預算範本」一鍵帶入主管機關格式的完整款／項／目／次／節與金額,再依實際調整。項目可自由新增、刪除、複製與排序。按「新增小計」或勾選某列的「小計 / 合計列」,該列金額會自動加總其上方(同收益／費損、至上一小計止)之明細,並排除於下方的收益／費損合計。</p>
+            <p class="muted-text">可按「套用 115 年度預算範本」一鍵帶入主管機關格式的完整款／項／目／次／節與金額,再依實際調整。凡下方有較深層級明細的項目(如「業務活動費用」「深耕教育計畫」「保險費」)會自動加總其明細,金額欄唯讀並即時更新;修改最底層明細,其上層小計與合計會自動更新。勾選「小計 / 合計列」代表該列為明細列、不計入下方的收益／費損合計(避免與其上層科目重複計算)。</p>
         </div>
         <div class="actions">
             <?php if (!empty($budgetTemplate)): ?>
@@ -231,7 +231,6 @@ function applyBudgetLineKind(line, kind) {
         category.value = '';
         itemName.value = '合計';
         subtotal.checked = true;
-        line.dataset.autosum = '1'; // 新增的小計／合計列預設自動加總
     } else {
         type.value = 'expense';
         category.value = '';
@@ -254,6 +253,13 @@ function budgetLineIsSubtotal(line) {
     const c = line.querySelector('[data-budget-field="is_subtotal"]');
     return !!(c && c.checked);
 }
+function budgetLineLevel(line) {
+    for (let l = 5; l >= 1; l--) {
+        const inp = line.querySelector('.gov-level-input[data-gov-level="' + l + '"]');
+        if (inp && inp.value.trim() !== '') { return l; }
+    }
+    return 0;
+}
 function setSubtotalReadonly(line, readonly) {
     const io = budgetLineAmountInputs(line);
     [io.amount, io.previous].forEach((inp) => {
@@ -263,36 +269,55 @@ function setSubtotalReadonly(line, readonly) {
     });
 }
 
-// 重新計算:自動加總的小計列 = 其上方(同收益／費損類別、自上一小計列後)之明細加總;
-// 並更新底部「本年度合計」footer(排除所有小計／合計列)。
+// 重新計算所有聚合列(規則與後端 BudgetSummary::applySubtotals 一致):
+//  - 聚合列(下一列款/項/目/次/節層級較深者):金額 = 其子樹葉節點之和;金額欄唯讀。
+//  - 無階層之小計列(is_subtotal 且未填階層):金額 = 其上方明細之和;金額欄唯讀。
+//  - 其餘為葉節點,維持可編輯。
+// 底部「本年度合計」footer 排除所有 is_subtotal 列。
 function recalcBudgetTotals() {
     const lines = Array.prototype.slice.call(document.querySelectorAll('#budget-lines .budget-line'));
-    const running = { income: { a: 0, p: 0 }, expense: { a: 0, p: 0 } };
-    lines.forEach((line) => {
-        const type = budgetLineType(line);
-        const io = budgetLineAmountInputs(line);
-        if (budgetLineIsSubtotal(line)) {
-            if (line.dataset.autosum === '1') {
-                if (io.amount) { io.amount.value = running[type].a ? running[type].a : '0'; }
-                if (io.previous) { io.previous.value = running[type].p ? running[type].p : '0'; }
+    const info = lines.map((line) => ({
+        line: line,
+        type: budgetLineType(line),
+        level: budgetLineLevel(line),
+        sub: budgetLineIsSubtotal(line),
+        io: budgetLineAmountInputs(line),
+    }));
+    const n = info.length;
+    const val = (inp) => parseFloat(inp && inp.value) || 0;
+    const isAgg = (i) => i + 1 < n && info[i + 1].level > info[i].level;
+
+    info.forEach((row, i) => {
+        let auto = false, a = 0, p = 0;
+        if (isAgg(i)) {
+            auto = true;
+            for (let j = i + 1; j < n; j++) {
+                if (info[j].level <= row.level) { break; }
+                if (info[j].type !== row.type || isAgg(j)) { continue; }
+                a += val(info[j].io.amount); p += val(info[j].io.previous);
             }
-            running[type] = { a: 0, p: 0 }; // 小計後,該類別重新起算
-        } else {
-            running[type].a += parseFloat(io.amount && io.amount.value) || 0;
-            running[type].p += parseFloat(io.previous && io.previous.value) || 0;
+        } else if (row.sub && row.level === 0) {
+            auto = true;
+            for (let j = i - 1; j >= 0; j--) {
+                if (info[j].sub) { break; }
+                if (info[j].type !== row.type) { continue; }
+                a += val(info[j].io.amount); p += val(info[j].io.previous);
+            }
+        }
+        setSubtotalReadonly(row.line, auto);
+        if (auto) {
+            if (row.io.amount) { row.io.amount.value = a ? a : '0'; }
+            if (row.io.previous) { row.io.previous.value = p ? p : '0'; }
         }
     });
 
-    let inc = 0, exp = 0, incP = 0, expP = 0;
-    lines.forEach((line) => {
-        if (budgetLineIsSubtotal(line)) { return; } // 合計排除小計列
-        const type = budgetLineType(line);
-        const io = budgetLineAmountInputs(line);
-        const a = parseFloat(io.amount && io.amount.value) || 0;
-        const p = parseFloat(io.previous && io.previous.value) || 0;
-        if (type === 'income') { inc += a; incP += p; } else { exp += a; expP += p; }
+    let inc = 0, exp = 0;
+    info.forEach((row) => {
+        if (row.sub) { return; } // 合計排除小計列(is_subtotal)
+        const a = val(row.io.amount);
+        if (row.type === 'income') { inc += a; } else { exp += a; }
     });
-    const fmt = (n) => n.toLocaleString('en-US');
+    const fmt = (num) => num.toLocaleString('en-US');
     const set = (id, v) => { const el = document.getElementById(id); if (el) { el.textContent = v; } };
     set('budgetTotalIncome', fmt(inc));
     set('budgetTotalExpense', fmt(exp));
@@ -304,18 +329,14 @@ function bindBudgetLineEvents(line) {
 
     const cb = line.querySelector('[data-budget-field="is_subtotal"]');
     if (cb) {
-        // 載入時即為自動加總者(新增的小計列)套用唯讀;範本帶入的小計列維持可編輯。
-        if (cb.checked && line.dataset.autosum === '1') { setSubtotalReadonly(line, true); }
-        cb.addEventListener('change', () => {
-            if (cb.checked) { line.dataset.autosum = '1'; setSubtotalReadonly(line, true); }
-            else { line.dataset.autosum = ''; setSubtotalReadonly(line, false); }
-            recalcBudgetTotals();
-        });
+        cb.addEventListener('change', recalcBudgetTotals);
     }
     const io = budgetLineAmountInputs(line);
     [io.amount, io.previous].forEach((inp) => { if (inp) { inp.addEventListener('input', recalcBudgetTotals); } });
     const typeSel = line.querySelector('[data-budget-field="item_type"]');
     if (typeSel) { typeSel.addEventListener('change', recalcBudgetTotals); }
+    // 款/項/目/次/節層級會影響小計範圍,變動時重算。
+    line.querySelectorAll('.gov-level-input').forEach((inp) => { inp.addEventListener('change', recalcBudgetTotals); });
 }
 
 function removeBudgetLine(button) {

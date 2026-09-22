@@ -947,6 +947,28 @@ textarea:focus {
     cursor: not-allowed;
 }
 
+/* 列印選項工具列(紙張／方向／縮放)。 */
+.print-options {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 8px 12px;
+}
+.print-options label {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 12px;
+    color: var(--muted);
+}
+.print-options select {
+    padding: 6px 8px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: #fff;
+    font-size: 14px;
+}
+
 .flexible-budget-lines {
     gap: 16px;
 }

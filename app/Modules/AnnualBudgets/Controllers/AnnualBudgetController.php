@@ -372,6 +372,9 @@ final class AnnualBudgetController extends Controller
         Database::pdo()->prepare('DELETE FROM annual_budget_items WHERE annual_budget_id = :annual_budget_id')
             ->execute(['annual_budget_id' => $budgetId]);
 
+        // 小計／合計列一律以其對應明細自動加總,避免手動維護造成誤差(即使前端未計算亦以此為準)。
+        $items = BudgetSummary::applySubtotals(array_values($items));
+
         $stmt = Database::pdo()->prepare(
             'INSERT INTO annual_budget_items
              (annual_budget_id, item_type, gov_level1, gov_level2, gov_level3, gov_level4, gov_level5, category, item_name, description, unit, quantity, unit_price, amount, previous_amount, comparison_note, is_subtotal, funding_source, sort_order, notes, created_at, updated_at)
