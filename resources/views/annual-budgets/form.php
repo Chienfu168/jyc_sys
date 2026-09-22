@@ -89,7 +89,7 @@ $commonCategories = ['收益', '業務費', '人事費用', '辦公行政費', '
     <div class="panel-header budget-editor-header">
         <div>
             <h2>經費項目</h2>
-            <p class="muted-text">可按「套用 115 年度預算範本」一鍵帶入主管機關格式的完整款／項／目／次／節與金額,再依實際調整。凡下方有較深層級明細的項目(如「業務活動費用」「深耕教育計畫」「保險費」)會自動加總其明細,金額欄唯讀並即時更新;修改最底層明細,其上層小計與合計會自動更新。勾選「小計 / 合計列」代表該列為明細列、不計入下方的收益／費損合計(避免與其上層科目重複計算)。</p>
+            <p class="muted-text">可按「套用 115 年度預算範本」一鍵帶入主管機關格式的完整款／項／目／次／節與金額,再依實際調整。<strong>勾選「小計 / 合計列」</strong>的列即為小計／合計:其<strong>本年度</strong>金額會自動加總下方(或上方)對應明細、欄位轉為唯讀並以底色標示,且不計入下方的收益／費損合計(避免重複計算);<strong>未勾選</strong>的列則為一般明細,金額可自由編輯並計入合計。<strong>上年度預算</strong>不論是否勾選皆可自行輸入。修改明細金額時,其所屬小計與合計會即時更新。</p>
         </div>
         <div class="actions">
             <?php if (!empty($budgetTemplate)): ?>
@@ -260,20 +260,28 @@ function budgetLineLevel(line) {
     }
     return 0;
 }
-function setSubtotalReadonly(line, readonly) {
+// 勾選「小計 / 合計列」的列:本年度金額自動加總,設為唯讀並標示;上年度金額一律保持可編輯。
+// 同時於整列切換 is-subtotal-row 樣式,讓有勾選／未勾選一目了然。
+function setSubtotalReadonly(line, isSubtotal) {
     const io = budgetLineAmountInputs(line);
-    [io.amount, io.previous].forEach((inp) => {
-        if (!inp) { return; }
-        inp.readOnly = readonly;
-        inp.classList.toggle('is-autosum', readonly);
-    });
+    if (io.amount) {
+        io.amount.readOnly = isSubtotal;
+        io.amount.classList.toggle('is-autosum', isSubtotal);
+    }
+    if (io.previous) {
+        // 上年度預算永遠可編輯。
+        io.previous.readOnly = false;
+        io.previous.classList.remove('is-autosum');
+    }
+    line.classList.toggle('is-subtotal-row', isSubtotal);
 }
 
-// 重新計算所有聚合列(規則與後端 BudgetSummary::applySubtotals 一致):
-//  - 聚合列(下一列款/項/目/次/節層級較深者):金額 = 其子樹葉節點之和;金額欄唯讀。
-//  - 無階層之小計列(is_subtotal 且未填階層):金額 = 其上方明細之和;金額欄唯讀。
-//  - 其餘為葉節點,維持可編輯。
-// 底部「本年度合計」footer 排除所有 is_subtotal 列。
+// 重新計算所有「小計 / 合計列」的本年度金額(規則與後端 BudgetSummary::applySubtotals 一致):
+//  - 僅「勾選」小計 / 合計列才自動加總,並將本年度金額欄設為唯讀;未勾選之列一律可編輯。
+//  - 勾選列若下一列層級較深(上層科目):本年度 = 其子樹內未勾選明細(葉節點)之和。
+//  - 勾選列若無較深子項(獨立小計列):本年度 = 其上方直到上一勾選列前之同類明細之和。
+//  - 上年度預算(previous)永遠可編輯,不自動加總、不覆寫。
+// 底部「本年度合計」footer 排除所有勾選之小計 / 合計列。
 function recalcBudgetTotals() {
     const lines = Array.prototype.slice.call(document.querySelectorAll('#budget-lines .budget-line'));
     const info = lines.map((line) => ({
@@ -285,35 +293,32 @@ function recalcBudgetTotals() {
     }));
     const n = info.length;
     const val = (inp) => parseFloat(inp && inp.value) || 0;
-    const isAgg = (i) => i + 1 < n && info[i + 1].level > info[i].level;
 
     info.forEach((row, i) => {
-        let auto = false, a = 0, p = 0;
-        if (isAgg(i)) {
-            auto = true;
+        setSubtotalReadonly(row.line, row.sub);
+        if (!row.sub) { return; } // 只有勾選的小計 / 合計列才自動加總本年度金額。
+        let a = 0;
+        if (i + 1 < n && info[i + 1].level > row.level) {
+            // 上層科目:加總其子樹內未勾選之葉節點。
             for (let j = i + 1; j < n; j++) {
                 if (info[j].level <= row.level) { break; }
-                if (info[j].type !== row.type || isAgg(j)) { continue; }
-                a += val(info[j].io.amount); p += val(info[j].io.previous);
+                if (info[j].type !== row.type || info[j].sub) { continue; }
+                a += val(info[j].io.amount);
             }
-        } else if (row.sub && row.level === 0) {
-            auto = true;
+        } else {
+            // 獨立小計列:加總其上方、上一勾選列之後之同類明細。
             for (let j = i - 1; j >= 0; j--) {
                 if (info[j].sub) { break; }
                 if (info[j].type !== row.type) { continue; }
-                a += val(info[j].io.amount); p += val(info[j].io.previous);
+                a += val(info[j].io.amount);
             }
         }
-        setSubtotalReadonly(row.line, auto);
-        if (auto) {
-            if (row.io.amount) { row.io.amount.value = a ? a : '0'; }
-            if (row.io.previous) { row.io.previous.value = p ? p : '0'; }
-        }
+        if (row.io.amount) { row.io.amount.value = a ? String(a) : '0'; }
     });
 
     let inc = 0, exp = 0;
     info.forEach((row) => {
-        if (row.sub) { return; } // 合計排除小計列(is_subtotal)
+        if (row.sub) { return; } // 合計排除勾選之小計 / 合計列。
         const a = val(row.io.amount);
         if (row.type === 'income') { inc += a; } else { exp += a; }
     });
@@ -342,6 +347,7 @@ function bindBudgetLineEvents(line) {
 function removeBudgetLine(button) {
     button.closest('.budget-line').remove();
     updateBudgetEmptyState();
+    recalcBudgetTotals();
 }
 
 function duplicateBudgetLine(button) {
