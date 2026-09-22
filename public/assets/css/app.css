@@ -1412,6 +1412,31 @@ textarea:focus {
     font-weight: 700;
 }
 
+/* 單行核章列:職稱：姓名,不畫用印框(經費預算表等主管機關格式)。 */
+.signature-inline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 40px;
+    margin-top: 34px;
+    align-items: baseline;
+}
+
+.signature-inline .signature-inline-item {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+}
+
+.signature-inline .signature-role {
+    font-weight: 700;
+}
+
+.signature-inline .signature-name {
+    display: inline-block;
+    min-width: 96px;
+    font-weight: 700;
+}
+
 .print-notes {
     line-height: 1.7;
 }

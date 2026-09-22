@@ -80,10 +80,12 @@ ob_start();
     // 依主管機關經費預算表格式:會計人員／執行長／董事長。
     $profile = $profile ?? foundation_profile();
     $signatureRoles = [
-        ['label' => '會計人員', 'name' => ''],
+        ['label' => '會計', 'name' => ''],
         ['label' => '執行長', 'name' => (string) ($profile['executive_director'] ?? '')],
         ['label' => '董事長', 'name' => (string) ($profile['representative'] ?? '')],
     ];
+    // 單行核章列(職稱：姓名),不畫用印框。
+    $signatureInline = true;
     require base_path('resources/views/shared/signatures.php');
     ?>
 </section>
