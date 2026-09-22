@@ -905,6 +905,21 @@ textarea:focus {
     grid-template-columns: 120px 180px minmax(260px, 1fr) 180px 140px 64px;
 }
 
+/* 勾選「小計 / 合計列」的列:以底色與左側色條標示,和一般明細列有明顯差異。 */
+.budget-line.is-subtotal-row {
+    background: #eef4fb;
+    border-color: #b9d3ef;
+    box-shadow: inset 3px 0 0 0 #3b73b9;
+}
+
+.budget-line.is-subtotal-row .budget-line-toolbar strong::after {
+    content: '（小計 / 合計）';
+    margin-left: 4px;
+    color: #2f6099;
+    font-size: 12px;
+    font-weight: 600;
+}
+
 .span-wide {
     min-width: 0;
 }
