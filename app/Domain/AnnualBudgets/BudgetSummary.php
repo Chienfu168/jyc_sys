@@ -27,6 +27,10 @@ final class BudgetSummary
         $previousExpense = 0.0;
 
         foreach ($items as $item) {
+            // 小計／合計列僅供顯示,其金額為其他明細之和,不再計入收益／費損合計(避免重複計算)。
+            if (!empty($item['is_subtotal'])) {
+                continue;
+            }
             if (($item['item_type'] ?? '') === 'income') {
                 $income += (float) ($item['amount'] ?? 0);
                 $previousIncome += (float) ($item['previous_amount'] ?? 0);

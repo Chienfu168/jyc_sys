@@ -38,6 +38,26 @@ final class BudgetSummaryTest extends TestCase
         $this->assertSame(0.0, $totals['previous_balance']);
     }
 
+    public function test_totals_exclude_subtotal_rows(): void
+    {
+        $items = [
+            ['item_type' => 'expense', 'amount' => 3000, 'previous_amount' => 2500],
+            ['item_type' => 'expense', 'amount' => 1000, 'previous_amount' => 900],
+            // 小計列:金額為上述明細之和,不應再計入合計。
+            ['item_type' => 'expense', 'amount' => 4000, 'previous_amount' => 3400, 'is_subtotal' => 1],
+            ['item_type' => 'income', 'amount' => 5000, 'previous_amount' => 4000],
+            ['item_type' => 'income', 'amount' => 5000, 'previous_amount' => 4000, 'is_subtotal' => true],
+        ];
+
+        $totals = BudgetSummary::totals($items);
+
+        $this->assertSame(5000.0, $totals['income']);
+        $this->assertSame(4000.0, $totals['expense']);
+        $this->assertSame(1000.0, $totals['balance']);
+        $this->assertSame(4000.0, $totals['previous_income']);
+        $this->assertSame(3400.0, $totals['previous_expense']);
+    }
+
     public function test_execution_totals_budget_actual_and_rates(): void
     {
         $items = [

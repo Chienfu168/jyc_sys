@@ -89,7 +89,7 @@ $commonCategories = ['收益', '業務費', '人事費用', '辦公行政費', '
     <div class="panel-header budget-editor-header">
         <div>
             <h2>經費項目</h2>
-            <p class="muted-text">可按「套用 115 年度預算範本」一鍵帶入主管機關格式的完整款／項／目／次／節與金額,再依實際調整。項目亦可自由新增、刪除、複製與排序；各層級皆為選填,可點選帶出下層或自行輸入。次／節等明細列如勾選「小計 / 合計列」則僅顯示、不計入加總(避免與其上層科目重複計算)。</p>
+            <p class="muted-text">可按「套用 115 年度預算範本」一鍵帶入主管機關格式的完整款／項／目／次／節與金額,再依實際調整。項目可自由新增、刪除、複製與排序。按「新增小計」或勾選某列的「小計 / 合計列」,該列金額會自動加總其上方(同收益／費損、至上一小計止)之明細,並排除於下方的收益／費損合計。</p>
         </div>
         <div class="actions">
             <?php if (!empty($budgetTemplate)): ?>
@@ -121,6 +121,11 @@ $commonCategories = ['收益', '業務費', '人事費用', '辦公行政費', '
     </div>
 
     <p class="empty-state <?= empty($items ?? []) ? '' : 'hidden' ?>" id="budget-empty-state">尚無經費項目，請先新增收益或費損項目。</p>
+
+    <div class="budget-lines-totals" id="budgetLinesTotals" aria-live="polite">
+        <span>本年度：收益合計 <strong id="budgetTotalIncome">0</strong> ／ 費損合計 <strong id="budgetTotalExpense">0</strong> ／ 賸餘(短絀) <strong id="budgetTotalBalance">0</strong></span>
+        <span class="muted-text">合計自動加總,已排除勾選「小計 / 合計列」之明細。</span>
+    </div>
 
     <div class="form-actions">
         <a class="btn" href="/annual-budgets">返回</a>
@@ -224,8 +229,9 @@ function applyBudgetLineKind(line, kind) {
     } else if (kind === 'subtotal') {
         type.value = 'expense';
         category.value = '';
-        itemName.value = '小計';
+        itemName.value = '合計';
         subtotal.checked = true;
+        line.dataset.autosum = '1'; // 新增的小計／合計列預設自動加總
     } else {
         type.value = 'expense';
         category.value = '';
@@ -233,8 +239,83 @@ function applyBudgetLineKind(line, kind) {
     }
 }
 
+// ── 小計／合計列自動加總 ───────────────────────────────────────────────
+function budgetLineType(line) {
+    const t = line.querySelector('[data-budget-field="item_type"]');
+    return (t && t.value === 'income') ? 'income' : 'expense';
+}
+function budgetLineAmountInputs(line) {
+    return {
+        amount: line.querySelector('[data-budget-field="amount"]'),
+        previous: line.querySelector('[name$="[previous_amount]"]'),
+    };
+}
+function budgetLineIsSubtotal(line) {
+    const c = line.querySelector('[data-budget-field="is_subtotal"]');
+    return !!(c && c.checked);
+}
+function setSubtotalReadonly(line, readonly) {
+    const io = budgetLineAmountInputs(line);
+    [io.amount, io.previous].forEach((inp) => {
+        if (!inp) { return; }
+        inp.readOnly = readonly;
+        inp.classList.toggle('is-autosum', readonly);
+    });
+}
+
+// 重新計算:自動加總的小計列 = 其上方(同收益／費損類別、自上一小計列後)之明細加總;
+// 並更新底部「本年度合計」footer(排除所有小計／合計列)。
+function recalcBudgetTotals() {
+    const lines = Array.prototype.slice.call(document.querySelectorAll('#budget-lines .budget-line'));
+    const running = { income: { a: 0, p: 0 }, expense: { a: 0, p: 0 } };
+    lines.forEach((line) => {
+        const type = budgetLineType(line);
+        const io = budgetLineAmountInputs(line);
+        if (budgetLineIsSubtotal(line)) {
+            if (line.dataset.autosum === '1') {
+                if (io.amount) { io.amount.value = running[type].a ? running[type].a : '0'; }
+                if (io.previous) { io.previous.value = running[type].p ? running[type].p : '0'; }
+            }
+            running[type] = { a: 0, p: 0 }; // 小計後,該類別重新起算
+        } else {
+            running[type].a += parseFloat(io.amount && io.amount.value) || 0;
+            running[type].p += parseFloat(io.previous && io.previous.value) || 0;
+        }
+    });
+
+    let inc = 0, exp = 0, incP = 0, expP = 0;
+    lines.forEach((line) => {
+        if (budgetLineIsSubtotal(line)) { return; } // 合計排除小計列
+        const type = budgetLineType(line);
+        const io = budgetLineAmountInputs(line);
+        const a = parseFloat(io.amount && io.amount.value) || 0;
+        const p = parseFloat(io.previous && io.previous.value) || 0;
+        if (type === 'income') { inc += a; incP += p; } else { exp += a; expP += p; }
+    });
+    const fmt = (n) => n.toLocaleString('en-US');
+    const set = (id, v) => { const el = document.getElementById(id); if (el) { el.textContent = v; } };
+    set('budgetTotalIncome', fmt(inc));
+    set('budgetTotalExpense', fmt(exp));
+    set('budgetTotalBalance', fmt(inc - exp));
+}
+
 function bindBudgetLineEvents(line) {
     wireGovLevels(line);
+
+    const cb = line.querySelector('[data-budget-field="is_subtotal"]');
+    if (cb) {
+        // 載入時即為自動加總者(新增的小計列)套用唯讀;範本帶入的小計列維持可編輯。
+        if (cb.checked && line.dataset.autosum === '1') { setSubtotalReadonly(line, true); }
+        cb.addEventListener('change', () => {
+            if (cb.checked) { line.dataset.autosum = '1'; setSubtotalReadonly(line, true); }
+            else { line.dataset.autosum = ''; setSubtotalReadonly(line, false); }
+            recalcBudgetTotals();
+        });
+    }
+    const io = budgetLineAmountInputs(line);
+    [io.amount, io.previous].forEach((inp) => { if (inp) { inp.addEventListener('input', recalcBudgetTotals); } });
+    const typeSel = line.querySelector('[data-budget-field="item_type"]');
+    if (typeSel) { typeSel.addEventListener('change', recalcBudgetTotals); }
 }
 
 function removeBudgetLine(button) {
@@ -262,11 +343,13 @@ function moveBudgetLine(button, direction) {
     if (direction > 0 && line.nextElementSibling) {
         line.parentElement.insertBefore(line.nextElementSibling, line);
     }
+    recalcBudgetTotals();
 }
 
 function updateBudgetEmptyState() {
     const empty = document.getElementById('budget-empty-state');
     empty.classList.toggle('hidden', document.querySelectorAll('#budget-lines .budget-line').length > 0);
+    recalcBudgetTotals();
 }
 
 // 一鍵套用 115 年度預算表範本:清空現有項目並帶入範本各列(款／項／目／次／節、金額、小計),再供編輯。
