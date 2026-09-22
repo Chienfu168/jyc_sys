@@ -89,9 +89,12 @@ $commonCategories = ['收益', '業務費', '人事費用', '辦公行政費', '
     <div class="panel-header budget-editor-header">
         <div>
             <h2>經費項目</h2>
-            <p class="muted-text">項目可自由新增、刪除、複製與排序；款、項、目、次、節皆為選填，可**點選帶出下層**（半自動階層，依收益／費損分開）或自行輸入，需要送主管機關格式時再填即可。</p>
+            <p class="muted-text">可按「套用 115 年度預算範本」一鍵帶入主管機關格式的完整款／項／目／次／節與金額,再依實際調整。項目亦可自由新增、刪除、複製與排序；各層級皆為選填,可點選帶出下層或自行輸入。次／節等明細列如勾選「小計 / 合計列」則僅顯示、不計入加總(避免與其上層科目重複計算)。</p>
         </div>
         <div class="actions">
+            <?php if (!empty($budgetTemplate)): ?>
+                <button class="btn small primary" type="button" onclick="applyBudgetTemplate()">套用 115 年度預算範本</button>
+            <?php endif; ?>
             <button class="btn small" type="button" onclick="addBudgetLine('income')">新增收益</button>
             <button class="btn small" type="button" onclick="addBudgetLine('expense')">新增費損</button>
             <button class="btn small" type="button" onclick="addBudgetLine('subtotal')">新增小計</button>
@@ -136,6 +139,8 @@ let budgetLineIndex = <?= count($items ?? []) ?>;
 
 // 款／項／目／次／節 階層樹(收益 income／費損 expense),供「半自動選擇」使用;使用者仍可自行輸入。
 const GOV_TREE = <?= json_encode($govHierarchy ?? ['income' => new stdClass(), 'expense' => new stdClass()], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+// 115 年度經費預算表範本(依主管機關格式;小計列 is_subtotal 僅顯示不計入加總)。
+const BUDGET_TEMPLATE = <?= json_encode($budgetTemplate ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
 let govListSeq = 0;
 
 // 依已選父層取得該層可用的下層節點;父層未選或非已知值則回傳 null(該層無建議、可自由輸入)。
@@ -262,6 +267,44 @@ function moveBudgetLine(button, direction) {
 function updateBudgetEmptyState() {
     const empty = document.getElementById('budget-empty-state');
     empty.classList.toggle('hidden', document.querySelectorAll('#budget-lines .budget-line').length > 0);
+}
+
+// 一鍵套用 115 年度預算表範本:清空現有項目並帶入範本各列(款／項／目／次／節、金額、小計),再供編輯。
+function applyBudgetTemplate() {
+    if (!Array.isArray(BUDGET_TEMPLATE) || BUDGET_TEMPLATE.length === 0) { return; }
+    const container = document.getElementById('budget-lines');
+    if (container.querySelector('.budget-line') &&
+        !confirm('套用範本將「取代」目前所有經費項目，確定要繼續嗎？')) {
+        return;
+    }
+    container.innerHTML = '';
+    BUDGET_TEMPLATE.forEach((r) => {
+        const kind = (r.item_type === 'income') ? 'income' : 'expense';
+        const line = createBudgetLine(kind); // 已 clone 並綁定事件
+        const setField = (sel, val) => { const el = line.querySelector(sel); if (el) { el.value = val; } };
+        setField('[data-budget-field="item_type"]', r.item_type || 'expense');
+        setField('[data-budget-field="category"]', r.category || '');
+        setField('[data-budget-field="item_name"]', r.item_name || '');
+        setField('[data-budget-field="amount"]', (r.amount === 0 || r.amount) ? r.amount : '');
+        setField('[name$="[previous_amount]"]', r.previous_amount ? r.previous_amount : '');
+        setField('[name$="[comparison_note]"]', r.comparison_note || '');
+        for (let i = 1; i <= 5; i++) {
+            setField('.gov-level-input[data-gov-level="' + i + '"]', r['gov_level' + i] || '');
+        }
+        const sub = line.querySelector('[data-budget-field="is_subtotal"]');
+        if (sub) { sub.checked = (r.is_subtotal === true || r.is_subtotal === 1 || r.is_subtotal === '1'); }
+        container.appendChild(line);
+        repopulateGov(line); // 依帶入的層級值刷新下層建議清單
+    });
+    updateBudgetEmptyState();
+
+    // 帶入年度與名稱(115 年度)。
+    const yearInput = document.querySelector('[name="fiscal_year"]');
+    if (yearInput) { yearInput.value = '115'; }
+    const titleInput = document.querySelector('[name="title"]');
+    if (titleInput && (!titleInput.value.trim() || /年度經費預算表$/.test(titleInput.value.trim()))) {
+        titleInput.value = '115年度經費預算表';
+    }
 }
 
 document.querySelectorAll('#budget-lines .budget-line').forEach(bindBudgetLineEvents);
