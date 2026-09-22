@@ -90,16 +90,20 @@ ob_start();
 <?php
 function render_statement_section(string $type, string $label, array $statement): void
 {
+    // 款：區段標題列(收益／費損),不含金額。
     echo '<tr class="statement-section"><td>' . ($type === 'income' ? '1' : '2') . '</td><td colspan="4"></td><td>' . e($label) . '</td><td colspan="5"></td></tr>';
-    foreach ($statement['groups'][$type] as $group) {
-        echo '<tr class="statement-group">';
-        echo '<td></td><td></td><td></td><td></td><td></td>';
-        echo '<td>' . e($group['name']) . '</td>';
-        echo '<td class="amount">' . e(statement_money($group['current'])) . '</td>';
-        echo '<td class="amount">' . e(statement_money($group['previous'])) . '</td>';
-        echo '<td class="amount">' . e(statement_money($group['variance'])) . '</td>';
-        echo '<td class="amount">' . e(statement_rate($group['variance_rate'])) . '</td>';
-        echo '<td></td></tr>';
+
+    $groups = $statement['groups'][$type];
+    // 單一分類且名稱等同區段(如收益)時,項目即為項次列,不再重複顯示分類標題與小計(其小計即為區段合計)。
+    $flat = count($groups) === 1 && trim((string) (($first = reset($groups)) ? ($first['name'] ?? '') : '')) === $label;
+
+    $xiang = 0;
+    foreach ($groups as $group) {
+        $xiang++;
+        if (!$flat) {
+            // 項：分類標題列(項次＋名稱),不含金額(依主管機關格式,小計置於分類最後)。
+            echo '<tr class="statement-group"><td></td><td>' . $xiang . '</td><td colspan="3"></td><td>' . e($group['name']) . '</td><td colspan="5"></td></tr>';
+        }
 
         foreach ($group['items'] as $item) {
             $class = !empty($item['is_subtotal']) ? ' class="statement-subtotal"' : '';
@@ -114,6 +118,11 @@ function render_statement_section(string $type, string $label, array $statement)
             echo '<td class="amount">' . e(statement_rate($item['variance_rate'])) . '</td>';
             echo '<td>' . e((string) (($item['comparison_note'] ?? '') ?: ($item['notes'] ?? ''))) . '</td>';
             echo '</tr>';
+        }
+
+        if (!$flat) {
+            // 分類小計列(如：業務費合計)置於該分類最後,符合主管機關格式。
+            render_statement_total($group['name'] . '合計', $group);
         }
     }
 }
