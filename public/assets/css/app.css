@@ -1476,6 +1476,15 @@ textarea:focus {
     margin: 0 0 6px;
 }
 
+/* 「單位：新臺幣元」依主管機關格式:縮小並靠右對齊,置於表格右上方。 */
+.statement-title .statement-unit {
+    display: block;
+    text-align: right;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+}
+
 .receipt-batch {
     display: grid;
     gap: 18px;
