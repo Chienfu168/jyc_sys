@@ -9,6 +9,7 @@ $router->get('/annual-budgets/{id}/execution', [AnnualBudgetController::class, '
 $router->get('/annual-budgets/{id}/statement', [AnnualBudgetController::class, 'statement']);
 $router->get('/annual-budgets/{id}', [AnnualBudgetController::class, 'show']);
 $router->get('/annual-budgets/{id}/edit', [AnnualBudgetController::class, 'edit']);
+$router->get('/annual-budgets/{id}/duplicate', [AnnualBudgetController::class, 'duplicate']);
 $router->post('/annual-budgets/{id}', [AnnualBudgetController::class, 'update']);
 $router->post('/annual-budgets/{id}/submit', [AnnualBudgetController::class, 'submit']);
 $router->post('/annual-budgets/{id}/approve', [AnnualBudgetController::class, 'approve']);

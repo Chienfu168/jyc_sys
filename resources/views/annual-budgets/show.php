@@ -26,6 +26,7 @@ ob_start();
             <a class="btn primary" href="/annual-budgets/<?= e((string) $budget['id']) ?>/statement">經費預算表</a>
             <a class="btn" href="/annual-budgets/<?= e((string) $budget['id']) ?>/execution">執行報表</a>
             <?php if ($canManage): ?>
+                <a class="btn" href="/annual-budgets/<?= e((string) $budget['id']) ?>/duplicate">複製</a>
                 <a class="btn" href="/annual-budgets/<?= e((string) $budget['id']) ?>/edit">編輯</a>
                 <?php if ($budget['status'] === 'draft'): ?>
                     <form method="post" action="/annual-budgets/<?= e((string) $budget['id']) ?>/submit">

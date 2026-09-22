@@ -9,7 +9,10 @@ ob_start();
             <p class="muted-text">建立非營利組織年度經費預算，支援主管機關格式報表、預算比較與執行追蹤。</p>
         </div>
         <?php if (\App\Core\Permission::can('annual_budgets.manage')): ?>
-            <a class="btn primary" href="/annual-budgets/create">新增預算</a>
+            <div class="actions">
+                <a class="btn" href="/annual-budgets/create?template=115">以 115 範本新增</a>
+                <a class="btn primary" href="/annual-budgets/create">新增預算</a>
+            </div>
         <?php endif; ?>
     </div>
     <div class="table-wrap">
@@ -41,6 +44,7 @@ ob_start();
                         <a class="btn small" href="/annual-budgets/<?= e((string) $budget['id']) ?>">檢視</a>
                         <a class="btn small" href="/annual-budgets/<?= e((string) $budget['id']) ?>/statement">經費表</a>
                         <?php if (\App\Core\Permission::can('annual_budgets.manage')): ?>
+                            <a class="btn small" href="/annual-budgets/<?= e((string) $budget['id']) ?>/duplicate">複製</a>
                             <a class="btn small" href="/annual-budgets/<?= e((string) $budget['id']) ?>/edit">編輯</a>
                         <?php endif; ?>
                     </td>
