@@ -51,16 +51,16 @@ final class BudgetSummary
     }
 
     /**
-     * 重新計算「小計／合計列」的本年度金額,使其自動加總對應明細,避免手動維護造成誤差。
+     * 重新計算「小計／合計列」的本年度與上年度金額,使其自動加總對應明細,避免手動維護造成誤差。
      *
-     * 僅由 is_subtotal(使用者勾選「小計 / 合計列」)決定是否自動加總;未勾選之列一律
-     * 維持使用者輸入,不會被覆寫或鎖定。對每一「已勾選」之列:
+     * 僅由 is_subtotal(使用者勾選「小計 / 合計列」)決定是否自動加總;未勾選之明細列一律
+     * 維持使用者輸入,不會被覆寫或鎖定(本年度、上年度皆可自行輸入)。對每一「已勾選」之列:
      *  - 其下一列款/項/目/次/節層級較深者(該列為上層科目,如「業務活動費用」「保險費」):
-     *    本年度金額 = 其子樹內所有「未勾選」明細(葉節點)之和,同收益／費損才計入,
+     *    金額 = 其子樹內所有「未勾選」明細(葉節點)之和,同收益／費損才計入,
      *    略過子樹中其他已勾選之小計列以免重複。
      *  - 否則(無較深子項之獨立小計列,如「業務費合計」):
-     *    本年度金額 = 其上方直到上一個已勾選小計列前、同收益／費損之明細加總。
-     * 上年度金額(previous_amount)一律保留使用者輸入,不自動加總、不覆寫。
+     *    金額 = 其上方直到上一個已勾選小計列前、同收益／費損之明細加總。
+     * 本年度(amount)與上年度(previous_amount)皆依上述規則加總,使各層小計一致。
      *
      * @param array<int, array<string, mixed>> $items
      * @return array<int, array<string, mixed>>
@@ -94,7 +94,8 @@ final class BudgetSummary
                 continue; // 只有勾選「小計 / 合計列」的列才自動加總。
             }
             $type = $typeOf($items[$i]);
-            $sum = 0.0;
+            $sumA = 0.0; // 本年度
+            $sumB = 0.0; // 上年度
 
             if ($i + 1 < $count && $levels[$i + 1] > $levels[$i]) {
                 // 上層科目:加總其子樹內未勾選之葉節點(略過子小計列以免重複)。
@@ -106,7 +107,8 @@ final class BudgetSummary
                     if ($typeOf($items[$j]) !== $type || $isSubtotal($j)) {
                         continue;
                     }
-                    $sum += (float) ($items[$j]['amount'] ?? 0);
+                    $sumA += (float) ($items[$j]['amount'] ?? 0);
+                    $sumB += (float) ($items[$j]['previous_amount'] ?? 0);
                 }
             } else {
                 // 獨立小計列:加總其上方、上一個小計列之後、同收益／費損之明細。
@@ -117,12 +119,13 @@ final class BudgetSummary
                     if ($typeOf($items[$j]) !== $type) {
                         continue;
                     }
-                    $sum += (float) ($items[$j]['amount'] ?? 0);
+                    $sumA += (float) ($items[$j]['amount'] ?? 0);
+                    $sumB += (float) ($items[$j]['previous_amount'] ?? 0);
                 }
             }
 
-            $items[$i]['amount'] = round($sum, 2);
-            // 上年度金額保留使用者輸入,不覆寫。
+            $items[$i]['amount'] = round($sumA, 2);
+            $items[$i]['previous_amount'] = round($sumB, 2);
         }
 
         return $items;

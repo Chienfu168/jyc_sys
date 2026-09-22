@@ -89,7 +89,7 @@ $commonCategories = ['收益', '業務費', '人事費用', '辦公行政費', '
     <div class="panel-header budget-editor-header">
         <div>
             <h2>經費項目</h2>
-            <p class="muted-text">可按「套用 115 年度預算範本」一鍵帶入主管機關格式的完整款／項／目／次／節與金額,再依實際調整。<strong>勾選「小計 / 合計列」</strong>的列即為小計／合計:其<strong>本年度</strong>金額會自動加總下方(或上方)對應明細、欄位轉為唯讀並以底色標示,且不計入下方的收益／費損合計(避免重複計算);<strong>未勾選</strong>的列則為一般明細,金額可自由編輯並計入合計。<strong>上年度預算</strong>不論是否勾選皆可自行輸入。修改明細金額時,其所屬小計與合計會即時更新。</p>
+            <p class="muted-text">可按「套用 115 年度預算範本」一鍵帶入主管機關格式的完整款／項／目／次／節與金額,再依實際調整。<strong>勾選「小計 / 合計列」</strong>的列即為小計／合計:其<strong>本年度與上年度</strong>金額都會自動加總下方(或上方)對應明細、欄位轉為唯讀並以底色標示,且不計入下方的收益／費損合計(避免重複計算);<strong>未勾選</strong>的列則為一般明細,本年度與上年度金額皆可自由編輯並計入合計。修改明細金額時,其所屬各層小計與合計會即時連動更新。</p>
         </div>
         <div class="actions">
             <?php if (!empty($budgetTemplate)): ?>
@@ -260,19 +260,15 @@ function budgetLineLevel(line) {
     }
     return 0;
 }
-// 勾選「小計 / 合計列」的列:本年度金額自動加總,設為唯讀並標示;上年度金額一律保持可編輯。
-// 同時於整列切換 is-subtotal-row 樣式,讓有勾選／未勾選一目了然。
+// 勾選「小計 / 合計列」的列:本年度與上年度金額皆自動加總,設為唯讀並標示;
+// 未勾選之明細列本年度、上年度皆可自由編輯。同時於整列切換 is-subtotal-row 樣式。
 function setSubtotalReadonly(line, isSubtotal) {
     const io = budgetLineAmountInputs(line);
-    if (io.amount) {
-        io.amount.readOnly = isSubtotal;
-        io.amount.classList.toggle('is-autosum', isSubtotal);
-    }
-    if (io.previous) {
-        // 上年度預算永遠可編輯。
-        io.previous.readOnly = false;
-        io.previous.classList.remove('is-autosum');
-    }
+    [io.amount, io.previous].forEach((inp) => {
+        if (!inp) { return; }
+        inp.readOnly = isSubtotal;
+        inp.classList.toggle('is-autosum', isSubtotal);
+    });
     line.classList.toggle('is-subtotal-row', isSubtotal);
 }
 
@@ -296,24 +292,25 @@ function recalcBudgetTotals() {
 
     info.forEach((row, i) => {
         setSubtotalReadonly(row.line, row.sub);
-        if (!row.sub) { return; } // 只有勾選的小計 / 合計列才自動加總本年度金額。
-        let a = 0;
+        if (!row.sub) { return; } // 只有勾選的小計 / 合計列才自動加總。
+        let a = 0, p = 0;
         if (i + 1 < n && info[i + 1].level > row.level) {
-            // 上層科目:加總其子樹內未勾選之葉節點。
+            // 上層科目:加總其子樹內未勾選之葉節點(本年度與上年度皆加總)。
             for (let j = i + 1; j < n; j++) {
                 if (info[j].level <= row.level) { break; }
                 if (info[j].type !== row.type || info[j].sub) { continue; }
-                a += val(info[j].io.amount);
+                a += val(info[j].io.amount); p += val(info[j].io.previous);
             }
         } else {
             // 獨立小計列:加總其上方、上一勾選列之後之同類明細。
             for (let j = i - 1; j >= 0; j--) {
                 if (info[j].sub) { break; }
                 if (info[j].type !== row.type) { continue; }
-                a += val(info[j].io.amount);
+                a += val(info[j].io.amount); p += val(info[j].io.previous);
             }
         }
         if (row.io.amount) { row.io.amount.value = a ? String(a) : '0'; }
+        if (row.io.previous) { row.io.previous.value = p ? String(p) : '0'; }
     });
 
     let inc = 0, exp = 0;

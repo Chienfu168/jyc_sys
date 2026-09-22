@@ -127,52 +127,56 @@ final class BudgetSummaryTest extends TestCase
 
     public function test_apply_subtotals_sums_hierarchical_descendants(): void
     {
-        // 僅「勾選(is_subtotal)」之上層科目自動加總本年度金額,加總其子樹內「未勾選」之葉節點;
-        // 未勾選之葉節點維持原值,上年度金額(previous_amount)一律保留、不覆寫。
+        // 僅「勾選(is_subtotal)」之上層科目自動加總,加總其子樹內「未勾選」之葉節點;
+        // 本年度(amount)與上年度(previous_amount)皆一併加總,未勾選之葉節點維持原值。
         $items = [
-            ['item_type' => 'expense', 'gov_level3' => '1', 'is_subtotal' => 1, 'amount' => 0, 'previous_amount' => 111],   // 0 業務活動費用(目,勾選)
-            ['item_type' => 'expense', 'gov_level4' => '1', 'is_subtotal' => 1, 'amount' => 999, 'previous_amount' => 222],  // 1 深耕(次,勾選)
-            ['item_type' => 'expense', 'gov_level5' => '1', 'amount' => 100, 'previous_amount' => 10],                       // 2 豆腐(葉)
-            ['item_type' => 'expense', 'gov_level5' => '2', 'amount' => 200, 'previous_amount' => 20],                       // 3 兒童(葉)
-            ['item_type' => 'expense', 'gov_level4' => '2', 'is_subtotal' => 1, 'amount' => 0, 'previous_amount' => 333],    // 4 玩聚(次,勾選)
-            ['item_type' => 'expense', 'gov_level5' => '1', 'amount' => 300, 'previous_amount' => 30],                       // 5 倡議(葉)
+            ['item_type' => 'expense', 'gov_level3' => '1', 'is_subtotal' => 1, 'amount' => 0, 'previous_amount' => 0],   // 0 業務活動費用(目,勾選)
+            ['item_type' => 'expense', 'gov_level4' => '1', 'is_subtotal' => 1, 'amount' => 999, 'previous_amount' => 9],  // 1 深耕(次,勾選)
+            ['item_type' => 'expense', 'gov_level5' => '1', 'amount' => 100, 'previous_amount' => 10],                     // 2 豆腐(葉)
+            ['item_type' => 'expense', 'gov_level5' => '2', 'amount' => 200, 'previous_amount' => 20],                     // 3 兒童(葉)
+            ['item_type' => 'expense', 'gov_level4' => '2', 'is_subtotal' => 1, 'amount' => 0, 'previous_amount' => 9],    // 4 玩聚(次,勾選)
+            ['item_type' => 'expense', 'gov_level5' => '1', 'amount' => 300, 'previous_amount' => 30],                     // 5 倡議(葉)
         ];
 
         $out = BudgetSummary::applySubtotals($items);
 
-        $this->assertSame(300.0, $out[1]['amount']);          // 深耕 = 100 + 200
-        $this->assertSame(222, $out[1]['previous_amount']);   // 上年度保留,不覆寫
-        $this->assertSame(300.0, $out[4]['amount']);          // 玩聚 = 300
-        $this->assertSame(600.0, $out[0]['amount']);          // 業務活動費用 = 100+200+300(只算未勾選葉節點)
-        $this->assertSame(111, $out[0]['previous_amount']);   // 上年度保留
+        $this->assertSame(300.0, $out[1]['amount']);          // 深耕 本年度 = 100 + 200
+        $this->assertSame(30.0, $out[1]['previous_amount']);  // 深耕 上年度 = 10 + 20
+        $this->assertSame(300.0, $out[4]['amount']);          // 玩聚 本年度 = 300
+        $this->assertSame(30.0, $out[4]['previous_amount']);  // 玩聚 上年度 = 30
+        $this->assertSame(600.0, $out[0]['amount']);          // 業務活動費用 本年度 = 100+200+300(只算未勾選葉節點)
+        $this->assertSame(60.0, $out[0]['previous_amount']);  // 業務活動費用 上年度 = 10+20+30
         $this->assertSame(100, $out[2]['amount']);            // 未勾選葉節點維持原值
+        $this->assertSame(10, $out[2]['previous_amount']);
     }
 
     public function test_apply_subtotals_only_applies_to_checked_rows(): void
     {
         // 未勾選之列即使下方有較深層級,也不會被自動加總或覆寫。
         $items = [
-            ['item_type' => 'expense', 'gov_level3' => '1', 'amount' => 4571000],                     // 0 未勾選:維持原值
-            ['item_type' => 'expense', 'gov_level4' => '1', 'amount' => 100],                         // 1 葉
-            ['item_type' => 'expense', 'gov_level4' => '2', 'amount' => 200],                         // 2 葉
+            ['item_type' => 'expense', 'gov_level3' => '1', 'amount' => 4571000, 'previous_amount' => 4200000], // 0 未勾選:維持原值
+            ['item_type' => 'expense', 'gov_level4' => '1', 'amount' => 100, 'previous_amount' => 10],          // 1 葉
+            ['item_type' => 'expense', 'gov_level4' => '2', 'amount' => 200, 'previous_amount' => 20],          // 2 葉
         ];
 
         $out = BudgetSummary::applySubtotals($items);
 
-        $this->assertSame(4571000, $out[0]['amount']); // 未勾選,不被覆寫
+        $this->assertSame(4571000, $out[0]['amount']);          // 未勾選,不被覆寫
+        $this->assertSame(4200000, $out[0]['previous_amount']); // 上年度亦不被覆寫
     }
 
     public function test_apply_subtotals_non_hierarchical_sums_block_above(): void
     {
-        // 勾選之獨立小計列(無較深子項):本年度 = 其上方同類明細之和。
+        // 勾選之獨立小計列(無較深子項):本年度與上年度 = 其上方同類明細之和。
         $items = [
-            ['item_type' => 'expense', 'amount' => 300],
-            ['item_type' => 'expense', 'amount' => 150],
-            ['item_type' => 'expense', 'is_subtotal' => 1, 'amount' => 0],
+            ['item_type' => 'expense', 'amount' => 300, 'previous_amount' => 30],
+            ['item_type' => 'expense', 'amount' => 150, 'previous_amount' => 15],
+            ['item_type' => 'expense', 'is_subtotal' => 1, 'amount' => 0, 'previous_amount' => 0],
         ];
 
         $out = BudgetSummary::applySubtotals($items);
 
-        $this->assertSame(450.0, $out[2]['amount']);
+        $this->assertSame(450.0, $out[2]['amount']);         // 本年度 = 300 + 150
+        $this->assertSame(45.0, $out[2]['previous_amount']); // 上年度 = 30 + 15
     }
 }
