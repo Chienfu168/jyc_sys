@@ -24,7 +24,6 @@ ob_start();
         <div class="actions">
             <a class="btn" href="/annual-budgets">返回列表</a>
             <a class="btn primary" href="/annual-budgets/<?= e((string) $budget['id']) ?>/statement">經費預算表</a>
-            <a class="btn" href="/annual-budgets/<?= e((string) $budget['id']) ?>/execution">執行報表</a>
             <?php if ($canManage): ?>
                 <a class="btn" href="/annual-budgets/<?= e((string) $budget['id']) ?>/duplicate">複製</a>
                 <a class="btn" href="/annual-budgets/<?= e((string) $budget['id']) ?>/edit">編輯</a>
@@ -64,7 +63,6 @@ ob_start();
                 <th>分類</th>
                 <th>項目名稱</th>
                 <th>說明</th>
-                <th>會計科目</th>
                 <th class="amount">本年度</th>
                 <th class="amount">上年度</th>
                 <th class="amount">增減</th>
@@ -81,7 +79,6 @@ ob_start();
                     $item['gov_level4'] ?? '',
                     $item['gov_level5'] ?? '',
                 ], static fn ($value) => trim((string) $value) !== ''));
-                $accountLabel = trim((string) (($item['account_code'] ?? '') . ' ' . ($item['account_name'] ?? '')));
                 $variance = (float) $item['amount'] - (float) ($item['previous_amount'] ?? 0);
                 ?>
                 <tr>
@@ -90,7 +87,6 @@ ob_start();
                     <td><?= e($item['category']) ?></td>
                     <td><?= e($item['item_name']) ?></td>
                     <td><?= e($item['description'] ?? '') ?></td>
-                    <td><?= e($accountLabel !== '' ? $accountLabel : '未對應') ?></td>
                     <td class="amount"><?= e(number_format((float) $item['amount'], 0)) ?></td>
                     <td class="amount"><?= e(number_format((float) ($item['previous_amount'] ?? 0), 0)) ?></td>
                     <td class="amount"><?= e(number_format($variance, 0)) ?></td>
@@ -98,13 +94,13 @@ ob_start();
                 </tr>
             <?php endforeach; ?>
             <?php if (!$items): ?>
-                <tr><td colspan="10" class="empty-state">尚無預算項目。</td></tr>
+                <tr><td colspan="9" class="empty-state">尚無預算項目。</td></tr>
             <?php endif; ?>
             </tbody>
             <tfoot>
-            <tr><th colspan="6">收益合計</th><th class="amount"><?= e(number_format((float) $totals['income'], 0)) ?></th><th class="amount"><?= e(number_format((float) $totals['previous_income'], 0)) ?></th><th class="amount"><?= e(number_format((float) $totals['income'] - (float) $totals['previous_income'], 0)) ?></th><th></th></tr>
-            <tr><th colspan="6">費損合計</th><th class="amount"><?= e(number_format((float) $totals['expense'], 0)) ?></th><th class="amount"><?= e(number_format((float) $totals['previous_expense'], 0)) ?></th><th class="amount"><?= e(number_format((float) $totals['expense'] - (float) $totals['previous_expense'], 0)) ?></th><th></th></tr>
-            <tr><th colspan="6">賸餘 / 短絀</th><th class="amount"><?= e(number_format((float) $totals['balance'], 0)) ?></th><th class="amount"><?= e(number_format((float) $totals['previous_balance'], 0)) ?></th><th class="amount"><?= e(number_format((float) $totals['balance'] - (float) $totals['previous_balance'], 0)) ?></th><th></th></tr>
+            <tr><th colspan="5">收益合計</th><th class="amount"><?= e(number_format((float) $totals['income'], 0)) ?></th><th class="amount"><?= e(number_format((float) $totals['previous_income'], 0)) ?></th><th class="amount"><?= e(number_format((float) $totals['income'] - (float) $totals['previous_income'], 0)) ?></th><th></th></tr>
+            <tr><th colspan="5">費損合計</th><th class="amount"><?= e(number_format((float) $totals['expense'], 0)) ?></th><th class="amount"><?= e(number_format((float) $totals['previous_expense'], 0)) ?></th><th class="amount"><?= e(number_format((float) $totals['expense'] - (float) $totals['previous_expense'], 0)) ?></th><th></th></tr>
+            <tr><th colspan="5">賸餘 / 短絀</th><th class="amount"><?= e(number_format((float) $totals['balance'], 0)) ?></th><th class="amount"><?= e(number_format((float) $totals['previous_balance'], 0)) ?></th><th class="amount"><?= e(number_format((float) $totals['balance'] - (float) $totals['previous_balance'], 0)) ?></th><th></th></tr>
             </tfoot>
         </table>
     </div>
