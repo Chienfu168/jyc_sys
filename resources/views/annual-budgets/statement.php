@@ -79,12 +79,13 @@ ob_start();
     <?php
     // 依主管機關經費預算表格式:會計人員／執行長／董事長。
     $profile = $profile ?? foundation_profile();
+    // 核章列僅保留職稱與簽名空位,不帶入姓名(供實際簽章)。
     $signatureRoles = [
         ['label' => '會計', 'name' => ''],
-        ['label' => '執行長', 'name' => (string) ($profile['executive_director'] ?? '')],
-        ['label' => '董事長', 'name' => (string) ($profile['representative'] ?? '')],
+        ['label' => '執行長', 'name' => ''],
+        ['label' => '董事長', 'name' => ''],
     ];
-    // 單行核章列(職稱：姓名),不畫用印框。
+    // 單行核章列(職稱：____),置中並適度間距,不畫用印框。
     $signatureInline = true;
     require base_path('resources/views/shared/signatures.php');
     ?>

@@ -1427,12 +1427,13 @@ textarea:focus {
     font-weight: 700;
 }
 
-/* 單行核章列:職稱：姓名,不畫用印框(經費預算表等主管機關格式)。 */
+/* 單行核章列:職稱：____,置中並適度間距,保留簽名空位,不畫用印框(經費預算表等主管機關格式)。 */
 .signature-inline {
     display: flex;
     flex-wrap: wrap;
-    gap: 40px;
-    margin-top: 34px;
+    justify-content: center;
+    gap: 24px 72px;
+    margin-top: 40px;
     align-items: baseline;
 }
 
@@ -1446,9 +1447,10 @@ textarea:focus {
     font-weight: 700;
 }
 
+/* 簽名空位:保留一段可簽章的寬度。 */
 .signature-inline .signature-name {
     display: inline-block;
-    min-width: 96px;
+    min-width: 130px;
     font-weight: 700;
 }
 
