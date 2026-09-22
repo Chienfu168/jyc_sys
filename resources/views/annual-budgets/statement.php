@@ -27,7 +27,7 @@ ob_start();
         <h2><?= e($profile['foundation_name'] ?? foundation_name()) ?></h2>
         <h3>經費預算表</h3>
         <p>中華民國<?= e((string) roc_year($budget['fiscal_year'])) ?>年度</p>
-        <span>單位：新臺幣元</span>
+        <span class="statement-unit">單位：新臺幣元</span>
     </div>
 
     <div class="table-wrap">
