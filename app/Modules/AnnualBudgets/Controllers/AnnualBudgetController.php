@@ -46,15 +46,18 @@ final class AnnualBudgetController extends Controller
     {
         $this->requirePermission('annual_budgets.manage');
 
-        $year = (int) date('Y') + 1;
+        // 由清單「以 115 範本新增」進入時,直接於伺服器端帶入完整 115 年度範本(款/項/目/次/節與金額)。
+        $useTemplate = (string) ($_GET['template'] ?? '') === '115';
+        $year = $useTemplate ? 2026 : ((int) date('Y') + 1); // 民國115年 = 西元2026年
+
         $this->render('annual-budgets.create', [
-            'title' => '新增年度預算',
+            'title' => $useTemplate ? '以 115 年度範本新增預算' : '新增年度預算',
             'section' => '主管機關核備',
             'active' => 'annual-budgets',
             'budget' => [
                 'fiscal_year' => $year,
                 'budget_type' => 'annual',
-                'title' => roc_year($year) . '年度經費預算表',
+                'title' => $useTemplate ? '115年度經費預算表' : roc_year($year) . '年度經費預算表',
                 'period_start' => $year . '-01-01',
                 'period_end' => $year . '-12-31',
                 'status' => 'draft',
@@ -64,10 +67,43 @@ final class AnnualBudgetController extends Controller
                 'expected_benefit' => '建立年度經費規劃、執行追蹤與決算比較基礎，提升非營利組織治理透明度。',
                 'board_meeting_no' => '',
             ],
-            'items' => $this->defaultItems(),
+            'items' => $useTemplate ? $this->budgetTemplate115() : $this->defaultItems(),
             'accounts' => $this->budgetAccounts(),
             'govHierarchy' => $this->govHierarchy(),
             'budgetTemplate' => $this->budgetTemplate115(),
+            'templateApplied' => $useTemplate,
+            'action' => '/annual-budgets',
+        ]);
+    }
+
+    /**
+     * 以既有年度預算為範本開新的預算表單並帶入原資料(款/項/目/次/節與金額),
+     * 供「以舊年度為基礎、修改後另存新年度」。年度預設為原年度＋1(需與既有年度不同),
+     * 僅預填不建立資料;送出後才由 store() 建立新的年度預算。
+     */
+    public function duplicate(string $id): void
+    {
+        $this->requirePermission('annual_budgets.manage');
+        $source = $this->findBudget((int) $id);
+        $items = $this->items((int) $id);
+
+        $sourceYear = (int) $source['fiscal_year'];
+        $nextYear = $sourceYear + 1;
+        $source['fiscal_year'] = $nextYear;
+        $source['status'] = 'draft';
+        $source['title'] = roc_year($nextYear) . '年度經費預算表';
+        unset($source['id']);
+
+        $this->render('annual-budgets.create', [
+            'title' => '複製年度預算',
+            'section' => '主管機關核備',
+            'active' => 'annual-budgets',
+            'budget' => $source,
+            'items' => $items,
+            'accounts' => $this->budgetAccounts(),
+            'govHierarchy' => $this->govHierarchy(),
+            'budgetTemplate' => $this->budgetTemplate115(),
+            'duplicateFromYear' => $sourceYear,
             'action' => '/annual-budgets',
         ]);
     }
