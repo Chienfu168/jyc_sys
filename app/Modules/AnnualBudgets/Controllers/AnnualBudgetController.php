@@ -377,8 +377,8 @@ final class AnnualBudgetController extends Controller
 
         $stmt = Database::pdo()->prepare(
             'INSERT INTO annual_budget_items
-             (annual_budget_id, item_type, gov_level1, gov_level2, gov_level3, gov_level4, gov_level5, category, item_name, description, unit, quantity, unit_price, amount, previous_amount, comparison_note, is_subtotal, funding_source, sort_order, notes, created_at, updated_at)
-             VALUES (:annual_budget_id, :item_type, :gov_level1, :gov_level2, :gov_level3, :gov_level4, :gov_level5, :category, :item_name, :description, :unit, :quantity, :unit_price, :amount, :previous_amount, :comparison_note, :is_subtotal, :funding_source, :sort_order, :notes, :created_at, :updated_at)'
+             (annual_budget_id, item_type, gov_level1, gov_level2, gov_level3, gov_level4, gov_level5, category, item_name, description, unit, quantity, unit_price, amount, previous_amount, comparison_note, is_subtotal, previous_is_manual, funding_source, sort_order, notes, created_at, updated_at)
+             VALUES (:annual_budget_id, :item_type, :gov_level1, :gov_level2, :gov_level3, :gov_level4, :gov_level5, :category, :item_name, :description, :unit, :quantity, :unit_price, :amount, :previous_amount, :comparison_note, :is_subtotal, :previous_is_manual, :funding_source, :sort_order, :notes, :created_at, :updated_at)'
         );
 
         $sort = 1;
@@ -428,6 +428,7 @@ final class AnnualBudgetController extends Controller
                 'previous_amount' => max(0, round((float) ($item['previous_amount'] ?? 0), 2)),
                 'comparison_note' => trim((string) ($item['comparison_note'] ?? '')),
                 'is_subtotal' => $isSubtotal ? 1 : 0,
+                'previous_is_manual' => (!empty($item['previous_is_manual']) && $isSubtotal) ? 1 : 0,
                 'funding_source' => trim((string) ($item['funding_source'] ?? '')),
                 'sort_order' => $sort++,
                 'notes' => trim((string) ($item['notes'] ?? '')),

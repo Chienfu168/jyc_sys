@@ -165,6 +165,21 @@ final class BudgetSummaryTest extends TestCase
         $this->assertSame(4200000, $out[0]['previous_amount']); // 上年度亦不被覆寫
     }
 
+    public function test_apply_subtotals_keeps_manual_previous_but_sums_amount(): void
+    {
+        // 小計列標記 previous_is_manual:上年度保留自行輸入,本年度仍自動加總。
+        $items = [
+            ['item_type' => 'expense', 'gov_level3' => '1', 'is_subtotal' => 1, 'previous_is_manual' => 1, 'amount' => 0, 'previous_amount' => 999999], // 0 小計(上年度自行輸入)
+            ['item_type' => 'expense', 'gov_level4' => '1', 'amount' => 100, 'previous_amount' => 10], // 1 葉
+            ['item_type' => 'expense', 'gov_level4' => '2', 'amount' => 200, 'previous_amount' => 20], // 2 葉
+        ];
+
+        $out = BudgetSummary::applySubtotals($items);
+
+        $this->assertSame(300.0, $out[0]['amount']);          // 本年度仍自動加總 = 100 + 200
+        $this->assertSame(999999, $out[0]['previous_amount']); // 上年度保留自行輸入,不被覆寫
+    }
+
     public function test_apply_subtotals_non_hierarchical_sums_block_above(): void
     {
         // 勾選之獨立小計列(無較深子項):本年度與上年度 = 其上方同類明細之和。

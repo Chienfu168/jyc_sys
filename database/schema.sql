@@ -480,6 +480,7 @@ CREATE TABLE annual_budget_items (
   previous_amount DECIMAL(14,2) NOT NULL DEFAULT 0,
   comparison_note VARCHAR(255) NULL,
   is_subtotal TINYINT(1) NOT NULL DEFAULT 0,
+  previous_is_manual TINYINT(1) NOT NULL DEFAULT 0,
   funding_source VARCHAR(120) NULL,
   sort_order INT UNSIGNED NOT NULL DEFAULT 0,
   notes TEXT NULL,

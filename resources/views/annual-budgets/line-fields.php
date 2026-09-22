@@ -71,3 +71,7 @@
     <input data-budget-field="is_subtotal" type="checkbox" name="items[<?= e((string) $index) ?>][is_subtotal]" value="1" <?= !empty($item['is_subtotal']) ? 'checked' : '' ?>>
     <span>小計 / 合計列</span>
 </label>
+<label class="checkbox-label prev-manual-label">
+    <input data-budget-field="previous_manual" type="checkbox" name="items[<?= e((string) $index) ?>][previous_is_manual]" value="1" <?= !empty($item['previous_is_manual']) ? 'checked' : '' ?>>
+    <span>上年度自行輸入</span>
+</label>
