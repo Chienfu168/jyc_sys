@@ -67,6 +67,7 @@ final class AnnualBudgetController extends Controller
             'items' => $this->defaultItems(),
             'accounts' => $this->budgetAccounts(),
             'govHierarchy' => $this->govHierarchy(),
+            'budgetTemplate' => $this->budgetTemplate115(),
             'action' => '/annual-budgets',
         ]);
     }
@@ -180,6 +181,7 @@ final class AnnualBudgetController extends Controller
             'items' => $this->items((int) $id),
             'accounts' => $this->budgetAccounts(),
             'govHierarchy' => $this->govHierarchy(),
+            'budgetTemplate' => $this->budgetTemplate115(),
             'action' => '/annual-budgets/' . $id,
         ]);
     }
@@ -622,6 +624,88 @@ final class AnnualBudgetController extends Controller
         ];
     }
 
+    /**
+     * 115 年度經費預算表範本(依主管機關格式:款／項／目／次／節,含各層小計)。
+     * 小計列(is_subtotal)金額為其子項之和,僅供顯示,不再計入加總;葉節點金額相加即為各分類與合計。
+     * 供新增預算時一鍵套用,使用者再依實際調整年度與金額。
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function budgetTemplate115(): array
+    {
+        // 便捷建列:$lvl 為該列所屬層級欄(1=款 2=項 3=目 4=次 5=節),僅填該欄數字,其餘留白。
+        $row = static function (string $type, string $cat, int $lvl, string $no, string $name, float $amt, float $prev, bool $sub = false, string $note = ''): array {
+            $r = [
+                'item_type' => $type,
+                'category' => $cat,
+                'gov_level1' => '', 'gov_level2' => '', 'gov_level3' => '', 'gov_level4' => '', 'gov_level5' => '',
+                'item_name' => $name,
+                'amount' => $amt,
+                'previous_amount' => $prev,
+                'is_subtotal' => $sub,
+                'comparison_note' => $note,
+            ];
+            $r['gov_level' . $lvl] = $no;
+            return $r;
+        };
+
+        return [
+            // ── 收益(款1)── 項1~5
+            $row('income', '收益', 2, '1', '捐贈收入', 9000000, 9000000),
+            $row('income', '收益', 2, '2', '投資及財產收益', 0, 0),
+            $row('income', '收益', 2, '3', '活動收入', 0, 0),
+            $row('income', '收益', 2, '4', '利息收入', 40000, 40000),
+            $row('income', '收益', 2, '5', '其他收入', 0, 0),
+
+            // ── 費損(款2)· 項1 業務費 ──
+            // 加總以「目」為準(業務活動費用等目級科目已含 A/B);其下之次／節為明細,僅顯示不計入加總。
+            $row('expense', '業務費', 3, '1', '業務活動費用', 4571000, 4200000, false, '詳見115年度工作計畫'),
+            $row('expense', '業務費', 4, '1', '深耕教育計畫', 1341000, 0, true),
+            $row('expense', '業務費', 5, '1', '豆腐食農小廚房', 160000, 0, true),
+            $row('expense', '業務費', 5, '2', '兒童表演藝術課程', 441000, 0, true),
+            $row('expense', '業務費', 5, '3', '雙語玩聚學習課程', 300000, 0, true),
+            $row('expense', '業務費', 5, '4', '動畫玩聚養成班', 60000, 0, true),
+            $row('expense', '業務費', 5, '5', '木有新生創意立體拼圖', 80000, 0, true),
+            $row('expense', '業務費', 5, '6', '藝術美學課程', 120000, 0, true),
+            $row('expense', '業務費', 5, '7', '邏輯程式智慧機器人', 180000, 0, true),
+            $row('expense', '業務費', 4, '2', '玩聚倡議活動', 1030000, 0, true),
+            $row('expense', '業務費', 5, '1', '倡議玩聚學習', 500000, 0, true),
+            $row('expense', '業務費', 5, '2', '創意立體拼圖', 150000, 0, true),
+            $row('expense', '業務費', 5, '3', '行動藝術館', 300000, 0, true),
+            $row('expense', '業務費', 5, '4', 'STEAM 邏輯思考體驗課程', 80000, 0, true),
+            $row('expense', '業務費', 4, '3', '新北市學童培力暨延伸交流營隊計畫', 1500000, 0, true),
+            $row('expense', '業務費', 5, '1', '東海夏令營', 600000, 0, true),
+            $row('expense', '業務費', 5, '2', '新加坡冬令營', 800000, 0, true),
+            $row('expense', '業務費', 5, '3', '國內夏令營', 100000, 0, true),
+            $row('expense', '業務費', 4, '4', '115年度玩聚節', 300000, 0, true),
+            $row('expense', '業務費', 4, '5', '快樂溫度計-偏鄉教育論壇', 200000, 0, true),
+            $row('expense', '業務費', 4, '6', '基金會紀實與刊物出版計畫', 150000, 0, true),
+            $row('expense', '業務費', 4, '7', '安全教育課程', 50000, 0, true),
+            $row('expense', '業務費', 3, '2', '業務推廣費', 500000, 350000),
+            $row('expense', '業務費', 3, '3', '會議費', 150000, 150000),
+            $row('expense', '業務費', 3, '4', '捐贈（支出）', 100000, 200000),
+
+            // ── 費損(款2)· 項2 人事費用 ──
+            $row('expense', '人事費用', 3, '1', '人事薪資', 2268000, 2712000),
+            $row('expense', '人事費用', 3, '2', '保險費', 248616, 298628, false),
+            $row('expense', '人事費用', 4, '1', '勞保費用', 148128, 176172, true),
+            $row('expense', '人事費用', 4, '2', '健保費用', 88488, 108456, true),
+            $row('expense', '人事費用', 4, '3', '團保意外險', 12000, 14000, true),
+            $row('expense', '人事費用', 3, '3', '勞退金', 114480, 162720),
+            $row('expense', '人事費用', 3, '4', '年終獎金', 283500, 324000),
+
+            // ── 費損(款2)· 項3 辦公行政費 ──
+            $row('expense', '辦公行政費', 3, '1', '辦公室租金', 300000, 300000),
+            $row('expense', '辦公行政費', 3, '2', '文具印刷費', 50000, 54000),
+            $row('expense', '辦公行政費', 3, '3', '交通費', 80000, 150000),
+            $row('expense', '辦公行政費', 3, '4', '差旅費', 50000, 40000),
+            $row('expense', '辦公行政費', 3, '5', '郵電費', 30000, 22000),
+            $row('expense', '辦公行政費', 3, '6', '水電費', 30000, 30000),
+            $row('expense', '辦公行政費', 3, '7', '專業服務費', 168000, 0),
+            $row('expense', '辦公行政費', 3, '8', '雜項支出', 96404, 46652),
+        ];
+    }
+
     private function totals(array $items): array
     {
         return BudgetSummary::totals($items);
@@ -643,8 +727,13 @@ final class AnnualBudgetController extends Controller
             $type = $item['item_type'] === 'expense' ? 'expense' : 'income';
             $current = (float) $item['amount'];
             $previous = (float) ($item['previous_amount'] ?? 0);
-            $summary[$type]['current'] += $current;
-            $summary[$type]['previous'] += $previous;
+
+            // 小計／合計列僅供顯示,金額為其子項之和,不再計入區段與分類加總(避免重複計算)。
+            $isSubtotal = !empty($item['is_subtotal']);
+            if (!$isSubtotal) {
+                $summary[$type]['current'] += $current;
+                $summary[$type]['previous'] += $previous;
+            }
 
             $groupKey = trim((string) ($item['category'] ?? '')) ?: '未分類';
             if (!isset($summary['groups'][$type][$groupKey])) {
@@ -658,8 +747,10 @@ final class AnnualBudgetController extends Controller
 
             $item['variance_amount'] = $current - $previous;
             $item['variance_rate'] = $rateByCurrent($current, $previous);
-            $summary['groups'][$type][$groupKey]['current'] += $current;
-            $summary['groups'][$type][$groupKey]['previous'] += $previous;
+            if (!$isSubtotal) {
+                $summary['groups'][$type][$groupKey]['current'] += $current;
+                $summary['groups'][$type][$groupKey]['previous'] += $previous;
+            }
             $summary['groups'][$type][$groupKey]['items'][] = $item;
         }
 
