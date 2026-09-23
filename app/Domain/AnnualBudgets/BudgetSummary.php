@@ -21,14 +21,16 @@ final class BudgetSummary
      */
     public static function totals(array $items): array
     {
+        $items = array_values($items);
+        $counted = self::countedFlags($items);
+
         $income = 0.0;
         $expense = 0.0;
         $previousIncome = 0.0;
         $previousExpense = 0.0;
 
-        foreach ($items as $item) {
-            // 小計／合計列僅供顯示,其金額為其他明細之和,不再計入收益／費損合計(避免重複計算)。
-            if (!empty($item['is_subtotal'])) {
+        foreach ($items as $i => $item) {
+            if (!$counted[$i]) {
                 continue;
             }
             if (($item['item_type'] ?? '') === 'income') {
@@ -48,6 +50,54 @@ final class BudgetSummary
             'previous_expense' => $previousExpense,
             'previous_balance' => $previousIncome - $previousExpense,
         ];
+    }
+
+    /**
+     * 判定各明細列是否計入收益／費損與分類合計(避免階層重複計算)。
+     *
+     * 依主管機關經費預算表格式,加總以各分類中「最上層」科目為準:
+     *  - 有階層(款/項/目/次/節)者:分類內層級最淺之科目(目)為「計入列」,其值(自動加總
+     *    或自行輸入)即為該科目金額;其下較深之次／節為明細拆解,不再另計(否則與上層重複)。
+     *  - 無階層之平列:一般明細計入,平列小計(is_subtotal 且無階層)不計入(其為上方明細之和)。
+     * 如此上層科目採自行輸入之上年度數(本年度未編列而上年度有的項目)亦能正確計入合計。
+     *
+     * @param array<int, array<string, mixed>> $items
+     * @return array<int, bool> 與 $items 同索引,true 表示該列計入合計
+     */
+    public static function countedFlags(array $items): array
+    {
+        $items = array_values($items);
+        $count = count($items);
+        $flags = array_fill(0, $count, false);
+
+        $levelOf = static function (array $item): int {
+            for ($level = 5; $level >= 1; $level--) {
+                if (trim((string) ($item['gov_level' . $level] ?? '')) !== '') {
+                    return $level;
+                }
+            }
+            return 0;
+        };
+
+        // 依「分類 + 收益／費損」分群,群內以層級判定最上層科目(pre-order:上層在前)。
+        $runningMin = [];
+        for ($i = 0; $i < $count; $i++) {
+            $type = ($items[$i]['item_type'] ?? '') === 'income' ? 'income' : 'expense';
+            $key = $type . '|' . (trim((string) ($items[$i]['category'] ?? '')) ?: '未分類');
+            $level = $levelOf($items[$i]);
+
+            if ($level === 0) {
+                // 無階層:平列小計不計入,其餘明細計入(不影響階層群之最淺層級判定)。
+                $flags[$i] = empty($items[$i]['is_subtotal']);
+                continue;
+            }
+
+            $min = $runningMin[$key] ?? PHP_INT_MAX;
+            $flags[$i] = $level <= $min;              // 最上層科目(目)計入;其下次／節不再另計。
+            $runningMin[$key] = min($min, $level);
+        }
+
+        return $flags;
     }
 
     /**

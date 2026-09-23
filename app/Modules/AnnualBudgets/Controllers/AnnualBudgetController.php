@@ -673,14 +673,16 @@ final class AnnualBudgetController extends Controller
         $rateByCurrent = static fn (float $current, float $previous): float =>
             $current != 0.0 ? round((($current - $previous) / $current) * 100, 2) : 0.0;
 
-        foreach ($items as $item) {
+        // 加總以各分類最上層科目(目)為準,其下之次／節為明細拆解不再另計(避免重複)。
+        $items = array_values($items);
+        $counted = BudgetSummary::countedFlags($items);
+
+        foreach ($items as $idx => $item) {
             $type = $item['item_type'] === 'expense' ? 'expense' : 'income';
             $current = (float) $item['amount'];
             $previous = (float) ($item['previous_amount'] ?? 0);
 
-            // 小計／合計列僅供顯示,金額為其子項之和,不再計入區段與分類加總(避免重複計算)。
-            $isSubtotal = !empty($item['is_subtotal']);
-            if (!$isSubtotal) {
+            if ($counted[$idx]) {
                 $summary[$type]['current'] += $current;
                 $summary[$type]['previous'] += $previous;
             }
@@ -697,7 +699,7 @@ final class AnnualBudgetController extends Controller
 
             $item['variance_amount'] = $current - $previous;
             $item['variance_rate'] = $rateByCurrent($current, $previous);
-            if (!$isSubtotal) {
+            if ($counted[$idx]) {
                 $summary['groups'][$type][$groupKey]['current'] += $current;
                 $summary['groups'][$type][$groupKey]['previous'] += $previous;
             }

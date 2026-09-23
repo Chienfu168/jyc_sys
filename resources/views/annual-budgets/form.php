@@ -243,6 +243,10 @@ function budgetLineType(line) {
     const t = line.querySelector('[data-budget-field="item_type"]');
     return (t && t.value === 'income') ? 'income' : 'expense';
 }
+function budgetLineCategory(line) {
+    const c = line.querySelector('[data-budget-field="category"]');
+    return (c && c.value.trim()) ? c.value.trim() : '未分類';
+}
 function budgetLineAmountInputs(line) {
     return {
         amount: line.querySelector('[data-budget-field="amount"]'),
@@ -286,13 +290,14 @@ function setSubtotalReadonly(line, isSubtotal, prevManual) {
 //  - 僅「勾選」小計 / 合計列才自動加總,並將本年度金額欄設為唯讀;未勾選之列一律可編輯。
 //  - 勾選列若下一列層級較深(上層科目):本年度 = 其子樹內未勾選明細(葉節點)之和。
 //  - 勾選列若無較深子項(獨立小計列):本年度 = 其上方直到上一勾選列前之同類明細之和。
-//  - 上年度預算(previous)永遠可編輯,不自動加總、不覆寫。
-// 底部「本年度合計」footer 排除所有勾選之小計 / 合計列。
+//  - 上年度預算(previous)自行輸入者保留,否則同步加總。
+// 底部合計以各分類最上層科目(目)為準,其下次／節不再另計(與後端 countedFlags 一致)。
 function recalcBudgetTotals() {
     const lines = Array.prototype.slice.call(document.querySelectorAll('#budget-lines .budget-line'));
     const info = lines.map((line) => ({
         line: line,
         type: budgetLineType(line),
+        cat: budgetLineCategory(line),
         level: budgetLineLevel(line),
         sub: budgetLineIsSubtotal(line),
         prevManual: budgetLinePrevManual(line),
@@ -325,9 +330,20 @@ function recalcBudgetTotals() {
         if (row.io.previous && !row.prevManual) { row.io.previous.value = p ? String(p) : '0'; }
     });
 
+    // 合計以各分類最上層科目(目)為準:群內層級最淺者計入,其下次／節不再另計。
     let inc = 0, exp = 0;
+    const runningMin = {};
     info.forEach((row) => {
-        if (row.sub) { return; } // 合計排除勾選之小計 / 合計列。
+        let counted;
+        if (row.level === 0) {
+            counted = !row.sub; // 無階層:平列小計不計入,其餘計入。
+        } else {
+            const key = row.type + '|' + row.cat;
+            const min = (key in runningMin) ? runningMin[key] : Infinity;
+            counted = row.level <= min;
+            runningMin[key] = Math.min(min, row.level);
+        }
+        if (!counted) { return; }
         const a = val(row.io.amount);
         if (row.type === 'income') { inc += a; } else { exp += a; }
     });

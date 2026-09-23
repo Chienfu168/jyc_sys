@@ -58,6 +58,45 @@ final class BudgetSummaryTest extends TestCase
         $this->assertSame(3400.0, $totals['previous_expense']);
     }
 
+    public function test_totals_count_top_level_subject_not_deepest_leaves(): void
+    {
+        // 依主管機關格式,加總以各分類最上層科目(目)為準;其下之次/節為明細拆解不再另計。
+        // 上層科目採自行輸入之上年度數(本年度未編列而上年度有的項目)亦須正確計入合計。
+        $items = [
+            // 業務活動費用(目,小計):本年度自動加總 3,900,000;上年度自行輸入 4,571,000。
+            ['item_type' => 'expense', 'category' => '業務費', 'gov_level3' => '1', 'is_subtotal' => 1, 'previous_is_manual' => 1, 'amount' => 3900000, 'previous_amount' => 4571000],
+            // 其下之次(明細,上年度為 0)——不應另計。
+            ['item_type' => 'expense', 'category' => '業務費', 'gov_level4' => '1', 'amount' => 960000, 'previous_amount' => 0],
+            ['item_type' => 'expense', 'category' => '業務費', 'gov_level4' => '2', 'amount' => 1240000, 'previous_amount' => 0],
+            ['item_type' => 'expense', 'category' => '業務費', 'gov_level4' => '3', 'amount' => 1700000, 'previous_amount' => 0],
+            // 同層其他目(葉)。
+            ['item_type' => 'expense', 'category' => '業務費', 'gov_level3' => '2', 'amount' => 1000000, 'previous_amount' => 0],
+            ['item_type' => 'expense', 'category' => '業務費', 'gov_level3' => '3', 'amount' => 150000, 'previous_amount' => 150000],
+            ['item_type' => 'expense', 'category' => '業務費', 'gov_level3' => '4', 'amount' => 100000, 'previous_amount' => 100000],
+        ];
+
+        $totals = BudgetSummary::totals($items);
+
+        // 計入:業務活動費用 + 三個目(葉),次不另計。
+        $this->assertSame(5150000.0, $totals['expense']);          // 3,900,000+1,000,000+150,000+100,000
+        $this->assertSame(4821000.0, $totals['previous_expense']); // 4,571,000(自行輸入)+0+150,000+100,000
+    }
+
+    public function test_counted_flags_mark_top_level_and_flat_details(): void
+    {
+        $items = [
+            ['item_type' => 'expense', 'category' => '業務費', 'gov_level3' => '1', 'is_subtotal' => 1], // 0 目:計入
+            ['item_type' => 'expense', 'category' => '業務費', 'gov_level4' => '1'],                     // 1 次:不計
+            ['item_type' => 'expense', 'category' => '業務費', 'gov_level3' => '2'],                     // 2 目:計入
+            ['item_type' => 'income', 'amount' => 100],                                                  // 3 無階層明細:計入
+            ['item_type' => 'income', 'amount' => 100, 'is_subtotal' => 1],                              // 4 無階層平列小計:不計
+        ];
+
+        $flags = BudgetSummary::countedFlags($items);
+
+        $this->assertSame([true, false, true, true, false], $flags);
+    }
+
     public function test_execution_totals_budget_actual_and_rates(): void
     {
         $items = [
