@@ -56,13 +56,17 @@ $printScaleSelector = $printScaleSelector ?? '.print-scale-root';
         if (sel !== 'auto') { return parseFloat(sel) || 1; }
         var d = dims(bar.querySelector('.po-paper').value, bar.querySelector('.po-orient').value);
         var contentPx = (d.w - 24) * 96 / 25.4; // 扣除上下左右各 12mm 邊界
+        // 以表格本身的寬度為基準(非容器/視窗寬度),縮放才穩定:A4 縮至符合、A3 放大填滿。
         var natural = 0;
         targets().forEach(function (el) {
             el.querySelectorAll('table').forEach(function (t) { natural = Math.max(natural, t.scrollWidth); });
-            natural = Math.max(natural, el.scrollWidth);
         });
+        if (!natural) {
+            targets().forEach(function (el) { natural = Math.max(natural, el.scrollWidth); });
+        }
         if (!natural) { return 1; }
-        return Math.max(0.5, Math.min(1, contentPx / natural));
+        // 自動符合紙張寬度:窄紙(A4)適度縮小,寬紙(A3)則放大填滿,字體不致偏小。
+        return Math.max(0.55, Math.min(1.6, contentPx / natural));
     }
     function applyZoom(z) { targets().forEach(function (el) { el.style.zoom = z; }); }
     function resetZoom() { targets().forEach(function (el) { el.style.zoom = ''; }); }
