@@ -1856,6 +1856,28 @@ textarea:focus {
     border-bottom: 1px solid #000000;
 }
 
+/* 開會通知:此致／受文者、董事長署名、日期。 */
+.bm-notice-closing {
+    margin-top: 20px;
+    font-size: 16px;
+    line-height: 1.9;
+}
+
+.bm-notice-recipient {
+    font-weight: 700;
+    margin-left: 1.5em;
+}
+
+.bm-notice-sign {
+    margin-top: 18px;
+}
+
+.bm-notice-date {
+    margin-top: 26px;
+    text-align: center;
+    font-size: 16px;
+}
+
 .bm-signin-meta {
     margin: 16px 0 12px;
     font-size: 15px;
