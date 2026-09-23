@@ -3314,6 +3314,56 @@ textarea:focus {
         padding: 6px 5px;
     }
 
+    /* 表頭欄位置中:水平與垂直皆置中。 */
+    .statement-table thead th {
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    /* 表頭抬頭列:跨頁時 thead 會於每頁重複顯示(含抬頭與欄位標頭)。 */
+    .statement-table thead {
+        display: table-header-group;
+    }
+
+    .statement-table tr.statement-heading {
+        display: table-row;
+    }
+
+    .statement-table tr.statement-heading th {
+        border: 0;
+        padding: 0 4px 10px;
+    }
+
+    .statement-heading-inner {
+        text-align: center;
+    }
+
+    /* 抬頭文字放大:基金會名稱、預算表、年度。 */
+    .statement-heading-inner .sh-foundation {
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        margin-bottom: 4px;
+    }
+
+    .statement-heading-inner .sh-report {
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 3px;
+    }
+
+    .statement-heading-inner .sh-year {
+        font-size: 15px;
+        font-weight: 600;
+    }
+
+    .statement-heading-inner .sh-unit {
+        text-align: right;
+        font-size: 12px;
+        color: #333333;
+        margin-top: 4px;
+    }
+
     .signature-grid {
         grid-template-columns: repeat(4, minmax(120px, 1fr));
         gap: 14px;
