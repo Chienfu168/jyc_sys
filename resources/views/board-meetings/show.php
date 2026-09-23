@@ -11,6 +11,7 @@ ob_start();
         </div>
         <div class="actions">
             <a class="btn" href="/board-meetings">返回列表</a>
+            <a class="btn" href="/board-meetings/<?= e((string) $meeting['id']) ?>/print?type=notice">列印開會通知</a>
             <a class="btn" href="/board-meetings/<?= e((string) $meeting['id']) ?>/print?type=agenda">列印議程</a>
             <a class="btn" href="/board-meetings/<?= e((string) $meeting['id']) ?>/print?type=minutes">列印會議紀錄</a>
             <a class="btn" href="/board-meetings/<?= e((string) $meeting['id']) ?>/print?type=signin">列印簽到表</a>

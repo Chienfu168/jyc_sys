@@ -186,7 +186,7 @@ final class BoardMeetingController extends Controller
         $this->requirePermission('board_meetings.view');
 
         $meeting = $this->findMeeting((int) $id);
-        $type = in_array(($_GET['type'] ?? ''), ['agenda', 'minutes', 'signin'], true) ? (string) $_GET['type'] : 'minutes';
+        $type = in_array(($_GET['type'] ?? ''), ['agenda', 'minutes', 'signin', 'notice'], true) ? (string) $_GET['type'] : 'minutes';
 
         $this->render('board-meetings.print', [
             'title' => MeetingLabel::sessionTitle((int) $meeting['term_no'], (int) $meeting['session_no']),

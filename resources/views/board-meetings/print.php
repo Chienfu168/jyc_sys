@@ -1,6 +1,8 @@
 <?php
 $active = 'board-meetings';
-$documentTitle = $type === 'agenda' ? '董事會議議程' : ($type === 'signin' ? '董事會議簽到表' : '董事會議紀錄');
+$documentTitle = $type === 'agenda' ? '董事會議議程'
+    : ($type === 'signin' ? '董事會議簽到表'
+    : ($type === 'notice' ? '董事會議開會通知' : '董事會議紀錄'));
 $sessionTitle = \App\Domain\BoardMeetings\MeetingLabel::sessionTitle((int) $meeting['term_no'], (int) $meeting['session_no']);
 $foundationName = $profile['foundation_name'] ?? foundation_name();
 $directors = array_values(array_filter($attendees, static fn (array $a): bool => $a['role'] === 'director'));
@@ -26,6 +28,7 @@ ob_start();
         </div>
         <div class="actions">
             <a class="btn" href="/board-meetings/<?= e((string) $meeting['id']) ?>">返回明細</a>
+            <a class="btn" href="?type=notice">開會通知版</a>
             <a class="btn" href="?type=agenda">議程版</a>
             <a class="btn" href="?type=minutes">會議紀錄版</a>
             <a class="btn" href="?type=signin">簽到表</a>
@@ -58,6 +61,51 @@ ob_start();
             <?php endfor; ?>
             </tbody>
         </table>
+    </article>
+<?php elseif ($type === 'notice'): ?>
+    <?php
+    $noticeContact = trim(((string) ($profile['undertaker'] ?? '')) . '　' . ((string) ($profile['phone'] ?? '')));
+    $noticeChair = $meeting['chairperson'] ?: (($profile['representative'] ?? '') ?: '董事長');
+    ?>
+    <article class="board-meeting-print bm-notice">
+        <h2 class="bm-doc-title">開會通知</h2>
+        <h3 class="bm-doc-subtitle"><?= e($foundationName) ?></h3>
+        <h3 class="bm-doc-subtitle"><?= e($sessionTitle) ?></h3>
+
+        <ol class="bm-body">
+            <li>受文者：全體董事</li>
+            <li>開會事由：召開<?= e($sessionTitle) ?></li>
+            <li>開會時間：<?= e(roc_date($meeting['meeting_date'])) ?><?= $meeting['meeting_time'] !== null && $meeting['meeting_time'] !== '' ? '　' . e($meeting['meeting_time']) : '' ?></li>
+            <li>開會地點：<?= e($meeting['location'] ?: '　　　　') ?></li>
+            <li>主持人：<?= e($noticeChair) ?></li>
+            <li>出席者：全體董事</li>
+            <?php if ($observers): ?>
+                <li>列席者：<?= e(implode('、', array_column($observers, 'name'))) ?></li>
+            <?php endif; ?>
+            <li>聯絡人及電話：<?= $noticeContact !== '' ? e($noticeContact) : '　　　　' ?></li>
+            <li>
+                會議議程（討論事項）：
+                <?php if ($agendaItems): ?>
+                    <div class="bm-multiline">
+                        <?php foreach ($agendaItems as $index => $item): ?>
+                            案由<?= e(board_meeting_case_no($index + 1)) ?>：<?= e($item['subject'] ?: '（未定）') ?><br>
+                        <?php endforeach; ?>
+                    </div>
+                <?php else: ?>
+                    （詳如所附議程）
+                <?php endif; ?>
+            </li>
+            <li>備　註：請　準時出席；如不克出席，請提前告知或委託其他董事代理出席。</li>
+        </ol>
+
+        <div class="bm-notice-closing">
+            <div class="bm-notice-salutation">此致</div>
+            <div class="bm-notice-recipient">全體董事</div>
+        </div>
+        <div class="bm-signatures bm-notice-sign">
+            <div class="bm-signature-line">董事長：<?= e((string) ($profile['representative'] ?? '')) ?>　<span class="bm-signature-space"></span></div>
+        </div>
+        <p class="bm-notice-date">中華民國　　年　　月　　日</p>
     </article>
 <?php else: ?>
     <?php
