@@ -23,16 +23,20 @@ ob_start();
         </div>
     </div>
 
-    <div class="statement-title print-only">
-        <h2><?= e($profile['foundation_name'] ?? foundation_name()) ?></h2>
-        <h3>經費預算表</h3>
-        <p>中華民國<?= e((string) roc_year($budget['fiscal_year'])) ?>年度</p>
-        <span class="statement-unit">單位：新臺幣元</span>
-    </div>
-
     <div class="table-wrap">
         <table class="data-table statement-table">
             <thead>
+            <!-- 抬頭置於表頭:跨頁時每頁自動重複顯示(僅列印顯示,畫面上方另有標題)。 -->
+            <tr class="statement-heading print-only">
+                <th colspan="11">
+                    <div class="statement-heading-inner">
+                        <div class="sh-foundation"><?= e($profile['foundation_name'] ?? foundation_name()) ?></div>
+                        <div class="sh-report">經費預算表</div>
+                        <div class="sh-year">中華民國<?= e((string) roc_year($budget['fiscal_year'])) ?>年度</div>
+                        <div class="sh-unit">單位：新臺幣元</div>
+                    </div>
+                </th>
+            </tr>
             <tr>
                 <th rowspan="2">款</th>
                 <th rowspan="2">項</th>
