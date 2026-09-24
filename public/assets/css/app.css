@@ -1856,26 +1856,122 @@ textarea:focus {
     border-bottom: 1px solid #000000;
 }
 
-/* 開會通知:此致／受文者、董事長署名、日期。 */
-.bm-notice-closing {
-    margin-top: 20px;
-    font-size: 16px;
-    line-height: 1.9;
+/* 開會通知(主管機關公文式):抬頭、機關資訊、公文欄位、說明階層條列、署名。 */
+.bm-notice-head {
+    text-align: center;
+    margin-bottom: 6px;
 }
 
-.bm-notice-recipient {
+.bm-notice-org {
+    font-size: 25px;
     font-weight: 700;
-    margin-left: 1.5em;
+    letter-spacing: 2px;
+    margin: 0 0 4px;
+}
+
+.bm-notice-kind {
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: 8px;
+    margin: 0;
+}
+
+.bm-notice-orginfo {
+    text-align: right;
+    font-size: 14px;
+    line-height: 1.75;
+    margin: 4px 0 12px;
+}
+
+.bm-notice-fields {
+    font-size: 16px;
+    line-height: 1.95;
+}
+
+.bm-nf-label,
+.bm-nf-label2 {
+    display: inline-block;
+    min-width: 4.5em;
+}
+
+.bm-nf-strong {
+    font-weight: 700;
+}
+
+.bm-notice-explain-label {
+    font-size: 16px;
+    margin-top: 2px;
+}
+
+.bm-notice-ol,
+.bm-notice-ol-cn,
+.bm-notice-ol-num {
+    list-style: none;
+    padding-left: 0;
+    margin: 2px 0;
+    font-size: 16px;
+    line-height: 1.95;
+}
+
+.bm-notice-ol { counter-reset: bmcn; }
+.bm-notice-ol > li {
+    counter-increment: bmcn;
+    position: relative;
+    padding-left: 2.6em;
+    margin: 2px 0;
+}
+.bm-notice-ol > li::before {
+    content: counter(bmcn, cjk-ideographic) '、';
+    position: absolute;
+    left: 0;
+}
+
+.bm-notice-ol-cn { counter-reset: bmcncn; margin-top: 2px; }
+.bm-notice-ol-cn > li {
+    counter-increment: bmcncn;
+    position: relative;
+    padding-left: 2.4em;
+}
+.bm-notice-ol-cn > li::before {
+    content: '（' counter(bmcncn, cjk-ideographic) '）';
+    position: absolute;
+    left: 0;
+}
+
+.bm-notice-ol-num { counter-reset: bmnum; margin-top: 2px; }
+.bm-notice-ol-num > li {
+    counter-increment: bmnum;
+    position: relative;
+    padding-left: 2.2em;
+}
+.bm-notice-ol-num > li::before {
+    content: counter(bmnum) '.';
+    position: absolute;
+    left: 0.4em;
+}
+
+.bm-notice-meta {
+    font-size: 16px;
+    line-height: 1.95;
+    margin-top: 8px;
 }
 
 .bm-notice-sign {
-    margin-top: 18px;
+    margin-top: 34px;
+    padding-left: 1em;
 }
 
-.bm-notice-date {
-    margin-top: 26px;
-    text-align: center;
-    font-size: 16px;
+.bm-notice-sign-title {
+    font-size: 18px;
+    vertical-align: middle;
+    margin-right: 0.5em;
+}
+
+.bm-notice-sign-name {
+    font-size: 40px;
+    font-weight: 700;
+    letter-spacing: 8px;
+    vertical-align: middle;
 }
 
 .bm-signin-meta {
