@@ -1876,16 +1876,19 @@ textarea:focus {
     margin: 0;
 }
 
+/* 通訊資料:字型縮小、置左對齊,左側適當留白。 */
 .bm-notice-orginfo {
-    text-align: right;
-    font-size: 14px;
-    line-height: 1.75;
-    margin: 4px 0 12px;
+    text-align: left;
+    font-size: 12px;
+    line-height: 1.4;
+    color: #333333;
+    margin: 2px 0 10px;
+    padding-left: 0.5em;
 }
 
 .bm-notice-fields {
     font-size: 16px;
-    line-height: 1.95;
+    line-height: 1.6;
 }
 
 .bm-nf-label,
@@ -1910,7 +1913,7 @@ textarea:focus {
     padding-left: 0;
     margin: 2px 0;
     font-size: 16px;
-    line-height: 1.95;
+    line-height: 1.55;
 }
 
 .bm-notice-ol { counter-reset: bmcn; }
@@ -1918,7 +1921,7 @@ textarea:focus {
     counter-increment: bmcn;
     position: relative;
     padding-left: 2.6em;
-    margin: 2px 0;
+    margin: 1px 0;
 }
 .bm-notice-ol > li::before {
     content: counter(bmcn, cjk-ideographic) '、';
@@ -1952,8 +1955,8 @@ textarea:focus {
 
 .bm-notice-meta {
     font-size: 16px;
-    line-height: 1.95;
-    margin-top: 8px;
+    line-height: 1.55;
+    margin-top: 6px;
 }
 
 .bm-notice-sign {
