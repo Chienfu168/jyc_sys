@@ -1863,27 +1863,27 @@ textarea:focus {
 }
 
 .bm-notice-org {
-    font-size: 25px;
+    font-size: 27px;
     font-weight: 700;
     letter-spacing: 2px;
     margin: 0 0 4px;
 }
 
 .bm-notice-kind {
-    font-size: 19px;
+    font-size: 21px;
     font-weight: 700;
     letter-spacing: 8px;
     margin: 0;
 }
 
-/* 通訊資料:字型縮小、置左對齊,左側適當留白。 */
+/* 通訊資料:字型縮小(10pt)、文字置左對齊,整塊置於右半(對照公文範本縮排)。 */
 .bm-notice-orginfo {
     text-align: left;
-    font-size: 12px;
+    font-size: 13px;
     line-height: 1.4;
     color: #333333;
     margin: 2px 0 10px;
-    padding-left: 0.5em;
+    margin-left: 50%;
 }
 
 .bm-notice-fields {
@@ -1960,21 +1960,21 @@ textarea:focus {
 }
 
 .bm-notice-sign {
-    margin-top: 34px;
-    padding-left: 1em;
+    margin-top: 22px;
+    padding-left: 0.5em;
 }
 
 .bm-notice-sign-title {
-    font-size: 18px;
-    vertical-align: middle;
-    margin-right: 0.5em;
+    font-size: 17px;
+    vertical-align: baseline;
+    margin-right: 0.6em;
 }
 
 .bm-notice-sign-name {
-    font-size: 40px;
+    font-size: 26px;
     font-weight: 700;
-    letter-spacing: 8px;
-    vertical-align: middle;
+    letter-spacing: 6px;
+    vertical-align: baseline;
 }
 
 .bm-signin-meta {
