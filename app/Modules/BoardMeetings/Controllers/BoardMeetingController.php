@@ -72,9 +72,9 @@ final class BoardMeetingController extends Controller
 
         Database::pdo()->prepare(
             'INSERT INTO board_meetings
-             (term_no, session_no, meeting_date, meeting_time, location, chairperson, recorder, chair_remarks, report_items, extempore_motions, attachments, status, notes, created_by, created_at, updated_at)
+             (term_no, session_no, meeting_date, meeting_time, location, chairperson, recorder, chair_remarks, report_items, extempore_motions, attachments, notice_doc_no, notice_issue_date, notice_extra, status, notes, created_by, created_at, updated_at)
              VALUES
-             (:term_no, :session_no, :meeting_date, :meeting_time, :location, :chairperson, :recorder, :chair_remarks, :report_items, :extempore_motions, :attachments, :status, :notes, :created_by, :created_at, :updated_at)'
+             (:term_no, :session_no, :meeting_date, :meeting_time, :location, :chairperson, :recorder, :chair_remarks, :report_items, :extempore_motions, :attachments, :notice_doc_no, :notice_issue_date, :notice_extra, :status, :notes, :created_by, :created_at, :updated_at)'
         )->execute($this->payload() + [
             'created_by' => auth()->user()['id'] ?? null,
             'created_at' => now(),
@@ -146,6 +146,9 @@ final class BoardMeetingController extends Controller
                  report_items = :report_items,
                  extempore_motions = :extempore_motions,
                  attachments = :attachments,
+                 notice_doc_no = :notice_doc_no,
+                 notice_issue_date = :notice_issue_date,
+                 notice_extra = :notice_extra,
                  status = :status,
                  notes = :notes,
                  updated_at = :updated_at
@@ -484,6 +487,9 @@ final class BoardMeetingController extends Controller
             'report_items' => trim((string) ($_POST['report_items'] ?? '')),
             'extempore_motions' => trim((string) ($_POST['extempore_motions'] ?? '')),
             'attachments' => trim((string) ($_POST['attachments'] ?? '')),
+            'notice_doc_no' => $this->nullableText('notice_doc_no'),
+            'notice_issue_date' => preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) ($_POST['notice_issue_date'] ?? '')) ? (string) $_POST['notice_issue_date'] : null,
+            'notice_extra' => trim((string) ($_POST['notice_extra'] ?? '')),
             'status' => in_array($_POST['status'] ?? '', ['draft', 'confirmed'], true) ? (string) $_POST['status'] : 'draft',
             'notes' => trim((string) ($_POST['notes'] ?? '')),
         ];

@@ -107,6 +107,24 @@ ob_start();
     </details>
 
     <details class="form-section">
+        <summary>開會通知(選填)</summary>
+        <div class="grid-form">
+            <label>
+                <span>發文字號<small class="field-hint">（留空自動產生，如 游議字第1150415001號）</small></span>
+                <input type="text" name="notice_doc_no" value="<?= e((string) old('notice_doc_no', $meeting['notice_doc_no'] ?? '')) ?>">
+            </label>
+            <label>
+                <span>發文日期<small class="field-hint">（留空則以列印當日）</small></span>
+                <input type="date" name="notice_issue_date" value="<?= e((string) old('notice_issue_date', $meeting['notice_issue_date'] ?? '')) ?>">
+            </label>
+            <label class="span-2">
+                <span>其他說明事項<small class="field-hint">（開會通知「說明」附加條列，如餐敘安排，每行一項）</small></span>
+                <textarea name="notice_extra" rows="2"><?= e((string) old('notice_extra', $meeting['notice_extra'] ?? '')) ?></textarea>
+            </label>
+        </div>
+    </details>
+
+    <details class="form-section">
         <summary>狀態與備註(選填)</summary>
         <div class="grid-form">
             <label>
