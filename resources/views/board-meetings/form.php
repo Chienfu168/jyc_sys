@@ -117,6 +117,19 @@ ob_start();
                 <span>發文日期<small class="field-hint">（留空則以列印當日）</small></span>
                 <input type="date" name="notice_issue_date" value="<?= e((string) old('notice_issue_date', $meeting['notice_issue_date'] ?? '')) ?>">
             </label>
+            <label>
+                <span>通訊地址來源<small class="field-hint">（預設為通訊地址）</small></span>
+                <?php $noticeAddrMode = old('notice_address_mode', $meeting['notice_address_mode'] ?? 'mailing'); ?>
+                <select name="notice_address_mode">
+                    <option value="mailing" <?= $noticeAddrMode === 'mailing' ? 'selected' : '' ?>>通訊地址（基金會通訊地址）</option>
+                    <option value="registered" <?= $noticeAddrMode === 'registered' ? 'selected' : '' ?>>登記地址（基金會登記地址）</option>
+                    <option value="custom" <?= $noticeAddrMode === 'custom' ? 'selected' : '' ?>>自訂地址（下方輸入）</option>
+                </select>
+            </label>
+            <label>
+                <span>自訂地址<small class="field-hint">（選擇「自訂地址」時使用）</small></span>
+                <input type="text" name="notice_address_custom" value="<?= e((string) old('notice_address_custom', $meeting['notice_address_custom'] ?? '')) ?>">
+            </label>
             <label class="span-2">
                 <span>其他說明事項<small class="field-hint">（開會通知「說明」附加條列，如餐敘安排，每行一項）</small></span>
                 <textarea name="notice_extra" rows="2"><?= e((string) old('notice_extra', $meeting['notice_extra'] ?? '')) ?></textarea>

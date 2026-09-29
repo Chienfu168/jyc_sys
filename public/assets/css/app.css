@@ -1880,7 +1880,7 @@ textarea:focus {
 .bm-notice-orginfo {
     text-align: left;
     font-size: 13px;
-    line-height: 1.4;
+    line-height: 1.5;
     color: #333333;
     margin: 2px 0 10px;
     margin-left: 50%;
@@ -1888,13 +1888,34 @@ textarea:focus {
 
 .bm-notice-fields {
     font-size: 16px;
-    line-height: 1.6;
+    line-height: 1.75;
+}
+
+/* 欄位列以 flex 排列:標籤定寬、冒號定寬、內容左右對齊一致;內容換行時對齊
+   於內容起始處(懸掛縮排),不會退回標籤下方,整體左右對齊整齊。 */
+.bm-nf {
+    display: flex;
+    align-items: baseline;
 }
 
 .bm-nf-label,
 .bm-nf-label2 {
-    display: inline-block;
-    min-width: 4.5em;
+    flex: 0 0 auto;
+    width: 4.5em;
+}
+
+.bm-nf-colon {
+    flex: 0 0 auto;
+    width: 1em;
+}
+
+.bm-nf-content {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.bm-notice-orginfo .bm-nf-label2 {
+    width: 3.6em;
 }
 
 .bm-nf-strong {
@@ -1975,6 +1996,13 @@ textarea:focus {
     font-weight: 700;
     letter-spacing: 6px;
     vertical-align: baseline;
+}
+
+/* 署名放大 1 倍以上並改為藍色,凸顯董事長親簽位置。 */
+.bm-notice-sign-blue {
+    font-size: 56px;
+    color: #1a3d8f;
+    letter-spacing: 8px;
 }
 
 .bm-signin-meta {
