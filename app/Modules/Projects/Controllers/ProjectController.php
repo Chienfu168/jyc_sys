@@ -249,7 +249,7 @@ final class ProjectController extends Controller
     {
         $this->requirePermission('projects.manage');
         $project = $this->findProject((int) $id);
-        $this->validateCourse('/projects/' . $id . '/courses/create');
+        $this->validateCourse('/projects/' . $id . '/courses/create', (int) $project['id']);
 
         Database::pdo()->prepare(
             'INSERT INTO project_courses
@@ -288,7 +288,7 @@ final class ProjectController extends Controller
         $this->requirePermission('projects.manage');
         $project = $this->findProject((int) $id);
         $this->findCourse((int) $project['id'], (int) $courseId);
-        $this->validateCourse('/projects/' . $id . '/courses/' . $courseId . '/edit');
+        $this->validateCourse('/projects/' . $id . '/courses/' . $courseId . '/edit', (int) $project['id'], (int) $courseId);
 
         Database::pdo()->prepare(
             'UPDATE project_courses
@@ -661,7 +661,7 @@ final class ProjectController extends Controller
         return $course;
     }
 
-    private function validateCourse(string $path): void
+    private function validateCourse(string $path, int $projectId, ?int $ignoreCourseId = null): void
     {
         if ($error = Validator::required($_POST, [
             'school_name' => '學校',
@@ -669,6 +669,26 @@ final class ProjectController extends Controller
             'semester_label' => '學年度＋學期',
         ])) {
             $this->backWithInput($path, $_POST, $error);
+        }
+
+        // 同一專案(學校)、同一學年度＋學期,不可有相同課程名稱重複(對應資料庫唯一鍵),
+        // 提前檢查以顯示可理解的錯誤訊息,避免資料庫例外訊息直接呈現給使用者。
+        $sql = 'SELECT id FROM project_courses
+                WHERE project_id = :project_id AND semester_label = :semester_label AND course_name = :course_name';
+        $params = [
+            'project_id' => $projectId,
+            'semester_label' => trim((string) $_POST['semester_label']),
+            'course_name' => trim((string) $_POST['course_name']),
+        ];
+        if ($ignoreCourseId !== null) {
+            $sql .= ' AND id != :ignore_id';
+            $params['ignore_id'] = $ignoreCourseId;
+        }
+        $sql .= ' LIMIT 1';
+        $stmt = Database::pdo()->prepare($sql);
+        $stmt->execute($params);
+        if ($stmt->fetchColumn()) {
+            $this->backWithInput($path, $_POST, '該學年度＋學期已有相同名稱的課程,請確認是否重複,或修改課程名稱／學期後再試一次。');
         }
     }
 
