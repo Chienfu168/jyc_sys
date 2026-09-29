@@ -136,6 +136,7 @@ ob_start();
         </table>
     </div>
 
+    <?php $canManageActivities = \App\Core\Permission::can('activities.manage'); ?>
     <div class="table-wrap">
         <table>
             <thead>
@@ -146,6 +147,7 @@ ob_start();
                 <th>地點</th>
                 <th class="amount">志工時數</th>
                 <th>狀態</th>
+                <?php if ($canManageActivities): ?><th class="no-print">操作</th><?php endif; ?>
             </tr>
             </thead>
             <tbody>
@@ -160,10 +162,20 @@ ob_start();
                     <td><?= e($activity['location'] ?: '-') ?></td>
                     <td class="amount"><?= e(number_format((float) $activity['volunteer_hours'], 2)) ?></td>
                     <td><?= e(project_show_activity_status_label($activity['status'])) ?></td>
+                    <?php if ($canManageActivities): ?>
+                        <td class="actions no-print">
+                            <a class="btn small" href="/activities/<?= e((string) $activity['id']) ?>/edit">編輯</a>
+                            <form method="post" action="/activities/<?= e((string) $activity['id']) ?>/delete" onsubmit="return confirm('確定要刪除此週次活動？將一併刪除報名、成果與附件紀錄，此操作無法復原。');">
+                                <?= csrf_field() ?>
+                                <input type="hidden" name="redirect_to" value="/projects/<?= e((string) $project['id']) ?>">
+                                <button class="btn small" type="submit">刪除</button>
+                            </form>
+                        </td>
+                    <?php endif; ?>
                 </tr>
             <?php endforeach; ?>
             <?php if (!$activities): ?>
-                <tr><td colspan="6" class="empty">尚無連結活動。</td></tr>
+                <tr><td colspan="<?= $canManageActivities ? 7 : 6 ?>" class="empty">尚無連結活動。</td></tr>
             <?php endif; ?>
             </tbody>
         </table>
