@@ -181,7 +181,65 @@ ob_start();
         </table>
     </div>
 
-    <?php if (\App\Core\Permission::can('projects.manage')): ?>
+    <?php $canManageProject = \App\Core\Permission::can('projects.manage'); ?>
+    <section class="panel subtle" style="margin-top:18px;">
+        <div class="panel-header">
+            <div>
+                <h3 style="margin:0;">合作學校課程</h3>
+                <p class="muted-text">如深耕教育計畫各校課程;校長、負責主任、授課老師或固定上課日若尚未確認可留空,待核實後再補上,不代表資料不存在。</p>
+            </div>
+            <?php if ($canManageProject): ?>
+                <div class="actions no-print">
+                    <a class="btn small primary" href="/projects/<?= e((string) $project['id']) ?>/courses/create">新增課程</a>
+                </div>
+            <?php endif; ?>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                <tr>
+                    <th>學校</th>
+                    <th>課程名稱</th>
+                    <th>授課老師</th>
+                    <th>校長</th>
+                    <th>負責主任</th>
+                    <th>每週幾</th>
+                    <th>學年度＋學期</th>
+                    <th>備註</th>
+                    <?php if ($canManageProject): ?><th class="no-print">操作</th><?php endif; ?>
+                </tr>
+                </thead>
+                <tbody>
+                <?php foreach ($courses as $course): ?>
+                    <tr>
+                        <td><?= e($course['school_name']) ?></td>
+                        <td><?= e($course['course_name']) ?></td>
+                        <td><?= e($course['teacher_name'] ?: '-') ?></td>
+                        <td><?= e($course['principal_name'] ?: '-') ?></td>
+                        <td><?= e($course['director_name'] ?: '-') ?></td>
+                        <td><?= e($course['weekday'] ?: '-') ?></td>
+                        <td><?= e($course['semester_label']) ?></td>
+                        <td class="muted-text"><?= e($course['notes'] ?: '-') ?></td>
+                        <?php if ($canManageProject): ?>
+                            <td class="actions no-print">
+                                <a class="btn small" href="/projects/<?= e((string) $project['id']) ?>/courses/<?= e((string) $course['id']) ?>/edit">編輯</a>
+                                <form method="post" action="/projects/<?= e((string) $project['id']) ?>/courses/<?= e((string) $course['id']) ?>/delete" onsubmit="return confirm('確定要刪除此課程？此操作無法復原。');">
+                                    <?= csrf_field() ?>
+                                    <button class="btn small" type="submit">刪除</button>
+                                </form>
+                            </td>
+                        <?php endif; ?>
+                    </tr>
+                <?php endforeach; ?>
+                <?php if (!$courses): ?>
+                    <tr><td colspan="<?= $canManageProject ? 9 : 8 ?>" class="empty">尚無合作學校課程。</td></tr>
+                <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <?php if ($canManageProject): ?>
         <section class="panel subtle no-print" style="margin-top:18px;">
             <div class="panel-header">
                 <div>
