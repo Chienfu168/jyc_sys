@@ -75,7 +75,15 @@ ob_start();
     $weekday = '（星期' . ['日', '一', '二', '三', '四', '五', '六'][(int) date('w', $meetTs)] . '）';
     $meetDateRoc = str_replace('中華民國', '民國', roc_date($meeting['meeting_date']));
     $meetTime = ($meeting['meeting_time'] ?? '') !== '' ? (string) $meeting['meeting_time'] : '';
-    $noticeAddr = trim((string) ($profile['address'] ?? '')) ?: trim((string) ($profile['mailing_address'] ?? ''));
+    // 地址來源:預設「通訊地址」,可於編輯會議時改選登記地址或自訂地址。
+    $noticeAddrMode = (string) ($meeting['notice_address_mode'] ?? 'mailing');
+    $mailingAddr = trim((string) ($profile['mailing_address'] ?? ''));
+    $registeredAddr = trim((string) ($profile['address'] ?? ''));
+    $noticeAddr = match ($noticeAddrMode) {
+        'registered' => $registeredAddr ?: $mailingAddr,
+        'custom' => trim((string) ($meeting['notice_address_custom'] ?? '')) ?: ($mailingAddr ?: $registeredAddr),
+        default => $mailingAddr ?: $registeredAddr,
+    };
     $noticePhone = trim((string) ($profile['phone'] ?? ''));
     $noticeContact = trim(trim((string) ($profile['undertaker'] ?? '')) . ' ' . trim((string) ($profile['email'] ?? '')));
     $splitLines = static fn (string $s): array => array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $s) ?: []), static fn ($l): bool => $l !== ''));
@@ -93,19 +101,19 @@ ob_start();
         </header>
 
         <div class="bm-notice-orginfo">
-            <div><span class="bm-nf-label2">地　址</span>：<?= e($noticeAddr ?: '　') ?></div>
-            <div><span class="bm-nf-label2">電　話</span>：<?= e($noticePhone ?: '　') ?></div>
-            <div><span class="bm-nf-label2">承　辦</span>：<?= e($noticeContact ?: '　') ?></div>
+            <?= board_meeting_notice_field('地　址', $noticeAddr ?: '　', false, 'bm-nf-label2') ?>
+            <?= board_meeting_notice_field('電　話', $noticePhone ?: '　', false, 'bm-nf-label2') ?>
+            <?= board_meeting_notice_field('承　辦', $noticeContact ?: '　', false, 'bm-nf-label2') ?>
         </div>
 
         <div class="bm-notice-fields">
-            <div class="bm-nf bm-nf-strong"><span class="bm-nf-label">受文者</span>：董事成員</div>
-            <div class="bm-nf"><span class="bm-nf-label">發文日期</span>：<?= e(roc_date($issueDate)) ?></div>
-            <div class="bm-nf"><span class="bm-nf-label">發文字號</span>：<?= e($docNo) ?></div>
-            <div class="bm-nf"><span class="bm-nf-label">速　別</span>：普通</div>
-            <div class="bm-nf"><span class="bm-nf-label">附　件</span>：如文</div>
-            <div class="bm-nf"><span class="bm-nf-label">會議地點</span>：<?= e($meeting['location'] ?: '　') ?></div>
-            <div class="bm-nf bm-nf-strong"><span class="bm-nf-label">主　旨</span>：召開本基金會<?= e($sessionTitle) ?>。</div>
+            <?= board_meeting_notice_field('受文者', '董事成員', true) ?>
+            <?= board_meeting_notice_field('發文日期', roc_date($issueDate)) ?>
+            <?= board_meeting_notice_field('發文字號', $docNo) ?>
+            <?= board_meeting_notice_field('速　別', '普通') ?>
+            <?= board_meeting_notice_field('附　件', '如文') ?>
+            <?= board_meeting_notice_field('會議地點', $meeting['location'] ?: '　') ?>
+            <?= board_meeting_notice_field('主　旨', '召開本基金會' . $sessionTitle . '。', true) ?>
         </div>
 
         <div class="bm-nf bm-nf-strong bm-notice-explain-label">說明：</div>
@@ -137,14 +145,18 @@ ob_start();
             <?php endforeach; ?>
         </ol>
 
+        <?php
+        $noticeAttendeesText = ($noticeAttendees !== '' ? $noticeAttendees : '全體董事')
+            . ($observers ? '　（列席：' . implode('、', array_column($observers, 'name')) . '）' : '');
+        ?>
         <div class="bm-notice-meta">
-            <div><span class="bm-nf-label">出席者</span>：<?= $noticeAttendees !== '' ? e($noticeAttendees) : '全體董事' ?><?= $observers ? '　（列席：' . e(implode('、', array_column($observers, 'name'))) . '）' : '' ?></div>
-            <div><span class="bm-nf-label">副　本</span>：<?= e($foundationName) ?>秘書室存。</div>
+            <?= board_meeting_notice_field('出席者', $noticeAttendeesText) ?>
+            <?= board_meeting_notice_field('副　本', '本會留存。') ?>
         </div>
 
         <div class="bm-notice-sign">
             <span class="bm-notice-sign-title">董事長</span>
-            <span class="bm-notice-sign-name"><?= e((string) ($profile['representative'] ?? '')) ?></span>
+            <span class="bm-notice-sign-name bm-notice-sign-blue"><?= e((string) ($profile['representative'] ?? '')) ?></span>
         </div>
     </article>
 <?php else: ?>
@@ -228,6 +240,17 @@ ob_start();
     <?php endforeach; ?>
 <?php endif; ?>
 <?php
+/**
+ * 開會通知欄位列(如「受文者：董事成員」):標籤與內容以 flex 排列,使冒號對齊、
+ * 內容左右對齊一致;內容換行時自動對齊於內容起始處(懸掛縮排),不會退回標籤下方。
+ */
+function board_meeting_notice_field(string $label, string $content, bool $strong = false, string $labelClass = 'bm-nf-label'): string
+{
+    $cls = 'bm-nf' . ($strong ? ' bm-nf-strong' : '');
+    return '<div class="' . $cls . '"><span class="' . e($labelClass) . '">' . e($label) . '</span>'
+        . '<span class="bm-nf-colon">：</span><span class="bm-nf-content">' . e($content) . '</span></div>';
+}
+
 function board_meeting_case_no(int $n): string
 {
     $digits = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九'];

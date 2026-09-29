@@ -72,9 +72,9 @@ final class BoardMeetingController extends Controller
 
         Database::pdo()->prepare(
             'INSERT INTO board_meetings
-             (term_no, session_no, meeting_date, meeting_time, location, chairperson, recorder, chair_remarks, report_items, extempore_motions, attachments, notice_doc_no, notice_issue_date, notice_extra, status, notes, created_by, created_at, updated_at)
+             (term_no, session_no, meeting_date, meeting_time, location, chairperson, recorder, chair_remarks, report_items, extempore_motions, attachments, notice_doc_no, notice_issue_date, notice_extra, notice_address_mode, notice_address_custom, status, notes, created_by, created_at, updated_at)
              VALUES
-             (:term_no, :session_no, :meeting_date, :meeting_time, :location, :chairperson, :recorder, :chair_remarks, :report_items, :extempore_motions, :attachments, :notice_doc_no, :notice_issue_date, :notice_extra, :status, :notes, :created_by, :created_at, :updated_at)'
+             (:term_no, :session_no, :meeting_date, :meeting_time, :location, :chairperson, :recorder, :chair_remarks, :report_items, :extempore_motions, :attachments, :notice_doc_no, :notice_issue_date, :notice_extra, :notice_address_mode, :notice_address_custom, :status, :notes, :created_by, :created_at, :updated_at)'
         )->execute($this->payload() + [
             'created_by' => auth()->user()['id'] ?? null,
             'created_at' => now(),
@@ -149,6 +149,8 @@ final class BoardMeetingController extends Controller
                  notice_doc_no = :notice_doc_no,
                  notice_issue_date = :notice_issue_date,
                  notice_extra = :notice_extra,
+                 notice_address_mode = :notice_address_mode,
+                 notice_address_custom = :notice_address_custom,
                  status = :status,
                  notes = :notes,
                  updated_at = :updated_at
@@ -490,6 +492,8 @@ final class BoardMeetingController extends Controller
             'notice_doc_no' => $this->nullableText('notice_doc_no'),
             'notice_issue_date' => preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) ($_POST['notice_issue_date'] ?? '')) ? (string) $_POST['notice_issue_date'] : null,
             'notice_extra' => trim((string) ($_POST['notice_extra'] ?? '')),
+            'notice_address_mode' => in_array($_POST['notice_address_mode'] ?? '', ['mailing', 'registered', 'custom'], true) ? (string) $_POST['notice_address_mode'] : 'mailing',
+            'notice_address_custom' => $this->nullableText('notice_address_custom'),
             'status' => in_array($_POST['status'] ?? '', ['draft', 'confirmed'], true) ? (string) $_POST['status'] : 'draft',
             'notes' => trim((string) ($_POST['notes'] ?? '')),
         ];
