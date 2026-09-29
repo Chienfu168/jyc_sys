@@ -60,6 +60,53 @@ final class ProjectController extends Controller
         ]);
     }
 
+    /**
+     * 合作學校課程報表:跨所有專案(學校)彙整課程,可依全部／指定學期／指定學年度篩選並列印。
+     */
+    public function courseReport(): void
+    {
+        $this->requirePermission('projects.view');
+
+        $scope = in_array($_GET['scope'] ?? '', ['all', 'semester', 'year'], true) ? (string) $_GET['scope'] : 'all';
+        $semester = trim((string) ($_GET['semester'] ?? ''));
+        $year = preg_match('/^\d{1,3}$/', (string) ($_GET['year'] ?? '')) ? (string) $_GET['year'] : '';
+
+        $where = [];
+        $params = [];
+        if ($scope === 'semester' && $semester !== '') {
+            $where[] = 'project_courses.semester_label = :semester';
+            $params['semester'] = $semester;
+        } elseif ($scope === 'year' && $year !== '') {
+            $where[] = 'project_courses.semester_label LIKE :year_prefix';
+            $params['year_prefix'] = $year . '學年度%';
+        }
+
+        $sql = 'SELECT project_courses.*, projects.name AS project_name, projects.project_code
+                FROM project_courses
+                INNER JOIN projects ON projects.id = project_courses.project_id';
+        if ($where) {
+            $sql .= ' WHERE ' . implode(' AND ', $where);
+        }
+        $sql .= ' ORDER BY projects.name ASC, project_courses.sort_order ASC, project_courses.id ASC';
+
+        $stmt = Database::pdo()->prepare($sql);
+        $stmt->execute($params);
+        $courses = $stmt->fetchAll();
+
+        $this->render('projects.course-report', [
+            'title' => '合作學校課程報表',
+            'section' => '業務與人事',
+            'active' => 'projects',
+            'courses' => $courses,
+            'scope' => $scope,
+            'semester' => $semester,
+            'year' => $year,
+            'semesterOptions' => $this->courseSemesterOptions(),
+            'yearOptions' => $this->courseYearOptions(),
+            'profile' => foundation_profile(),
+        ]);
+    }
+
     public function create(): void
     {
         $this->requirePermission('projects.manage');
@@ -649,22 +696,74 @@ final class ProjectController extends Controller
 
     private function blankCourse(array $project): array
     {
-        // 專案名稱若為「深耕教育計畫（113學年度第2學期）」格式,預先帶出括號內學期文字。
-        $semester = '';
-        if (preg_match('/[（(]([^（）()]+學期)[）)]/u', (string) ($project['name'] ?? ''), $m)) {
-            $semester = $m[1];
+        // 專案名稱若為「深耕教育計畫－OO國小」格式(一校一專案),預先帶出破折號後的學校名稱。
+        $school = '';
+        if (preg_match('/[－-]\s*(.+)$/u', trim((string) ($project['name'] ?? '')), $m)) {
+            $school = trim($m[1]);
         }
 
         return [
-            'school_name' => '',
+            'school_name' => $school,
             'principal_name' => '',
             'director_name' => '',
             'course_name' => '',
             'teacher_name' => '',
             'weekday' => '',
-            'semester_label' => $semester,
+            'semester_label' => $this->currentSemesterLabel(),
             'notes' => '',
         ];
+    }
+
+    /**
+     * 依今日日期推算目前所屬「學年度＋學期」(ROC 學制:8月起第1學期,隔年2月起第2學期)。
+     * 僅作為新增課程時的預設值,使用者仍可自行修改。
+     */
+    private function currentSemesterLabel(): string
+    {
+        $month = (int) date('n');
+        $year = (int) date('Y') - 1911;
+        if ($month >= 8) {
+            return $year . '學年度第1學期';
+        }
+        if ($month >= 2) {
+            return ($year - 1) . '學年度第2學期';
+        }
+        // 1 月仍屬前一年 8 月起始的第 1 學期。
+        return ($year - 1) . '學年度第1學期';
+    }
+
+    /** 依現有課程資料彙整可篩選的學年度＋學期清單,依時間先後排序。 */
+    private function courseSemesterOptions(): array
+    {
+        $labels = Database::pdo()->query('SELECT DISTINCT semester_label FROM project_courses')
+            ->fetchAll(PDO::FETCH_COLUMN);
+        usort($labels, fn (string $a, string $b): int => $this->semesterSortKey($a) <=> $this->semesterSortKey($b));
+        return $labels;
+    }
+
+    /** 依現有課程資料彙整可篩選的學年度清單(去除學期別,由小到大排序)。 */
+    private function courseYearOptions(): array
+    {
+        $labels = Database::pdo()->query('SELECT DISTINCT semester_label FROM project_courses')
+            ->fetchAll(PDO::FETCH_COLUMN);
+        $years = [];
+        foreach ($labels as $label) {
+            if (preg_match('/^(\d{1,3})學年度/u', (string) $label, $m)) {
+                $years[(int) $m[1]] = true;
+            }
+        }
+        $years = array_keys($years);
+        sort($years);
+        return $years;
+    }
+
+    /** 將「113學年度第2學期」轉為 [113, 2] 供依時間排序,格式不符者排最前。 */
+    private function semesterSortKey(string $label): array
+    {
+        if (preg_match('/^(\d{1,3})學年度第(\d)學期$/u', $label, $m)) {
+            return [(int) $m[1], (int) $m[2]];
+        }
+        return [0, 0];
     }
 
     private function costSummary(int $projectId, float $budgetAmount): array
