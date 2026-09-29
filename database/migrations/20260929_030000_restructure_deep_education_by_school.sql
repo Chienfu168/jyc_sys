@@ -1,10 +1,22 @@
 -- 調整深耕教育專案結構:由「一學期一專案」改為「一學校一專案」,因各校上課日、
 -- 師資排程各自獨立,以學校為單位管理更貼近實際狀況;同校橫跨多學期的課程仍各自
 -- 保留一筆於 project_courses,並保留其學年度＋學期欄位供報表依全部/學期/年度篩選。
+--
+-- 注意順序:必須先移除舊唯一鍵、將課程搬遷至新的學校專案之後,才能新增新唯一鍵
+-- (project_id, semester_label, course_name)。若在搬遷前(project_id 仍為舊學期
+-- 專案)就新增此鍵,會因同一學期內不同學校常用相同課程名稱(如多校皆開「兒童音樂
+-- 劇」)而違反唯一鍵。DROP/ADD INDEX 皆以 INFORMATION_SCHEMA 動態判斷是否已存在
+-- 才執行,避免重複套用本 migration(例如前次執行中途失敗)時出現「索引已存在／
+-- 不存在」的錯誤。
 
-ALTER TABLE project_courses DROP INDEX uq_project_courses_identity;
-ALTER TABLE project_courses
-  ADD UNIQUE KEY uq_project_courses_identity (project_id, semester_label, course_name(80));
+SET @idx_exists := (
+  SELECT COUNT(1) FROM INFORMATION_SCHEMA.STATISTICS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'project_courses' AND INDEX_NAME = 'uq_project_courses_identity'
+);
+SET @drop_old_idx := IF(@idx_exists > 0, 'ALTER TABLE project_courses DROP INDEX uq_project_courses_identity', 'SELECT 1');
+PREPARE stmt_drop_old_idx FROM @drop_old_idx;
+EXECUTE stmt_drop_old_idx;
+DEALLOCATE PREPARE stmt_drop_old_idx;
 
 INSERT INTO projects
   (project_code, name, project_type, owner_name, department, funding_source, start_date, end_date, budget_amount, status, purpose, expected_outcome, notes, created_by, created_at, updated_at)
@@ -97,5 +109,16 @@ WHERE school_name = '興仁國小';
 UPDATE project_courses
 SET project_id = (SELECT id FROM projects WHERE project_code = 'DEEP-SCH-16' LIMIT 1)
 WHERE school_name = '中角國小';
+
+-- 課程資料已搬遷至以學校為單位的專案,此時同一 project_id 內每筆(學年度＋學期,
+-- 課程名稱)皆已唯一,才新增新唯一鍵;仍以 INFORMATION_SCHEMA 動態判斷避免重複套用。
+SET @new_idx_exists := (
+  SELECT COUNT(1) FROM INFORMATION_SCHEMA.STATISTICS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'project_courses' AND INDEX_NAME = 'uq_project_courses_identity'
+);
+SET @add_new_idx := IF(@new_idx_exists = 0, 'ALTER TABLE project_courses ADD UNIQUE KEY uq_project_courses_identity (project_id, semester_label, course_name(80))', 'SELECT 1');
+PREPARE stmt_add_new_idx FROM @add_new_idx;
+EXECUTE stmt_add_new_idx;
+DEALLOCATE PREPARE stmt_add_new_idx;
 
 DELETE FROM projects WHERE project_code IN ('DEEP-113-2', 'DEEP-114-1', 'DEEP-114-2', 'DEEP-115-1');
