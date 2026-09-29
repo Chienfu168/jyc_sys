@@ -242,7 +242,23 @@ final class ActivityController extends Controller
             'title' => $activity['title'],
         ]);
         flash('success', '活動已刪除。');
-        redirect('/activities');
+        redirect($this->safeRedirectTarget((string) ($_POST['redirect_to'] ?? '')) ?? '/activities');
+    }
+
+    /**
+     * 刪除後可選擇導回來源頁(如專案明細),僅接受站內相對路徑(/開頭,無 //或協定),
+     * 避免開放重導向;不符合格式時回傳 null 以套用預設值。
+     */
+    private function safeRedirectTarget(string $path): ?string
+    {
+        $path = trim($path);
+        if ($path === '' || !str_starts_with($path, '/') || str_starts_with($path, '//')) {
+            return null;
+        }
+        if (!preg_match('#^/[A-Za-z0-9\-_/]*(?:\?[A-Za-z0-9\-_=&%]*)?$#', $path)) {
+            return null;
+        }
+        return $path;
     }
 
     public function storeParticipant(string $id): void
