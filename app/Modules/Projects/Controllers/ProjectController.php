@@ -106,6 +106,7 @@ final class ProjectController extends Controller
             'active' => 'projects',
             'project' => $project,
             'activities' => $this->projectActivities((int) $id),
+            'courses' => $this->projectCourses((int) $id),
             'costSummary' => $this->costSummary((int) $id, (float) $project['budget_amount']),
             'profile' => foundation_profile(),
         ]);
@@ -175,6 +176,106 @@ final class ProjectController extends Controller
 
         AuditLog::write('status', 'projects', 'projects', (int) $id);
         flash('success', '專案狀態已更新。');
+        redirect('/projects/' . $id);
+    }
+
+    /**
+     * 合作學校課程明細(如深耕教育計畫各校課程):學校、校長、負責主任、課程名稱、
+     * 授課老師、每週幾、學期與備註。部分欄位可能待確認而留白,不代表資料不存在。
+     */
+    public function courseCreate(string $id): void
+    {
+        $this->requirePermission('projects.manage');
+        $project = $this->findProject((int) $id);
+
+        $this->render('projects.course-form', [
+            'title' => '新增合作學校課程',
+            'section' => '業務與人事',
+            'active' => 'projects',
+            'project' => $project,
+            'course' => $this->blankCourse($project),
+            'action' => '/projects/' . $id . '/courses',
+        ]);
+    }
+
+    public function courseStore(string $id): void
+    {
+        $this->requirePermission('projects.manage');
+        $project = $this->findProject((int) $id);
+        $this->validateCourse('/projects/' . $id . '/courses/create');
+
+        Database::pdo()->prepare(
+            'INSERT INTO project_courses
+             (project_id, school_name, principal_name, director_name, course_name, teacher_name, weekday, semester_label, notes, sort_order, created_at, updated_at)
+             VALUES
+             (:project_id, :school_name, :principal_name, :director_name, :course_name, :teacher_name, :weekday, :semester_label, :notes, :sort_order, :created_at, :updated_at)'
+        )->execute($this->coursePayload((int) $project['id']) + [
+            'sort_order' => $this->nextCourseSortOrder((int) $project['id']),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $courseId = (int) Database::pdo()->lastInsertId();
+        AuditLog::write('create', 'project_courses', 'project_courses', $courseId);
+        flash('success', '課程已新增。');
+        redirect('/projects/' . $id);
+    }
+
+    public function courseEdit(string $id, string $courseId): void
+    {
+        $this->requirePermission('projects.manage');
+        $project = $this->findProject((int) $id);
+
+        $this->render('projects.course-form', [
+            'title' => '編輯合作學校課程',
+            'section' => '業務與人事',
+            'active' => 'projects',
+            'project' => $project,
+            'course' => $this->findCourse((int) $project['id'], (int) $courseId),
+            'action' => '/projects/' . $id . '/courses/' . $courseId,
+        ]);
+    }
+
+    public function courseUpdate(string $id, string $courseId): void
+    {
+        $this->requirePermission('projects.manage');
+        $project = $this->findProject((int) $id);
+        $this->findCourse((int) $project['id'], (int) $courseId);
+        $this->validateCourse('/projects/' . $id . '/courses/' . $courseId . '/edit');
+
+        Database::pdo()->prepare(
+            'UPDATE project_courses
+             SET school_name = :school_name,
+                 principal_name = :principal_name,
+                 director_name = :director_name,
+                 course_name = :course_name,
+                 teacher_name = :teacher_name,
+                 weekday = :weekday,
+                 semester_label = :semester_label,
+                 notes = :notes,
+                 updated_at = :updated_at
+             WHERE id = :id AND project_id = :project_id'
+        )->execute($this->coursePayload((int) $project['id']) + [
+            'updated_at' => now(),
+            'id' => (int) $courseId,
+        ]);
+
+        AuditLog::write('update', 'project_courses', 'project_courses', (int) $courseId);
+        flash('success', '課程資料已更新。');
+        redirect('/projects/' . $id);
+    }
+
+    public function courseDestroy(string $id, string $courseId): void
+    {
+        $this->requirePermission('projects.manage');
+        $project = $this->findProject((int) $id);
+        $this->findCourse((int) $project['id'], (int) $courseId);
+
+        Database::pdo()->prepare('DELETE FROM project_courses WHERE id = :id AND project_id = :project_id')
+            ->execute(['id' => (int) $courseId, 'project_id' => (int) $project['id']]);
+
+        AuditLog::write('delete', 'project_courses', 'project_courses', (int) $courseId);
+        flash('success', '課程已刪除。');
         redirect('/projects/' . $id);
     }
 
@@ -483,6 +584,87 @@ final class ProjectController extends Controller
         );
         $stmt->execute(['project_id' => $projectId]);
         return $stmt->fetchAll();
+    }
+
+    private function projectCourses(int $projectId): array
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT * FROM project_courses
+             WHERE project_id = :project_id
+             ORDER BY sort_order ASC, id ASC'
+        );
+        $stmt->execute(['project_id' => $projectId]);
+        return $stmt->fetchAll();
+    }
+
+    private function findCourse(int $projectId, int $courseId): array
+    {
+        $stmt = Database::pdo()->prepare(
+            'SELECT * FROM project_courses WHERE id = :id AND project_id = :project_id LIMIT 1'
+        );
+        $stmt->execute(['id' => $courseId, 'project_id' => $projectId]);
+        $course = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$course) {
+            http_response_code(404);
+            view('errors.404', ['title' => '找不到課程資料']);
+            exit;
+        }
+
+        return $course;
+    }
+
+    private function validateCourse(string $path): void
+    {
+        if ($error = Validator::required($_POST, [
+            'school_name' => '學校',
+            'course_name' => '課程名稱',
+            'semester_label' => '學年度＋學期',
+        ])) {
+            $this->backWithInput($path, $_POST, $error);
+        }
+    }
+
+    private function coursePayload(int $projectId): array
+    {
+        return [
+            'project_id' => $projectId,
+            'school_name' => trim((string) $_POST['school_name']),
+            'principal_name' => $this->nullableText('principal_name'),
+            'director_name' => $this->nullableText('director_name'),
+            'course_name' => trim((string) $_POST['course_name']),
+            'teacher_name' => $this->nullableText('teacher_name'),
+            'weekday' => $this->nullableText('weekday'),
+            'semester_label' => trim((string) $_POST['semester_label']),
+            'notes' => trim((string) ($_POST['notes'] ?? '')),
+        ];
+    }
+
+    private function nextCourseSortOrder(int $projectId): int
+    {
+        $stmt = Database::pdo()->prepare('SELECT COALESCE(MAX(sort_order), 0) FROM project_courses WHERE project_id = :project_id');
+        $stmt->execute(['project_id' => $projectId]);
+        return (int) $stmt->fetchColumn() + 1;
+    }
+
+    private function blankCourse(array $project): array
+    {
+        // 專案名稱若為「深耕教育計畫（113學年度第2學期）」格式,預先帶出括號內學期文字。
+        $semester = '';
+        if (preg_match('/[（(]([^（）()]+學期)[）)]/u', (string) ($project['name'] ?? ''), $m)) {
+            $semester = $m[1];
+        }
+
+        return [
+            'school_name' => '',
+            'principal_name' => '',
+            'director_name' => '',
+            'course_name' => '',
+            'teacher_name' => '',
+            'weekday' => '',
+            'semester_label' => $semester,
+            'notes' => '',
+        ];
     }
 
     private function costSummary(int $projectId, float $budgetAmount): array
