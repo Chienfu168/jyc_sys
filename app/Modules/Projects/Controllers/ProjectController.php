@@ -885,10 +885,32 @@ final class ProjectController extends Controller
         ];
     }
 
+    /**
+     * 新增專案時自動帶出下一個可用專案代碼:PRJ-{民國年}-{流水號,3 碼}。
+     * 僅作為預設建議值,使用者仍可自行修改或清空。
+     */
+    private function nextProjectCode(): string
+    {
+        $rocYear = (int) date('Y') - 1911;
+        $prefix = 'PRJ-' . $rocYear . '-';
+
+        $stmt = Database::pdo()->prepare('SELECT project_code FROM projects WHERE project_code LIKE :prefix');
+        $stmt->execute(['prefix' => $prefix . '%']);
+
+        $max = 0;
+        foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $code) {
+            if (preg_match('/^' . preg_quote($prefix, '/') . '(\d+)$/', (string) $code, $m)) {
+                $max = max($max, (int) $m[1]);
+            }
+        }
+
+        return $prefix . str_pad((string) ($max + 1), 3, '0', STR_PAD_LEFT);
+    }
+
     private function blankProject(): array
     {
         return [
-            'project_code' => '',
+            'project_code' => $this->nextProjectCode(),
             'name' => '',
             'sub_program_name' => '',
             'executing_target' => '',
