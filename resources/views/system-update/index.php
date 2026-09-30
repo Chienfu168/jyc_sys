@@ -1,5 +1,6 @@
 <?php
 $active = 'system-update';
+$maintenanceLock ??= null;
 ob_start();
 ?>
 <section class="stats-grid update-summary">
