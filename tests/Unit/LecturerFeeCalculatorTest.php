@@ -54,4 +54,9 @@ final class LecturerFeeCalculatorTest extends TestCase
         $this->assertSame(5500.0, $gross);
         $this->assertSame(5020.0, $net);
     }
+
+    public function test_session_subtotal_sums_lecture_fee_and_transportation(): void
+    {
+        $this->assertSame(5300.0, LecturerFeeCalculator::sessionSubtotal(4800, 500));
+    }
 }

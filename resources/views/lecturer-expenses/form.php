@@ -11,7 +11,6 @@
                     <option value="">選擇講師</option>
                     <?php foreach ($lecturers as $lecturer): ?>
                         <option value="<?= e((string) $lecturer['id']) ?>"
-                                data-rate="<?= e((string) $lecturer['hourly_rate']) ?>"
                                 <?= $selectedLecturer === (string) $lecturer['id'] ? 'selected' : '' ?>>
                             <?= e(($lecturer['display_name'] ?: $lecturer['name']) . ' / ' . number_format((float) $lecturer['hourly_rate'], 0)) ?>
                         </option>
@@ -19,8 +18,8 @@
                 </select>
             </label>
             <label>
-                <span>費用日期</span>
-                <input type="date" name="expense_date" value="<?= e((string) old('expense_date', $expense['expense_date'] ?? date('Y-m-d'))) ?>" required>
+                <span>月份</span>
+                <input type="month" name="expense_month" value="<?= e((string) old('expense_month', $expense['expense_month'] ?? date('Y-m'))) ?>" required>
             </label>
             <label class="span-2">
                 <span>服務內容</span>
@@ -53,20 +52,9 @@
     </div>
 
     <div class="form-section">
-        <h3>費用明細</h3>
+        <h3>其他費用</h3>
+        <p class="muted-text">鐘點費、交通費由下方「上課明細」逐筆記錄後自動加總，此處僅填寫每月一次性的其他費用與代扣稅額。</p>
         <div class="grid-form">
-            <label>
-                <span>時數</span>
-                <input data-calc type="number" min="0" step="0.5" name="hours" value="<?= e((string) old('hours', $expense['hours'] ?? '')) ?>">
-            </label>
-            <label>
-                <span>鐘點費</span>
-                <input data-calc type="number" min="0" step="1" name="hourly_rate" id="lecturer-expense-rate" value="<?= e((string) old('hourly_rate', $expense['hourly_rate'] ?? '')) ?>">
-            </label>
-            <label>
-                <span>交通費</span>
-                <input data-calc type="number" min="0" step="1" name="transportation_fee" value="<?= e((string) old('transportation_fee', $expense['transportation_fee'] ?? 0)) ?>">
-            </label>
             <label>
                 <span>其他費用</span>
                 <input data-calc type="number" min="0" step="1" name="other_fee" value="<?= e((string) old('other_fee', $expense['other_fee'] ?? 0)) ?>">
@@ -76,15 +64,16 @@
                 <input data-calc type="number" min="0" step="1" name="withholding_tax" value="<?= e((string) old('withholding_tax', $expense['withholding_tax'] ?? 0)) ?>">
             </label>
         </div>
-    </div>
-
-    <div class="form-section">
-        <h3>試算</h3>
-        <div class="calc-summary">
-            <span>鐘點費 <strong id="calc-lecture-fee">0</strong></span>
-            <span>應付 <strong id="calc-gross-total">0</strong></span>
-            <span>實付 <strong id="calc-net-total">0</strong></span>
-        </div>
+        <?php if (isset($expense['id'])): ?>
+            <div class="calc-summary">
+                <span>目前上課明細鐘點費＋交通費合計 <strong><?= e(number_format((float) ($expense['lecture_fee'] ?? 0) + (float) ($expense['transportation_fee'] ?? 0), 0)) ?></strong></span>
+                <span>應付總額 <strong><?= e(number_format((float) ($expense['gross_total'] ?? 0), 0)) ?></strong></span>
+                <span>實付金額 <strong><?= e(number_format((float) ($expense['net_total'] ?? 0), 0)) ?></strong></span>
+            </div>
+            <p class="field-hint">儲存後將依上方其他費用／代扣稅額與目前上課明細重新計算應付、實付總額。</p>
+        <?php else: ?>
+            <p class="field-hint">建立後請於月紀錄詳情頁新增上課明細，系統會自動加總計算應付、實付總額。</p>
+        <?php endif; ?>
     </div>
 
     <details class="form-section">
@@ -143,39 +132,6 @@
 
 <script>
 (() => {
-    const lecturer = document.getElementById('lecturer-expense-lecturer');
-    const rate = document.getElementById('lecturer-expense-rate');
-    const fields = [...document.querySelectorAll('[data-calc]')];
-    const lectureFee = document.getElementById('calc-lecture-fee');
-    const grossTotal = document.getElementById('calc-gross-total');
-    const netTotal = document.getElementById('calc-net-total');
-
-    function amount(name) {
-        const field = document.querySelector(`[name="${name}"]`);
-        return Number.parseFloat(field?.value || '0') || 0;
-    }
-
-    function format(value) {
-        return Math.round(value).toLocaleString('zh-TW');
-    }
-
-    function calculate() {
-        const lecture = amount('hours') * amount('hourly_rate');
-        const gross = lecture + amount('transportation_fee') + amount('other_fee');
-        const net = gross - amount('withholding_tax');
-        lectureFee.textContent = format(lecture);
-        grossTotal.textContent = format(gross);
-        netTotal.textContent = format(net);
-    }
-
-    lecturer?.addEventListener('change', () => {
-        const selected = lecturer.selectedOptions[0];
-        if (selected?.dataset.rate && (!rate.value || Number(rate.value) === 0)) {
-            rate.value = selected.dataset.rate;
-        }
-        calculate();
-    });
-
     document.getElementById('lecturer-expense-project')?.addEventListener('change', function () {
         const option = this.selectedOptions[0];
         const input = document.querySelector('input[name="project_name"]');
@@ -190,9 +146,6 @@
         document.querySelectorAll('[data-bank-field]').forEach((field) => field.classList.toggle('hidden', cash));
     }
     paymentMethod?.addEventListener('input', updateBankFields);
-
-    fields.forEach((field) => field.addEventListener('input', calculate));
-    calculate();
     updateBankFields();
 })();
 </script>
