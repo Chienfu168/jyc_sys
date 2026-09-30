@@ -282,5 +282,32 @@ final class UpdateService
         if (function_exists('ignore_user_abort')) {
             @ignore_user_abort(true);
         }
+
+        // 套用更新為一次性大量檔案複製與 migration 作業,預設 memory_limit
+        // 在部分主機環境下可能不足,導致無法被 try/catch 攔截的記憶體耗盡錯誤
+        // (只會顯示通用的「系統發生錯誤」畫面,更新紀錄也不會留下任何記錄)。
+        $current = $this->iniBytes(ini_get('memory_limit'));
+        $floor = 512 * 1024 * 1024;
+        if ($current !== -1 && $current < $floor) {
+            @ini_set('memory_limit', '512M');
+        }
+    }
+
+    private function iniBytes(string|false $value): int
+    {
+        $value = trim((string) $value);
+        if ($value === '' || $value === '-1') {
+            return -1;
+        }
+
+        $unit = strtolower(substr($value, -1));
+        $number = (int) $value;
+
+        return match ($unit) {
+            'g' => $number * 1024 * 1024 * 1024,
+            'm' => $number * 1024 * 1024,
+            'k' => $number * 1024,
+            default => (int) $value,
+        };
     }
 }

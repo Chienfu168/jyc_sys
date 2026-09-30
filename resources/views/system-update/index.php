@@ -21,6 +21,20 @@ ob_start();
     </div>
 </section>
 
+<?php if ($maintenanceLock): ?>
+    <section class="panel">
+        <div class="alert error">
+            <strong>偵測到維護鎖定殘留</strong>
+            <p>上次套用更新似乎中途發生錯誤而未正常結束（鎖定產生於 <?= e($maintenanceLock['started_at']) ?>，約 <?= e((string) $maintenanceLock['age_minutes']) ?> 分鐘前），可能導致除了「系統更新」頁面之外的其他頁面顯示「系統維護中」。</p>
+            <p>若確認目前沒有更新正在套用中，可點下方按鈕清除鎖定，讓系統恢復正常使用；之後請重新檢查資料庫更新狀態（<a href="/system-update/database">資料庫更新與檢查</a>）確認 migration 是否已完整套用。</p>
+            <form method="post" action="/system-update/clear-maintenance-lock" onsubmit="return confirm('確定要清除維護鎖定嗎？請先確認目前沒有更新正在套用中。');">
+                <?= csrf_field() ?>
+                <button class="btn" type="submit">清除維護鎖定</button>
+            </form>
+        </div>
+    </section>
+<?php endif; ?>
+
 <section class="panel ops-bar">
     <div>
         <h2>更新操作</h2>
