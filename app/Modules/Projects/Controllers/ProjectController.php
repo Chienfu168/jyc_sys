@@ -253,9 +253,9 @@ final class ProjectController extends Controller
 
         Database::pdo()->prepare(
             'INSERT INTO project_courses
-             (project_id, school_name, principal_name, director_name, course_name, teacher_name, weekday, semester_label, notes, sort_order, created_at, updated_at)
+             (project_id, school_name, sub_program_name, principal_name, director_name, course_name, teacher_name, weekday, semester_label, notes, sort_order, created_at, updated_at)
              VALUES
-             (:project_id, :school_name, :principal_name, :director_name, :course_name, :teacher_name, :weekday, :semester_label, :notes, :sort_order, :created_at, :updated_at)'
+             (:project_id, :school_name, :sub_program_name, :principal_name, :director_name, :course_name, :teacher_name, :weekday, :semester_label, :notes, :sort_order, :created_at, :updated_at)'
         )->execute($this->coursePayload((int) $project['id']) + [
             'sort_order' => $this->nextCourseSortOrder((int) $project['id']),
             'created_at' => now(),
@@ -293,6 +293,7 @@ final class ProjectController extends Controller
         Database::pdo()->prepare(
             'UPDATE project_courses
              SET school_name = :school_name,
+                 sub_program_name = :sub_program_name,
                  principal_name = :principal_name,
                  director_name = :director_name,
                  course_name = :course_name,
@@ -697,6 +698,7 @@ final class ProjectController extends Controller
         return [
             'project_id' => $projectId,
             'school_name' => trim((string) $_POST['school_name']),
+            'sub_program_name' => $this->nullableText('sub_program_name'),
             'principal_name' => $this->nullableText('principal_name'),
             'director_name' => $this->nullableText('director_name'),
             'course_name' => trim((string) $_POST['course_name']),
@@ -724,6 +726,7 @@ final class ProjectController extends Controller
 
         return [
             'school_name' => $school,
+            'sub_program_name' => '',
             'principal_name' => '',
             'director_name' => '',
             'course_name' => '',

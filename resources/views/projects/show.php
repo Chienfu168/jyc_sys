@@ -186,7 +186,7 @@ ob_start();
         <div class="panel-header">
             <div>
                 <h3 style="margin:0;">合作學校課程</h3>
-                <p class="muted-text">本專案彙整與該校歷次合作之課程,可能橫跨多個學期,各校上課日、師資排程各自獨立;校長、負責主任、授課老師或固定上課日若尚未確認可留空,待核實後再補上,不代表資料不存在。</p>
+                <p class="muted-text">本專案彙整與該校歷次合作之課程,可能橫跨多個學期、多個次項目(子方案),各校上課日、師資排程各自獨立;負責人／校長、主要接洽、授課老師或固定上課日若尚未確認可留空,待核實後再補上,不代表資料不存在。</p>
             </div>
             <div class="actions no-print">
                 <a class="btn small" href="/projects/courses/report">課程報表</a>
@@ -200,11 +200,12 @@ ob_start();
                 <thead>
                 <tr>
                     <th>學年度＋學期</th>
-                    <th>學校</th>
+                    <th>次項目</th>
+                    <th>執行對象（學校）</th>
                     <th>課程名稱</th>
                     <th>授課老師</th>
-                    <th>校長</th>
-                    <th>負責主任</th>
+                    <th>負責人／校長</th>
+                    <th>主要接洽（主任／專員）</th>
                     <th>每週幾</th>
                     <th>備註</th>
                     <?php if ($canManageProject): ?><th class="no-print">操作</th><?php endif; ?>
@@ -214,6 +215,7 @@ ob_start();
                 <?php foreach ($courses as $course): ?>
                     <tr>
                         <td><?= e($course['semester_label']) ?></td>
+                        <td><?= e($course['sub_program_name'] ?: '-') ?></td>
                         <td><?= e($course['school_name']) ?></td>
                         <td><?= e($course['course_name']) ?></td>
                         <td><?= e($course['teacher_name'] ?: '-') ?></td>
@@ -233,7 +235,7 @@ ob_start();
                     </tr>
                 <?php endforeach; ?>
                 <?php if (!$courses): ?>
-                    <tr><td colspan="<?= $canManageProject ? 9 : 8 ?>" class="empty">尚無合作學校課程。</td></tr>
+                    <tr><td colspan="<?= $canManageProject ? 10 : 9 ?>" class="empty">尚無合作學校課程。</td></tr>
                 <?php endif; ?>
                 </tbody>
             </table>
