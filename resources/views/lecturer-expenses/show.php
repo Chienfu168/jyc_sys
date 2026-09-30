@@ -66,8 +66,8 @@ ob_start();
             <td><?= e($expense['tax_id'] ?: '-') ?></td>
         </tr>
         <tr>
-            <th>費用日期</th>
-            <td><?= e(roc_date($expense['expense_date'])) ?></td>
+            <th>月份</th>
+            <td><?= e(substr((string) $expense['expense_date'], 0, 7)) ?></td>
             <th>付款狀態</th>
             <td><?= e(lecturer_expense_show_status($expense['payment_status'])) ?></td>
         </tr>
@@ -82,10 +82,8 @@ ob_start();
             <td><?= e(trim(($expense['project_name'] ?: '-') . ' / ' . ($expense['activity_name'] ?: '-'))) ?></td>
         </tr>
         <tr>
-            <th>時數</th>
-            <td><?= e(number_format((float) $expense['hours'], 2)) ?></td>
-            <th>鐘點費單價</th>
-            <td><?= e(number_format((float) $expense['hourly_rate'], 0)) ?></td>
+            <th>總時數</th>
+            <td colspan="3"><?= e(number_format((float) $expense['hours'], 2)) ?></td>
         </tr>
         <tr>
             <th>會計傳票</th>
@@ -100,6 +98,63 @@ ob_start();
         </tr>
         </tbody>
     </table>
+
+    <?php $canManageExpense = \App\Core\Permission::can('lecturer_expenses.manage'); ?>
+    <?php $sessionsMutable = empty($expense['accounting_voucher_id']); ?>
+    <section class="panel subtle" style="margin-top:18px;">
+        <div class="panel-header no-print">
+            <h3 style="margin:0;">上課明細</h3>
+            <?php if ($canManageExpense && $sessionsMutable): ?>
+                <a class="btn small primary" href="/lecturer-expenses/<?= e((string) $expense['id']) ?>/sessions/create">新增上課明細</a>
+            <?php endif; ?>
+        </div>
+        <?php if (!$sessionsMutable): ?>
+            <p class="field-hint no-print">已建立會計傳票，上課明細不可再異動。</p>
+        <?php endif; ?>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                <tr>
+                    <th>日期</th>
+                    <th>上課地點</th>
+                    <th class="amount">時數</th>
+                    <th class="amount">鐘點費單價</th>
+                    <th class="amount">鐘點費</th>
+                    <th class="amount">交通費</th>
+                    <th class="amount">小計</th>
+                    <th>備註</th>
+                    <?php if ($canManageExpense && $sessionsMutable): ?><th class="actions no-print">操作</th><?php endif; ?>
+                </tr>
+                </thead>
+                <tbody>
+                <?php foreach ($sessions as $session): ?>
+                    <tr>
+                        <td><?= e(roc_date($session['session_date'])) ?></td>
+                        <td><?= e($session['location'] ?: '-') ?></td>
+                        <td class="amount"><?= e(number_format((float) $session['hours'], 2)) ?></td>
+                        <td class="amount"><?= e(number_format((float) $session['hourly_rate'], 0)) ?></td>
+                        <td class="amount"><?= e(number_format((float) $session['lecture_fee'], 0)) ?></td>
+                        <td class="amount"><?= e(number_format((float) $session['transportation_fee'], 0)) ?></td>
+                        <td class="amount"><?= e(number_format((float) $session['subtotal'], 0)) ?></td>
+                        <td class="muted-text"><?= e($session['notes'] ?: '-') ?></td>
+                        <?php if ($canManageExpense && $sessionsMutable): ?>
+                            <td class="actions no-print">
+                                <a class="btn small" href="/lecturer-expenses/<?= e((string) $expense['id']) ?>/sessions/<?= e((string) $session['id']) ?>/edit">編輯</a>
+                                <form method="post" action="/lecturer-expenses/<?= e((string) $expense['id']) ?>/sessions/<?= e((string) $session['id']) ?>/delete" onsubmit="return confirm('確定要刪除此筆上課明細？此操作無法復原。');">
+                                    <?= csrf_field() ?>
+                                    <button class="btn small" type="submit">刪除</button>
+                                </form>
+                            </td>
+                        <?php endif; ?>
+                    </tr>
+                <?php endforeach; ?>
+                <?php if (!$sessions): ?>
+                    <tr><td colspan="<?= ($canManageExpense && $sessionsMutable) ? 9 : 8 ?>" class="empty">尚無上課明細。</td></tr>
+                <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+    </section>
 
     <div class="table-wrap">
         <table>

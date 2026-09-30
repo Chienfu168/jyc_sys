@@ -31,6 +31,8 @@ ob_start();
         </form>
         <div class="actions">
             <a class="btn" href="/finance">返回財務會計</a>
+            <a class="btn" href="/lecturer-expenses/reports/monthly">月報表</a>
+            <a class="btn" href="/lecturer-expenses/reports/bank-payout">銀行出帳記錄</a>
             <?php if (\App\Core\Permission::can('lecturer_expenses.manage')): ?>
                 <a class="btn primary" href="/lecturer-expenses/create">新增講師費用</a>
             <?php endif; ?>
@@ -41,7 +43,7 @@ ob_start();
         <table>
             <thead>
             <tr>
-                <th>日期</th>
+                <th>月份</th>
                 <th>講師</th>
                 <th>服務內容</th>
                 <th>專案 / 活動</th>
@@ -56,7 +58,7 @@ ob_start();
             <tbody>
             <?php foreach ($expenses as $expense): ?>
                 <tr>
-                    <td><?= e(roc_date($expense['expense_date'])) ?></td>
+                    <td><?= e(substr((string) $expense['expense_date'], 0, 7)) ?></td>
                     <td><?= e($expense['display_name'] ?: $expense['lecturer_name']) ?></td>
                     <td>
                         <strong><?= e($expense['service_title']) ?></strong>
@@ -86,6 +88,12 @@ ob_start();
                         <a class="btn small" href="/lecturer-expenses/<?= e((string) $expense['id']) ?>">檢視</a>
                         <?php if (\App\Core\Permission::can('lecturer_expenses.manage')): ?>
                             <a class="btn small" href="/lecturer-expenses/<?= e((string) $expense['id']) ?>/edit">編輯</a>
+                        <?php endif; ?>
+                        <?php if (\App\Core\Permission::can('lecturer_expenses.delete') || owns_record($expense['created_by'] ?? null)): ?>
+                            <form method="post" action="/lecturer-expenses/<?= e((string) $expense['id']) ?>/delete" onsubmit="return confirm('確定要刪除此講師支出？此操作無法復原（已建立會計傳票者無法刪除）。');">
+                                <?= csrf_field() ?>
+                                <button class="btn small" type="submit">刪除</button>
+                            </form>
                         <?php endif; ?>
                     </td>
                 </tr>

@@ -34,4 +34,12 @@ final class LecturerFeeCalculator
     {
         return round($grossTotal - $withholdingTax, 2);
     }
+
+    /**
+     * 單筆上課明細小計 = 鐘點費(時數 × 單價) + 該次交通費。
+     */
+    public static function sessionSubtotal(float $lectureFee, float $transportationFee): float
+    {
+        return round($lectureFee + $transportationFee, 2);
+    }
 }
