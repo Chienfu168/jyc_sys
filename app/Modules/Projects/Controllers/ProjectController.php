@@ -15,6 +15,46 @@ final class ProjectController extends Controller
     {
         $this->requirePermission('projects.view');
 
+        [$projects, $filters] = $this->filteredProjects();
+
+        $this->render('projects.index', [
+            'title' => '專案管理',
+            'section' => '業務與人事',
+            'active' => 'projects',
+            'projects' => $projects,
+            'keyword' => $filters['keyword'],
+            'status' => $filters['status'],
+            'year' => $filters['year'],
+            'summary' => $this->summary($projects),
+        ]);
+    }
+
+    /**
+     * 專案列表報表:依目前查詢條件(關鍵字／狀態／年度)彙整專案清單,A3 橫式列印。
+     */
+    public function report(): void
+    {
+        $this->requirePermission('projects.view');
+
+        [$projects, $filters] = $this->filteredProjects();
+
+        $this->render('projects.report', [
+            'title' => '專案列表報表',
+            'section' => '業務與人事',
+            'active' => 'projects',
+            'projects' => $projects,
+            'keyword' => $filters['keyword'],
+            'status' => $filters['status'],
+            'year' => $filters['year'],
+            'profile' => foundation_profile(),
+        ]);
+    }
+
+    /**
+     * @return array{0: array<int, array<string, mixed>>, 1: array{keyword: string, status: string, year: string}}
+     */
+    private function filteredProjects(): array
+    {
         $keyword = trim((string) ($_GET['q'] ?? ''));
         $status = in_array(($_GET['status'] ?? ''), ['planning', 'active', 'closed', 'cancelled'], true) ? (string) $_GET['status'] : '';
         $year = preg_match('/^\d{4}$/', (string) ($_GET['year'] ?? '')) ? (string) $_GET['year'] : '';
@@ -46,18 +86,8 @@ final class ProjectController extends Controller
 
         $stmt = Database::pdo()->prepare($sql);
         $stmt->execute($params);
-        $projects = $stmt->fetchAll();
 
-        $this->render('projects.index', [
-            'title' => '專案管理',
-            'section' => '業務與人事',
-            'active' => 'projects',
-            'projects' => $projects,
-            'keyword' => $keyword,
-            'status' => $status,
-            'year' => $year,
-            'summary' => $this->summary($projects),
-        ]);
+        return [$stmt->fetchAll(), ['keyword' => $keyword, 'status' => $status, 'year' => $year]];
     }
 
     /**
