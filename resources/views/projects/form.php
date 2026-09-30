@@ -20,6 +20,22 @@
         <input type="text" name="name" value="<?= e((string) old('name', $project['name'] ?? '')) ?>" required>
     </label>
     <label>
+        <span>次項目<small class="field-hint">（子方案名稱，如：雙語讀世界；若無可留空）</small></span>
+        <input type="text" name="sub_program_name" value="<?= e((string) old('sub_program_name', $project['sub_program_name'] ?? '')) ?>">
+    </label>
+    <label>
+        <span>執行對象<small class="field-hint">（如：坪林國小；若橫跨多校，可改用下方「合作學校課程」分別記錄）</small></span>
+        <input type="text" name="executing_target" value="<?= e((string) old('executing_target', $project['executing_target'] ?? '')) ?>">
+    </label>
+    <label>
+        <span>負責人／校長<small class="field-hint">（若未確認可留空）</small></span>
+        <input type="text" name="principal_name" value="<?= e((string) old('principal_name', $project['principal_name'] ?? '')) ?>">
+    </label>
+    <label>
+        <span>主要接洽（主任／專員）<small class="field-hint">（若未確認可留空）</small></span>
+        <input type="text" name="contact_name" value="<?= e((string) old('contact_name', $project['contact_name'] ?? '')) ?>">
+    </label>
+    <label>
         <span>承辦人</span>
         <input type="text" name="owner_name" value="<?= e((string) old('owner_name', $project['owner_name'] ?? '')) ?>">
     </label>

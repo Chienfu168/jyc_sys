@@ -67,6 +67,18 @@ ob_start();
             <td><?= e(project_show_status_label($project['status'])) ?></td>
         </tr>
         <tr>
+            <th>次項目</th>
+            <td><?= e($project['sub_program_name'] ?: '-') ?></td>
+            <th>執行對象</th>
+            <td><?= e($project['executing_target'] ?: '-') ?></td>
+        </tr>
+        <tr>
+            <th>負責人／校長</th>
+            <td><?= e($project['principal_name'] ?: '-') ?></td>
+            <th>主要接洽（主任／專員）</th>
+            <td><?= e($project['contact_name'] ?: '-') ?></td>
+        </tr>
+        <tr>
             <th>承辦人</th>
             <td><?= e($project['owner_name'] ?: '-') ?></td>
             <th>部門</th>
