@@ -8,12 +8,21 @@
 -- 劇」)而違反唯一鍵。DROP/ADD INDEX 皆以 INFORMATION_SCHEMA 動態判斷是否已存在
 -- 才執行,避免重複套用本 migration(例如前次執行中途失敗)時出現「索引已存在／
 -- 不存在」的錯誤。
+--
+-- 注意:IF() 動態 SQL 的「不執行」分支使用 'DO 0' 而非 'SELECT 1'。透過
+-- PDO::exec() 執行 EXECUTE 出來的陳述式若其內容是 SELECT,會在 PDO 原生
+-- prepared statement 模式(PDO::ATTR_EMULATE_PREPARES = false)下留下未消耗的
+-- unbuffered 結果集,導致同一連線後續任何查詢都拋出
+-- 「SQLSTATE[HY000]: General error: 2014 Cannot execute queries while other
+-- unbuffered queries are active」,且此連鎖錯誤會發生在原始例外被攔截、記錄
+-- 之後,導致畫面顯示無法追查原因的「系統發生錯誤」。DO 0 不會產生結果集,可
+-- 安全地作為 IF() 動態 SQL 的無動作分支。
 
 SET @idx_exists := (
   SELECT COUNT(1) FROM INFORMATION_SCHEMA.STATISTICS
   WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'project_courses' AND INDEX_NAME = 'uq_project_courses_identity'
 );
-SET @drop_old_idx := IF(@idx_exists > 0, 'ALTER TABLE project_courses DROP INDEX uq_project_courses_identity', 'SELECT 1');
+SET @drop_old_idx := IF(@idx_exists > 0, 'ALTER TABLE project_courses DROP INDEX uq_project_courses_identity', 'DO 0');
 PREPARE stmt_drop_old_idx FROM @drop_old_idx;
 EXECUTE stmt_drop_old_idx;
 DEALLOCATE PREPARE stmt_drop_old_idx;
@@ -116,7 +125,7 @@ SET @new_idx_exists := (
   SELECT COUNT(1) FROM INFORMATION_SCHEMA.STATISTICS
   WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'project_courses' AND INDEX_NAME = 'uq_project_courses_identity'
 );
-SET @add_new_idx := IF(@new_idx_exists = 0, 'ALTER TABLE project_courses ADD UNIQUE KEY uq_project_courses_identity (project_id, semester_label, course_name(80))', 'SELECT 1');
+SET @add_new_idx := IF(@new_idx_exists = 0, 'ALTER TABLE project_courses ADD UNIQUE KEY uq_project_courses_identity (project_id, semester_label, course_name(80))', 'DO 0');
 PREPARE stmt_add_new_idx FROM @add_new_idx;
 EXECUTE stmt_add_new_idx;
 DEALLOCATE PREPARE stmt_add_new_idx;

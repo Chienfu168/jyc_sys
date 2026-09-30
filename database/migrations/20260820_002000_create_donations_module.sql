@@ -57,7 +57,7 @@ SET @donations_has_voucher_column = (
 SET @donations_add_voucher_column = IF(
   @donations_has_voucher_column = 0,
   'ALTER TABLE donations ADD COLUMN accounting_voucher_id BIGINT UNSIGNED NULL AFTER receipt_status',
-  'SELECT 1'
+  'DO 0'
 );
 PREPARE donations_add_voucher_column_stmt FROM @donations_add_voucher_column;
 EXECUTE donations_add_voucher_column_stmt;
@@ -73,7 +73,7 @@ SET @donations_has_voucher_index = (
 SET @donations_add_voucher_index = IF(
   @donations_has_voucher_index = 0,
   'ALTER TABLE donations ADD INDEX idx_donations_accounting_voucher (accounting_voucher_id)',
-  'SELECT 1'
+  'DO 0'
 );
 PREPARE donations_add_voucher_index_stmt FROM @donations_add_voucher_index;
 EXECUTE donations_add_voucher_index_stmt;
@@ -89,7 +89,7 @@ SET @donations_has_voucher_fk = (
 SET @donations_add_voucher_fk = IF(
   @donations_has_voucher_fk = 0,
   'ALTER TABLE donations ADD CONSTRAINT fk_donations_accounting_voucher FOREIGN KEY (accounting_voucher_id) REFERENCES accounting_vouchers(id) ON DELETE SET NULL',
-  'SELECT 1'
+  'DO 0'
 );
 PREPARE donations_add_voucher_fk_stmt FROM @donations_add_voucher_fk;
 EXECUTE donations_add_voucher_fk_stmt;
