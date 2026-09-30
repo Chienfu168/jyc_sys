@@ -37,6 +37,13 @@ final class ProjectController extends Controller
         $this->requirePermission('projects.view');
 
         [$projects, $filters] = $this->filteredProjects();
+        $courseInfo = $this->projectCourseSummaries(array_column($projects, 'id'));
+        foreach ($projects as &$project) {
+            $summary = $courseInfo[(int) $project['id']] ?? ['teachers' => '', 'weekdays' => ''];
+            $project['course_teachers'] = $summary['teachers'];
+            $project['course_weekdays'] = $summary['weekdays'];
+        }
+        unset($project);
 
         $this->render('projects.report', [
             'title' => '專案列表報表',
@@ -48,6 +55,49 @@ final class ProjectController extends Controller
             'year' => $filters['year'],
             'profile' => foundation_profile(),
         ]);
+    }
+
+    /**
+     * 依專案 id 彙整其「合作學校課程」的授課老師、上課星期幾(去重、以頓號合併),
+     * 供專案列表報表顯示;同一專案可能橫跨多筆課程、多位老師或多個上課日。
+     *
+     * @param array<int, int|string> $projectIds
+     * @return array<int, array{teachers: string, weekdays: string}>
+     */
+    private function projectCourseSummaries(array $projectIds): array
+    {
+        $ids = array_values(array_unique(array_map('intval', $projectIds)));
+        if (!$ids) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $stmt = Database::pdo()->prepare(
+            "SELECT project_id, teacher_name, weekday FROM project_courses WHERE project_id IN ({$placeholders})"
+        );
+        $stmt->execute($ids);
+
+        $teachers = [];
+        $weekdays = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $projectId = (int) $row['project_id'];
+            if (!empty($row['teacher_name'])) {
+                $teachers[$projectId][$row['teacher_name']] = true;
+            }
+            if (!empty($row['weekday'])) {
+                $weekdays[$projectId][$row['weekday']] = true;
+            }
+        }
+
+        $summaries = [];
+        foreach ($ids as $id) {
+            $summaries[$id] = [
+                'teachers' => implode('、', array_keys($teachers[$id] ?? [])),
+                'weekdays' => implode('、', array_keys($weekdays[$id] ?? [])),
+            ];
+        }
+
+        return $summaries;
     }
 
     /**

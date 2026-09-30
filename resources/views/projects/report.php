@@ -55,6 +55,8 @@ ob_start();
                 <th>執行對象</th>
                 <th>負責人／校長</th>
                 <th>主要接洽（主任／專員）</th>
+                <th>授課老師</th>
+                <th>上課星期幾</th>
                 <th>執行期間</th>
                 <th>專案目的</th>
             </tr>
@@ -72,12 +74,14 @@ ob_start();
                     <td class="col-text"><?= e($project['executing_target'] ?: '-') ?></td>
                     <td class="col-text"><?= e($project['principal_name'] ?: '-') ?></td>
                     <td class="col-text"><?= e($project['contact_name'] ?: '-') ?></td>
+                    <td class="col-text"><?= e($project['course_teachers'] ?: '-') ?></td>
+                    <td class="col-text"><?= e($project['course_weekdays'] ?: '-') ?></td>
                     <td class="col-text"><?= e(roc_date_range($project['start_date'], $project['end_date'])) ?></td>
                     <td class="col-text"><?= e($project['purpose'] ?: '-') ?></td>
                 </tr>
             <?php endforeach; ?>
             <?php if (!$projects): ?>
-                <tr><td colspan="7" class="empty">查無符合條件的專案資料。</td></tr>
+                <tr><td colspan="9" class="empty">查無符合條件的專案資料。</td></tr>
             <?php endif; ?>
             </tbody>
         </table>
