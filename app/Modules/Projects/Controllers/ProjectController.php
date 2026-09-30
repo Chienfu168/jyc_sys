@@ -22,7 +22,7 @@ final class ProjectController extends Controller
         $where = [];
         $params = [];
         if ($keyword !== '') {
-            $where[] = '(name LIKE :keyword OR project_code LIKE :keyword OR owner_name LIKE :keyword OR department LIKE :keyword OR funding_source LIKE :keyword)';
+            $where[] = '(name LIKE :keyword OR project_code LIKE :keyword OR owner_name LIKE :keyword OR department LIKE :keyword OR funding_source LIKE :keyword OR sub_program_name LIKE :keyword OR executing_target LIKE :keyword)';
             $params['keyword'] = '%' . $keyword . '%';
         }
         if ($status !== '') {
@@ -127,9 +127,9 @@ final class ProjectController extends Controller
 
         Database::pdo()->prepare(
             'INSERT INTO projects
-             (project_code, name, project_type, owner_name, department, funding_source, start_date, end_date, budget_amount, status, purpose, expected_outcome, notes, created_by, created_at, updated_at)
+             (project_code, name, sub_program_name, executing_target, principal_name, contact_name, project_type, owner_name, department, funding_source, start_date, end_date, budget_amount, status, purpose, expected_outcome, notes, created_by, created_at, updated_at)
              VALUES
-             (:project_code, :name, :project_type, :owner_name, :department, :funding_source, :start_date, :end_date, :budget_amount, :status, :purpose, :expected_outcome, :notes, :created_by, :created_at, :updated_at)'
+             (:project_code, :name, :sub_program_name, :executing_target, :principal_name, :contact_name, :project_type, :owner_name, :department, :funding_source, :start_date, :end_date, :budget_amount, :status, :purpose, :expected_outcome, :notes, :created_by, :created_at, :updated_at)'
         )->execute($this->payload() + [
             'created_by' => auth()->user()['id'] ?? null,
             'created_at' => now(),
@@ -182,6 +182,10 @@ final class ProjectController extends Controller
             'UPDATE projects
              SET project_code = :project_code,
                  name = :name,
+                 sub_program_name = :sub_program_name,
+                 executing_target = :executing_target,
+                 principal_name = :principal_name,
+                 contact_name = :contact_name,
                  project_type = :project_type,
                  owner_name = :owner_name,
                  department = :department,
@@ -572,6 +576,10 @@ final class ProjectController extends Controller
         return [
             'project_code' => $this->nullableText('project_code'),
             'name' => trim((string) $_POST['name']),
+            'sub_program_name' => $this->nullableText('sub_program_name'),
+            'executing_target' => $this->nullableText('executing_target'),
+            'principal_name' => $this->nullableText('principal_name'),
+            'contact_name' => $this->nullableText('contact_name'),
             'project_type' => (string) $_POST['project_type'],
             'owner_name' => $this->nullableText('owner_name'),
             'department' => $this->nullableText('department'),
@@ -852,6 +860,10 @@ final class ProjectController extends Controller
         return [
             'project_code' => '',
             'name' => '',
+            'sub_program_name' => '',
+            'executing_target' => '',
+            'principal_name' => '',
+            'contact_name' => '',
             'project_type' => 'program',
             'owner_name' => auth()->user()['name'] ?? '',
             'department' => '',
