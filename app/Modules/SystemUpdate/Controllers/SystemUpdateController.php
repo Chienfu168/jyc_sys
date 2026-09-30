@@ -25,7 +25,39 @@ final class SystemUpdateController extends Controller
             'version' => config('app.version', '0.1.0'),
             'logs' => (new UpdateLogService())->latest(),
             'latestPackage' => (new UpdateLogService())->latestSuccessfulDownload(),
+            'maintenanceLock' => $this->maintenanceLockInfo(),
         ]);
+    }
+
+    public function clearMaintenanceLock(): void
+    {
+        $this->requirePermission('system_updates.manage');
+
+        $path = storage_path('maintenance.lock');
+        if (is_file($path)) {
+            unlink($path);
+            AuditLog::write('clear_maintenance_lock', 'system_update');
+            flash('success', '已清除維護鎖定。');
+        } else {
+            flash('error', '目前沒有維護鎖定需要清除。');
+        }
+
+        redirect('/system-update');
+    }
+
+    private function maintenanceLockInfo(): ?array
+    {
+        $path = storage_path('maintenance.lock');
+        if (!is_file($path)) {
+            return null;
+        }
+
+        $mtime = filemtime($path) ?: time();
+
+        return [
+            'age_minutes' => (int) floor((time() - $mtime) / 60),
+            'started_at' => date('Y-m-d H:i:s', $mtime),
+        ];
     }
 
     public function database(): void

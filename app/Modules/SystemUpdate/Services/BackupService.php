@@ -181,5 +181,29 @@ final class BackupService
         if (function_exists('ignore_user_abort')) {
             @ignore_user_abort(true);
         }
+
+        $current = $this->iniBytes(ini_get('memory_limit'));
+        $floor = 512 * 1024 * 1024;
+        if ($current !== -1 && $current < $floor) {
+            @ini_set('memory_limit', '512M');
+        }
+    }
+
+    private function iniBytes(string|false $value): int
+    {
+        $value = trim((string) $value);
+        if ($value === '' || $value === '-1') {
+            return -1;
+        }
+
+        $unit = strtolower(substr($value, -1));
+        $number = (int) $value;
+
+        return match ($unit) {
+            'g' => $number * 1024 * 1024 * 1024,
+            'm' => $number * 1024 * 1024,
+            'k' => $number * 1024,
+            default => (int) $value,
+        };
     }
 }

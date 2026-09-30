@@ -8,3 +8,4 @@ $router->post('/system-update/migrate', [SystemUpdateController::class, 'migrate
 $router->post('/system-update/check', [SystemUpdateController::class, 'check']);
 $router->post('/system-update/download', [SystemUpdateController::class, 'download']);
 $router->post('/system-update/apply', [SystemUpdateController::class, 'apply']);
+$router->post('/system-update/clear-maintenance-lock', [SystemUpdateController::class, 'clearMaintenanceLock']);
