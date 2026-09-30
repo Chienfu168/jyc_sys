@@ -34,6 +34,7 @@ ob_start();
         <div class="actions">
             <a class="btn" href="/operations">返回業務與人事</a>
             <a class="btn" href="/projects/courses/report">合作學校課程報表</a>
+            <a class="btn" href="/projects/report?<?= e(http_build_query(['q' => $keyword, 'status' => $status, 'year' => $year])) ?>">列印專案列表報表</a>
             <?php if (\App\Core\Permission::can('projects.manage')): ?>
                 <a class="btn primary" href="/projects/create">新增專案</a>
             <?php endif; ?>

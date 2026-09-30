@@ -4,6 +4,7 @@ use App\Modules\Projects\Controllers\ProjectController;
 
 $router->get('/projects', [ProjectController::class, 'index']);
 $router->get('/projects/create', [ProjectController::class, 'create']);
+$router->get('/projects/report', [ProjectController::class, 'report']);
 $router->get('/projects/courses/report', [ProjectController::class, 'courseReport']);
 $router->post('/projects', [ProjectController::class, 'store']);
 $router->get('/projects/{id}', [ProjectController::class, 'show']);
