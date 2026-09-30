@@ -8,7 +8,7 @@ SET @payment_receipts_has_source_type = (
 SET @payment_receipts_add_source_type = IF(
   @payment_receipts_has_source_type = 0,
   'ALTER TABLE payment_receipts ADD COLUMN source_type VARCHAR(80) NULL AFTER receipt_no',
-  'SELECT 1'
+  'DO 0'
 );
 PREPARE payment_receipts_add_source_type_stmt FROM @payment_receipts_add_source_type;
 EXECUTE payment_receipts_add_source_type_stmt;
@@ -24,7 +24,7 @@ SET @payment_receipts_has_source_id = (
 SET @payment_receipts_add_source_id = IF(
   @payment_receipts_has_source_id = 0,
   'ALTER TABLE payment_receipts ADD COLUMN source_id BIGINT UNSIGNED NULL AFTER source_type',
-  'SELECT 1'
+  'DO 0'
 );
 PREPARE payment_receipts_add_source_id_stmt FROM @payment_receipts_add_source_id;
 EXECUTE payment_receipts_add_source_id_stmt;
@@ -40,7 +40,7 @@ SET @payment_receipts_has_source_label = (
 SET @payment_receipts_add_source_label = IF(
   @payment_receipts_has_source_label = 0,
   'ALTER TABLE payment_receipts ADD COLUMN source_label VARCHAR(190) NULL AFTER source_id',
-  'SELECT 1'
+  'DO 0'
 );
 PREPARE payment_receipts_add_source_label_stmt FROM @payment_receipts_add_source_label;
 EXECUTE payment_receipts_add_source_label_stmt;
@@ -56,7 +56,7 @@ SET @payment_receipts_has_source_index = (
 SET @payment_receipts_add_source_index = IF(
   @payment_receipts_has_source_index = 0,
   'ALTER TABLE payment_receipts ADD INDEX idx_payment_receipts_source (source_type, source_id)',
-  'SELECT 1'
+  'DO 0'
 );
 PREPARE payment_receipts_add_source_index_stmt FROM @payment_receipts_add_source_index;
 EXECUTE payment_receipts_add_source_index_stmt;
