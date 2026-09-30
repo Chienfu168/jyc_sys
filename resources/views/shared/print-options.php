@@ -6,18 +6,20 @@
  *  - 為 no-print,僅於畫面顯示;實際列印時以所選紙張、方向與縮放輸出。
  */
 $printScaleSelector = $printScaleSelector ?? '.print-scale-root';
+$printDefaultPaper = $printDefaultPaper ?? 'A4';
+$printDefaultOrient = $printDefaultOrient ?? 'portrait';
 ?>
 <div class="print-options no-print" data-print-scale-target="<?= e($printScaleSelector) ?>">
     <label><span>紙張</span>
         <select class="po-paper">
-            <option value="A4">A4</option>
-            <option value="A3">A3</option>
+            <option value="A4" <?= $printDefaultPaper === 'A4' ? 'selected' : '' ?>>A4</option>
+            <option value="A3" <?= $printDefaultPaper === 'A3' ? 'selected' : '' ?>>A3</option>
         </select>
     </label>
     <label><span>方向</span>
         <select class="po-orient">
-            <option value="portrait">直向</option>
-            <option value="landscape">橫向</option>
+            <option value="portrait" <?= $printDefaultOrient === 'portrait' ? 'selected' : '' ?>>直向</option>
+            <option value="landscape" <?= $printDefaultOrient === 'landscape' ? 'selected' : '' ?>>橫向</option>
         </select>
     </label>
     <label><span>縮放</span>
