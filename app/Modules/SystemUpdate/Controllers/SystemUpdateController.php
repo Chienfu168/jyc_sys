@@ -129,6 +129,7 @@ final class SystemUpdateController extends Controller
             'version' => config('app.version', '0.1.0'),
             'logs' => (new UpdateLogService())->latest(),
             'latestPackage' => (new UpdateLogService())->latestSuccessfulDownload(),
+            'maintenanceLock' => $this->maintenanceLockInfo(),
         ]);
     }
 
