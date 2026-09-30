@@ -5,10 +5,12 @@ $profile = $profile ?? foundation_profile();
 ob_start();
 ?>
 <style>
-/* 固定設計寬度,讓「自動縮放」以此為基準:A4 縮至符合、A3 放大填滿,字級穩定不偏小。 */
-.project-report-table { min-width: 1500px; width: 1500px; border-collapse: collapse; font-size: 13px; }
+/* 寬度採 100%,直接填滿當下紙張的可列印寬度,不依賴 JS 於列印當下才運算縮放
+   (瀏覽器以「另存 PDF」或系統列印觸發時,beforeprint 事件不一定可靠執行);
+   紙張大小另以下方 @media print 的 @page 提供 CSS 層級的預設值,同樣不依賴 JS。 */
+.project-report-table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
 .project-report-table th,
-.project-report-table td { border: 1px solid #666; padding: 6px 8px; vertical-align: top; white-space: normal; }
+.project-report-table td { border: 1px solid #666; padding: 6px 8px; vertical-align: top; white-space: normal; word-break: break-word; }
 .project-report-table thead th { background: #f1f4f3; text-align: center; }
 .project-report-table td.col-text { text-align: left; }
 /* 表頭抬頭列:跨頁時 thead 會於每頁重複顯示(含機構抬頭與欄位標頭)。 */
@@ -19,6 +21,8 @@ ob_start();
 .report-heading-inner .rh-title { font-size: 16px; font-weight: 700; margin-bottom: 3px; }
 .report-heading-inner .rh-filters { font-size: 12px; color: #333333; }
 @media print {
+    /* CSS 層級的預設紙張(不需 JS 執行即生效);點擊上方列印選項工具列仍可另外調整。 */
+    @page { size: A3 landscape; margin: 10mm; }
     .project-report-table { font-size: 11px; }
     .project-report-table th, .project-report-table td { padding: 3px 5px; }
     /* .print-only 預設 display:none,列印時才需要顯示為表格列(而非 block,否則破壞表格排版)。 */
@@ -69,15 +73,15 @@ ob_start();
                 </th>
             </tr>
             <tr>
-                <th>專案名稱</th>
-                <th>次項目</th>
-                <th>執行對象</th>
-                <th>負責人／校長</th>
-                <th>主要接洽（主任／專員）</th>
-                <th>授課老師</th>
-                <th>上課星期幾</th>
-                <th>執行期間</th>
-                <th>專案目的</th>
+                <th style="width:14%">專案名稱</th>
+                <th style="width:8%">次項目</th>
+                <th style="width:8%">執行對象</th>
+                <th style="width:8%">負責人／校長</th>
+                <th style="width:10%">主要接洽（主任／專員）</th>
+                <th style="width:8%">授課老師</th>
+                <th style="width:7%">上課星期幾</th>
+                <th style="width:13%">執行期間</th>
+                <th style="width:24%">專案目的</th>
             </tr>
             </thead>
             <tbody>
