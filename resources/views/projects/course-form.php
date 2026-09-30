@@ -16,15 +16,19 @@ ob_start();
     <form class="form grid-form" method="post" action="<?= e($action) ?>">
         <?= csrf_field() ?>
         <label>
-            <span>學校</span>
+            <span>次項目<small class="field-hint">（子方案名稱，如：雙語讀世界；若無可留空）</small></span>
+            <input type="text" name="sub_program_name" value="<?= e((string) old('sub_program_name', $course['sub_program_name'] ?? '')) ?>">
+        </label>
+        <label>
+            <span>執行對象（學校）</span>
             <input type="text" name="school_name" value="<?= e((string) old('school_name', $course['school_name'] ?? '')) ?>" required>
         </label>
         <label>
-            <span>校長姓名<small class="field-hint">（若未確認可留空）</small></span>
+            <span>負責人／校長<small class="field-hint">（若未確認可留空）</small></span>
             <input type="text" name="principal_name" value="<?= e((string) old('principal_name', $course['principal_name'] ?? '')) ?>">
         </label>
         <label>
-            <span>負責主任<small class="field-hint">（若未確認可留空）</small></span>
+            <span>主要接洽（主任／專員）<small class="field-hint">（若未確認可留空）</small></span>
             <input type="text" name="director_name" value="<?= e((string) old('director_name', $course['director_name'] ?? '')) ?>">
         </label>
         <label>
