@@ -18,4 +18,6 @@ $router->post('/lecturer-expenses/{id}/sessions', [LecturerExpenseController::cl
 $router->get('/lecturer-expenses/{id}/sessions/{sessionId}/edit', [LecturerExpenseController::class, 'sessionEdit']);
 $router->post('/lecturer-expenses/{id}/sessions/{sessionId}', [LecturerExpenseController::class, 'sessionUpdate']);
 $router->post('/lecturer-expenses/{id}/sessions/{sessionId}/delete', [LecturerExpenseController::class, 'sessionDestroy']);
+$router->get('/lecturer-expenses/{id}/copy', [LecturerExpenseController::class, 'copyCreate']);
+$router->post('/lecturer-expenses/{id}/copy', [LecturerExpenseController::class, 'copyStore']);
 $router->post('/lecturer-expenses/{id}/delete', [LecturerExpenseController::class, 'destroy']);

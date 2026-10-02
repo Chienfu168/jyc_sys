@@ -18,6 +18,7 @@ ob_start();
             <a class="btn" href="/lecturer-expenses">返回列表</a>
             <?php if (\App\Core\Permission::can('lecturer_expenses.manage')): ?>
                 <a class="btn" href="/lecturer-expenses/<?= e((string) $expense['id']) ?>/edit">編輯</a>
+                <a class="btn" href="/lecturer-expenses/<?= e((string) $expense['id']) ?>/copy">複製為其他月份</a>
                 <?php if ($expense['payment_status'] === 'pending'): ?>
                     <form method="post" action="/lecturer-expenses/<?= e((string) $expense['id']) ?>/mark-paid">
                         <?= csrf_field() ?>
