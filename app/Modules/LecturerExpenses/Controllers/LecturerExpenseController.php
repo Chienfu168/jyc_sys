@@ -478,6 +478,118 @@ final class LecturerExpenseController extends Controller
     }
 
     /**
+     * 複製月紀錄:講師固定每月有課程時,複製上個月(或任一月份)的紀錄與上課明細到
+     * 新的月份,複製後只需調整日期、時數等少數內容即可使用,不必整筆重新輸入。
+     */
+    public function copyCreate(string $id): void
+    {
+        $this->requirePermission('lecturer_expenses.manage');
+        $expense = $this->findExpense((int) $id);
+
+        $this->render('lecturer-expenses.copy-form', [
+            'title' => '複製講師費用月紀錄',
+            'section' => '財務會計',
+            'active' => 'lecturer-expenses',
+            'expense' => $expense,
+            'sessions' => $this->expenseSessions((int) $id),
+            'targetMonth' => date('Y-m', strtotime((string) $expense['expense_date'] . ' +1 month')),
+            'action' => '/lecturer-expenses/' . $id . '/copy',
+        ]);
+    }
+
+    public function copyStore(string $id): void
+    {
+        $this->requirePermission('lecturer_expenses.manage');
+        $expense = $this->findExpense((int) $id);
+        $sessions = $this->expenseSessions((int) $id);
+
+        $targetMonth = (string) ($_POST['target_month'] ?? '');
+        if (!preg_match('/^\d{4}-\d{2}$/', $targetMonth)) {
+            $this->backWithInput('/lecturer-expenses/' . $id . '/copy', $_POST, '目標月份格式不正確。');
+        }
+
+        $existsStmt = Database::pdo()->prepare(
+            'SELECT id FROM lecturer_expenses
+             WHERE lecturer_id = :lecturer_id AND expense_date = :expense_date AND payment_status != "voided"
+             LIMIT 1'
+        );
+        $existsStmt->execute([
+            'lecturer_id' => $expense['lecturer_id'],
+            'expense_date' => $targetMonth . '-01',
+        ]);
+        if ($existsStmt->fetchColumn()) {
+            $this->backWithInput('/lecturer-expenses/' . $id . '/copy', $_POST, '該講師在目標月份已有講師費用紀錄，請直接於該筆新增上課明細，或改選其他月份。');
+        }
+
+        $pdo = Database::pdo();
+        $pdo->prepare(
+            'INSERT INTO lecturer_expenses
+             (lecturer_id, expense_date, service_title, service_unit, project_id, project_name, activity_name, hours, hourly_rate, lecture_fee, transportation_fee, other_fee, withholding_tax, gross_total, net_total, payment_method, payment_status, paid_on, bank_account_id, receipt_no, notes, created_by, created_at, updated_at)
+             VALUES
+             (:lecturer_id, :expense_date, :service_title, :service_unit, :project_id, :project_name, :activity_name, 0, 0, 0, 0, :other_fee, :withholding_tax, 0, 0, :payment_method, "pending", NULL, :bank_account_id, NULL, :notes, :created_by, :created_at, :updated_at)'
+        )->execute([
+            'lecturer_id' => $expense['lecturer_id'],
+            'expense_date' => $targetMonth . '-01',
+            'service_title' => $expense['service_title'],
+            'service_unit' => $expense['service_unit'],
+            'project_id' => $expense['project_id'],
+            'project_name' => $expense['project_name'],
+            'activity_name' => $expense['activity_name'],
+            'other_fee' => $expense['other_fee'],
+            'withholding_tax' => $expense['withholding_tax'],
+            'payment_method' => $expense['payment_method'],
+            'bank_account_id' => $expense['bank_account_id'],
+            'notes' => $expense['notes'],
+            'created_by' => auth()->user()['id'] ?? null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $newId = (int) $pdo->lastInsertId();
+
+        $sessionStmt = $pdo->prepare(
+            'INSERT INTO lecturer_expense_sessions
+             (lecturer_expense_id, session_date, location, hours, hourly_rate, lecture_fee, transportation_fee, subtotal, notes, sort_order, created_at, updated_at)
+             VALUES
+             (:lecturer_expense_id, :session_date, :location, :hours, :hourly_rate, :lecture_fee, :transportation_fee, :subtotal, :notes, :sort_order, :created_at, :updated_at)'
+        );
+        foreach ($sessions as $session) {
+            $sessionStmt->execute([
+                'lecturer_expense_id' => $newId,
+                'session_date' => $this->shiftDateToMonth((string) $session['session_date'], $targetMonth),
+                'location' => $session['location'],
+                'hours' => $session['hours'],
+                'hourly_rate' => $session['hourly_rate'],
+                'lecture_fee' => $session['lecture_fee'],
+                'transportation_fee' => $session['transportation_fee'],
+                'subtotal' => $session['subtotal'],
+                'notes' => $session['notes'],
+                'sort_order' => $session['sort_order'],
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        $this->recalculateExpenseTotals($newId);
+        AuditLog::write('copy', 'lecturer_expenses', 'lecturer_expenses', $newId, ['copied_from' => (int) $id]);
+        flash('success', '已複製為 ' . $targetMonth . ' 的講師費用紀錄，請確認上課明細日期等內容後使用。');
+        redirect('/lecturer-expenses/' . $newId);
+    }
+
+    /**
+     * 將日期的「日」保留,月份換成目標月份;若目標月份天數較少(如換成 2 月),
+     * 超出的日數會自動調整為該月最後一天。
+     */
+    private function shiftDateToMonth(string $date, string $targetMonth): string
+    {
+        $day = (int) substr($date, 8, 2);
+        [$year, $month] = array_map('intval', explode('-', $targetMonth));
+        $daysInMonth = (int) date('t', mktime(0, 0, 0, $month, 1, $year));
+
+        return sprintf('%04d-%02d-%02d', $year, $month, min($day, $daysInMonth));
+    }
+
+    /**
      * 講師費用月報表:列印指定月份(或全部)的所有講師月紀錄,含上課明細(地點、日期、時數、交通費)。
      */
     public function monthlyReport(): void

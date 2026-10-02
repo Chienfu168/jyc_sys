@@ -88,6 +88,7 @@ ob_start();
                         <a class="btn small" href="/lecturer-expenses/<?= e((string) $expense['id']) ?>">檢視</a>
                         <?php if (\App\Core\Permission::can('lecturer_expenses.manage')): ?>
                             <a class="btn small" href="/lecturer-expenses/<?= e((string) $expense['id']) ?>/edit">編輯</a>
+                            <a class="btn small" href="/lecturer-expenses/<?= e((string) $expense['id']) ?>/copy">複製</a>
                         <?php endif; ?>
                         <?php if (\App\Core\Permission::can('lecturer_expenses.delete') || owns_record($expense['created_by'] ?? null)): ?>
                             <form method="post" action="/lecturer-expenses/<?= e((string) $expense['id']) ?>/delete" onsubmit="return confirm('確定要刪除此講師支出？此操作無法復原（已建立會計傳票者無法刪除）。');">
