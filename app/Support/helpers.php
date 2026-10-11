@@ -304,7 +304,8 @@ function signature_chain(?string $context = null): array
         'purchase-requests' => [['申請人', ''], ['總務', ''], ['執行長', $exec], ['董事長', $rep]],
         // 支出核銷:經會計。
         'travel-expenses' => [['申請人', ''], ['會計', ''], ['執行長', $exec], ['董事長', $rep]],
-        'lecturer-expenses' => [['承辦', $undertaker], ['會計', ''], ['執行長', $exec], ['董事長', $rep]],
+        // 講師費用承辦人不固定(依實際經手人簽署),不預帶基金會基本資料的承辦人姓名。
+        'lecturer-expenses' => [['承辦', ''], ['會計', ''], ['執行長', $exec], ['董事長', $rep]],
         'income-expenses' => $finance,
         'petty-cash' => [['經手人', ''], ['會計', ''], ['執行長', $exec], ['董事長', $rep]],
         // 財務會計與決算報表:經會計。
