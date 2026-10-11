@@ -91,8 +91,6 @@ ob_start();
     <?php if (!empty($lecturer['notes'])): ?>
         <p class="print-notes">備註：<?= nl2br(e($lecturer['notes'])) ?></p>
     <?php endif; ?>
-
-    <?php require base_path('resources/views/shared/signatures.php'); ?>
 </section>
 <?php
 $content = ob_get_clean();
