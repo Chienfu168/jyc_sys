@@ -8,7 +8,7 @@ ob_start();
 ?>
 <?php require base_path('resources/views/shared/print-header.php'); ?>
 
-<section class="panel">
+<section class="panel lecturer-expense-receipt">
     <div class="panel-header no-print">
         <div>
             <h2><?= e($expense['service_title']) ?></h2>
@@ -102,7 +102,7 @@ ob_start();
 
     <?php $canManageExpense = \App\Core\Permission::can('lecturer_expenses.manage'); ?>
     <?php $sessionsMutable = empty($expense['accounting_voucher_id']); ?>
-    <section class="panel subtle" style="margin-top:18px;">
+    <section class="panel subtle lecturer-expense-sessions">
         <div class="panel-header no-print">
             <h3 style="margin:0;">上課明細</h3>
             <?php if ($canManageExpense && $sessionsMutable): ?>

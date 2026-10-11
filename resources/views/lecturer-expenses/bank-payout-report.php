@@ -9,7 +9,7 @@ ob_start();
     <div class="panel-header no-print">
         <div>
             <h2>講師費用銀行出帳記錄</h2>
-            <p class="muted-text">列印指定月份各講師匯款帳戶與應付金額，供財務出帳使用。</p>
+            <p class="muted-text">列印指定月份各講師匯款帳戶與應付金額，供財務出帳使用。同一講師若有多筆月紀錄（如分散於不同專案/學校），會自動合併為一筆出帳金額。</p>
         </div>
         <div class="actions">
             <form class="search" method="get" action="/lecturer-expenses/reports/bank-payout">
@@ -45,6 +45,7 @@ ob_start();
                 <th>分行</th>
                 <th>帳號</th>
                 <th>戶名</th>
+                <th class="amount">合併筆數</th>
                 <th class="amount">當月金額</th>
             </tr>
             </thead>
@@ -56,16 +57,17 @@ ob_start();
                     <td><?= e($row['bank_branch'] ?: '-') ?></td>
                     <td><?= e($row['bank_account_no'] ?: '-') ?></td>
                     <td><?= e($row['bank_account_name'] ?: '-') ?></td>
+                    <td class="amount"><?= e((string) $row['record_count']) ?></td>
                     <td class="amount"><?= e(number_format((float) $row['net_total'], 0)) ?></td>
                 </tr>
             <?php endforeach; ?>
             <?php if (!$rows): ?>
-                <tr><td colspan="6" class="empty">查無符合條件的紀錄。</td></tr>
+                <tr><td colspan="7" class="empty">查無符合條件的紀錄。</td></tr>
             <?php endif; ?>
             </tbody>
             <tfoot>
             <tr>
-                <th colspan="5">合計</th>
+                <th colspan="6">合計</th>
                 <th class="amount"><?= e(number_format((float) $total, 0)) ?></th>
             </tr>
             </tfoot>
