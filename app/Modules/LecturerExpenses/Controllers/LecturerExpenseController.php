@@ -658,6 +658,7 @@ final class LecturerExpenseController extends Controller
 
     /**
      * 銀行出帳記錄報表:列印指定月份各講師應付總額與匯款帳戶資訊,供財務出帳使用。
+     * 同一講師若有多筆月紀錄(如分散於不同專案/學校),會合併為單一出帳行。
      */
     public function bankPayoutReport(): void
     {
@@ -666,13 +667,16 @@ final class LecturerExpenseController extends Controller
         $month = preg_match('/^\d{4}-\d{2}$/', (string) ($_GET['month'] ?? '')) ? (string) $_GET['month'] : date('Y-m');
 
         $stmt = Database::pdo()->prepare(
-            'SELECT lecturer_expenses.id, lecturer_expenses.net_total, lecturer_expenses.payment_status,
+            'SELECT lecturer_expenses.lecturer_id, SUM(lecturer_expenses.net_total) AS net_total,
+                    COUNT(*) AS record_count,
                     lecturers.name AS lecturer_name, lecturers.display_name,
                     lecturers.bank_name, lecturers.bank_branch, lecturers.bank_account_no, lecturers.bank_account_name
              FROM lecturer_expenses
              INNER JOIN lecturers ON lecturers.id = lecturer_expenses.lecturer_id
              WHERE lecturer_expenses.payment_status != "voided"
                AND DATE_FORMAT(lecturer_expenses.expense_date, "%Y-%m") = :month
+             GROUP BY lecturer_expenses.lecturer_id, lecturers.name, lecturers.display_name,
+                      lecturers.bank_name, lecturers.bank_branch, lecturers.bank_account_no, lecturers.bank_account_name
              ORDER BY lecturers.name'
         );
         $stmt->execute(['month' => $month]);
