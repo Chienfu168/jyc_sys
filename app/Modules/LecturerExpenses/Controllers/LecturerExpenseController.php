@@ -621,8 +621,39 @@ final class LecturerExpenseController extends Controller
             'month' => $month,
             'expenses' => $expenses,
             'sessionsByExpense' => $sessionsByExpense,
+            'lecturerTotals' => $this->lecturerMonthlyTotals($expenses),
             'profile' => foundation_profile(),
         ]);
+    }
+
+    /**
+     * 將同一講師在該月份(可能分散於不同專案/學校)的多筆月紀錄彙總為講師總計,
+     * 供月報表方便統計同一講師當月合計時數與應付金額。
+     *
+     * @param array<int, array<string, mixed>> $expenses
+     * @return array<int, array{lecturer_name: string, record_count: int, hours: float, gross_total: float, net_total: float}>
+     */
+    private function lecturerMonthlyTotals(array $expenses): array
+    {
+        $totals = [];
+        foreach ($expenses as $expense) {
+            $lecturerId = (int) $expense['lecturer_id'];
+            if (!isset($totals[$lecturerId])) {
+                $totals[$lecturerId] = [
+                    'lecturer_name' => $expense['display_name'] ?: $expense['lecturer_name'],
+                    'record_count' => 0,
+                    'hours' => 0.0,
+                    'gross_total' => 0.0,
+                    'net_total' => 0.0,
+                ];
+            }
+            $totals[$lecturerId]['record_count']++;
+            $totals[$lecturerId]['hours'] += (float) $expense['hours'];
+            $totals[$lecturerId]['gross_total'] += (float) $expense['gross_total'];
+            $totals[$lecturerId]['net_total'] += (float) $expense['net_total'];
+        }
+
+        return $totals;
     }
 
     /**

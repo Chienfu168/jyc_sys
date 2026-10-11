@@ -29,6 +29,33 @@ ob_start();
         <p class="muted-text"><?= e($month) ?> 尚無講師費用紀錄。</p>
     <?php endif; ?>
 
+    <?php if ($lecturerTotals): ?>
+        <div class="table-wrap" style="margin-bottom:18px;break-inside:avoid;">
+            <table>
+                <thead>
+                <tr>
+                    <th>講師總計</th>
+                    <th class="amount">月紀錄筆數</th>
+                    <th class="amount">總時數</th>
+                    <th class="amount">應付總額</th>
+                    <th class="amount">實付金額</th>
+                </tr>
+                </thead>
+                <tbody>
+                <?php foreach ($lecturerTotals as $lecturerTotal): ?>
+                    <tr>
+                        <td><?= e($lecturerTotal['lecturer_name']) ?></td>
+                        <td class="amount"><?= e((string) $lecturerTotal['record_count']) ?></td>
+                        <td class="amount"><?= e(number_format($lecturerTotal['hours'], 2)) ?></td>
+                        <td class="amount"><?= e(number_format($lecturerTotal['gross_total'], 0)) ?></td>
+                        <td class="amount"><?= e(number_format($lecturerTotal['net_total'], 0)) ?></td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    <?php endif; ?>
+
     <?php foreach ($expenses as $expense): ?>
         <?php $sessions = $sessionsByExpense[(int) $expense['id']] ?? []; ?>
         <div class="meta-table-wrap" style="margin-bottom:18px;break-inside:avoid;">
@@ -53,6 +80,7 @@ ob_start();
                     <thead>
                     <tr>
                         <th>日期</th>
+                        <th>星期</th>
                         <th>上課地點</th>
                         <th class="amount">時數</th>
                         <th class="amount">鐘點費單價</th>
@@ -65,6 +93,7 @@ ob_start();
                     <?php foreach ($sessions as $session): ?>
                         <tr>
                             <td><?= e(roc_date($session['session_date'])) ?></td>
+                            <td><?= e(lecturer_expense_weekday_label($session['session_date'])) ?></td>
                             <td><?= e($session['location'] ?: '-') ?></td>
                             <td class="amount"><?= e(number_format((float) $session['hours'], 2)) ?></td>
                             <td class="amount"><?= e(number_format((float) $session['hourly_rate'], 0)) ?></td>
@@ -74,7 +103,7 @@ ob_start();
                         </tr>
                     <?php endforeach; ?>
                     <?php if (!$sessions): ?>
-                        <tr><td colspan="7" class="empty">尚無上課明細。</td></tr>
+                        <tr><td colspan="8" class="empty">尚無上課明細。</td></tr>
                     <?php endif; ?>
                     </tbody>
                 </table>
@@ -83,5 +112,9 @@ ob_start();
     <?php endforeach; ?>
 </section>
 <?php
+function lecturer_expense_weekday_label(string $date): string
+{
+    return '星期' . ['日', '一', '二', '三', '四', '五', '六'][(int) date('w', strtotime($date))];
+}
 $content = ob_get_clean();
 require base_path('resources/views/layouts/main.php');
