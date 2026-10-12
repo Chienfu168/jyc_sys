@@ -18,6 +18,9 @@ use PDO;
  */
 final class ExpenseRequestController extends Controller
 {
+    /** 單筆費用申請最多可上傳憑證張數(配合列印版面,最多 4 張可合併於單頁)。 */
+    private const MAX_ATTACHMENTS = 4;
+
     public function index(): void
     {
         $this->requirePermission('expense_requests.view');
@@ -423,6 +426,10 @@ final class ExpenseRequestController extends Controller
             $this->forbid();
         }
 
+        if (count($this->attachments((int) $request['id'])) >= self::MAX_ATTACHMENTS) {
+            $this->backWithInput('/expense-requests/' . $id, [], '憑證附件已達上限(最多 ' . self::MAX_ATTACHMENTS . ' 張),請先刪除部分附件再上傳。');
+        }
+
         $stored = $this->storeUploadedReceipts((int) $request['id']);
         if ($stored === 0) {
             $this->backWithInput('/expense-requests/' . $id, [], '沒有可上傳的憑證,或檔案格式不支援。');
@@ -735,13 +742,17 @@ final class ExpenseRequestController extends Controller
         }
         $count = count($_FILES['receipts']['name']);
         $stored = 0;
+        $remaining = self::MAX_ATTACHMENTS - count($this->attachments($requestId));
+        if ($remaining <= 0) {
+            return 0;
+        }
         $targetDir = storage_path('private_uploads/expense_requests/' . $requestId);
         if (!is_dir($targetDir) && !mkdir($targetDir, 0775, true) && !is_dir($targetDir)) {
             return 0;
         }
 
         for ($i = 0; $i < $count; $i++) {
-            if ($stored >= 10) {
+            if ($stored >= $remaining) {
                 break;
             }
             if ((int) ($_FILES['receipts']['error'][$i] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
