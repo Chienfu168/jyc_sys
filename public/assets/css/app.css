@@ -1800,6 +1800,12 @@ textarea:focus {
     text-align: left;
 }
 
+/* 出席董事名單過長換行時,續行對齊名單起始處(「出席董事：」之後),而非退回編號。 */
+.bm-attendees-line {
+    padding-left: 5em;
+    text-indent: -5em;
+}
+
 .bm-agenda-item {
     margin: 10px 0 10px 1em;
     padding: 4px 0 4px 14px;
@@ -1850,14 +1856,15 @@ textarea:focus {
     font-size: 16px;
 }
 
+/* 紀錄／主席間距加倍,方便親筆簽名。 */
 .bm-signature-line {
-    margin: 6px 0;
+    margin: 12px 0;
 }
 
 .bm-signature-space {
     display: inline-block;
     min-width: 140px;
-    border-bottom: 1px solid #000000;
+    border-bottom: 1px solid #999999;
 }
 
 /* 開會通知(主管機關公文式):抬頭、機關資訊、公文欄位、說明階層條列、署名。 */
