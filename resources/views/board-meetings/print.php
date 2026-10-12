@@ -56,7 +56,10 @@ ob_start();
                     <td></td>
                 </tr>
             <?php endforeach; ?>
-            <?php for ($i = count($attendees); $i < max(count($attendees) + 3, 8); $i++): ?>
+            <?php
+            // 簽到表固定共 12 列(含實際出列席人員),不足以空白列補滿,
+            // 列高放大以撐滿單頁版面,方便親筆簽名。
+            for ($i = count($attendees); $i < max(count($attendees), 12); $i++): ?>
                 <tr><td><?= e((string) ($i + 1)) ?></td><td></td><td></td><td></td></tr>
             <?php endfor; ?>
             </tbody>
