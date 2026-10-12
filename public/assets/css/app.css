@@ -1779,6 +1779,12 @@ textarea:focus {
     font-weight: 400;
 }
 
+/* 會議議程／紀錄:第二行(基金會全名)、第三行(會議議程／紀錄)放大加粗。 */
+.bm-doc-sheet .bm-doc-subtitle {
+    font-size: 19px;
+    font-weight: 700;
+}
+
 .bm-body {
     margin: 18px 0 0;
     padding-left: 2.2em;
@@ -2028,7 +2034,7 @@ textarea:focus {
     letter-spacing: 10px;
 }
 
-/* 簽到表:縮減上方留白(抬頭／會議資訊),讓簽名表格盡量撐滿至頁面頂部附近,
+/* 簽到簿:縮減上方留白(抬頭／會議資訊),讓簽名表格盡量撐滿至頁面頂部附近,
    列高加大、列數固定 12 列,形成適合單頁列印的版面。 */
 .bm-signin-sheet {
     padding-top: 2mm;
@@ -2039,8 +2045,10 @@ textarea:focus {
     margin-bottom: 2px;
 }
 
+/* 第二行(基金會全名)文字放大。 */
 .bm-signin-sheet .bm-doc-subtitle {
     margin: 2px 0;
+    font-size: 18px;
 }
 
 /* 會議日期／地點:行距縮減,為下方簽名表格留出更多版面。 */

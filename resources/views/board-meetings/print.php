@@ -1,7 +1,7 @@
 <?php
 $active = 'board-meetings';
 $documentTitle = $type === 'agenda' ? '董事會議議程'
-    : ($type === 'signin' ? '董事會議簽到表'
+    : ($type === 'signin' ? '董事會議簽到簿'
     : ($type === 'notice' ? '董事會議開會通知' : '董事會議紀錄'));
 $sessionTitle = \App\Domain\BoardMeetings\MeetingLabel::sessionTitle((int) $meeting['term_no'], (int) $meeting['session_no']);
 $foundationName = $profile['foundation_name'] ?? foundation_name();
@@ -31,7 +31,7 @@ ob_start();
             <a class="btn" href="?type=notice">開會通知版</a>
             <a class="btn" href="?type=agenda">議程版</a>
             <a class="btn" href="?type=minutes">會議紀錄版</a>
-            <a class="btn" href="?type=signin">簽到表</a>
+            <a class="btn" href="?type=signin">簽到簿</a>
             <button class="btn primary" type="button" onclick="window.print()">列印 / 另存 PDF</button>
         </div>
     </div>
@@ -39,7 +39,7 @@ ob_start();
 
 <?php if ($type === 'signin'): ?>
     <article class="board-meeting-print bm-signin-sheet">
-        <h2 class="bm-doc-title">簽到表</h2>
+        <h2 class="bm-doc-title">簽到簿</h2>
         <h3 class="bm-doc-subtitle"><?= e($foundationName . $sessionTitle) ?></h3>
         <div class="bm-signin-meta">
             <span>會議日期：<?= e(roc_date($meeting['meeting_date'])) ?><?= $meeting['meeting_time'] ? '　' . e($meeting['meeting_time']) : '' ?></span>
@@ -57,7 +57,7 @@ ob_start();
                 </tr>
             <?php endforeach; ?>
             <?php
-            // 簽到表固定共 12 列(含實際出列席人員),不足以空白列補滿,
+            // 簽到簿固定共 12 列(含實際出列席人員),不足以空白列補滿,
             // 列高放大以撐滿單頁版面,方便親筆簽名。
             for ($i = count($attendees); $i < max(count($attendees), 12); $i++): ?>
                 <tr><td><?= e((string) ($i + 1)) ?></td><td></td><td></td><td></td></tr>
@@ -170,7 +170,7 @@ ob_start();
     $bmExtempore = trim((string) ($meeting['extempore_motions'] ?? ''));
     $hasAttachments = $bmAttachments !== '' || $attachmentFiles !== [];
     ?>
-    <article class="board-meeting-print">
+    <article class="board-meeting-print bm-doc-sheet">
         <h2 class="bm-doc-title"><?= e($documentTitle) ?></h2>
         <h3 class="bm-doc-subtitle"><?= e($foundationName . $sessionTitle) ?></h3>
         <h3 class="bm-doc-subtitle">會議<?= $type === 'agenda' ? '議程' : '紀錄' ?></h3>
