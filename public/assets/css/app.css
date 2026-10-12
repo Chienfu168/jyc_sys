@@ -2040,7 +2040,7 @@ textarea:focus {
 
 /* 署名再放大並採印章式深藍,凸顯董事長親簽位置。 */
 .bm-notice-sign-blue {
-    font-size: 64px;
+    font-size: 128px;
     color: #0a2e8a;
     letter-spacing: 10px;
 }
