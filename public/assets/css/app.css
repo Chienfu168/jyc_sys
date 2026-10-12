@@ -1806,10 +1806,15 @@ textarea:focus {
     text-align: left;
 }
 
-/* 出席董事名單過長換行時,續行對齊名單起始處(「出席董事：」之後),而非退回編號。 */
-.bm-attendees-line {
+/* 出席董事名單過長換行時,續行對齊名單起始處(「出席董事：」之後),而非退回編號。
+   以巢狀 inline-block 元素套用懸掛縮排,避免與 li::before 的編號(負邊界技巧)
+   互相干擾導致編號消失。 */
+.bm-attendees-wrap {
+    display: inline-block;
+    width: 100%;
     padding-left: 5em;
     text-indent: -5em;
+    vertical-align: top;
 }
 
 .bm-agenda-item {

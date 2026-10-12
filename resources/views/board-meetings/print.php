@@ -7,7 +7,11 @@ $sessionTitle = \App\Domain\BoardMeetings\MeetingLabel::sessionTitle((int) $meet
 $foundationName = $profile['foundation_name'] ?? foundation_name();
 $directors = array_values(array_filter($attendees, static fn (array $a): bool => in_array($a['role'], ['director', 'chairman'], true)));
 $observers = array_values(array_filter($attendees, static fn (array $a): bool => $a['role'] === 'observer'));
-$directorNames = implode('、', array_map(static fn (array $a): string => $a['name'] . ($a['attendance_status'] === 'leave' ? '(請假)' : ($a['attendance_status'] === 'proxy' ? '(委託出席)' : '')), $directors));
+// 出席董事:請假者不計入出席,不列於此(與開會通知邀請全體董事的名單語意不同)。
+$directorNames = implode('、', array_map(
+    static fn (array $a): string => $a['name'] . ($a['attendance_status'] === 'proxy' ? '(委託出席)' : ''),
+    array_values(array_filter($directors, static fn (array $a): bool => $a['attendance_status'] !== 'leave'))
+));
 
 $files = $files ?? [];
 $attachmentFiles = array_values(array_filter($files, static fn (array $f): bool => $f['category'] === 'attachment'));
@@ -178,7 +182,7 @@ ob_start();
         <ol class="bm-body">
             <li>會議日期：<?= e(roc_date($meeting['meeting_date'])) ?><?= $meeting['meeting_time'] !== null && $meeting['meeting_time'] !== '' ? '　' . e($meeting['meeting_time']) : '' ?></li>
             <li>會議地點：<?= e($meeting['location'] ?: '　　　　') ?></li>
-            <li class="bm-attendees-line">出席董事：<?= $type === 'agenda' ? '全體董事' : ($directorNames !== '' ? e($directorNames) : '詳見簽到簿') ?></li>
+            <li><span class="bm-attendees-wrap">出席董事：<?= $type === 'agenda' ? '全體董事' : ($directorNames !== '' ? e($directorNames) : '詳見簽到簿') ?></span></li>
             <?php if ($observers): ?>
                 <li>列席人員：<?= e(implode('、', array_column($observers, 'name'))) ?></li>
             <?php endif; ?>
