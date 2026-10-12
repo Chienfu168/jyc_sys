@@ -175,7 +175,7 @@ ob_start();
         <ol class="bm-body">
             <li>會議日期：<?= e(roc_date($meeting['meeting_date'])) ?><?= $meeting['meeting_time'] !== null && $meeting['meeting_time'] !== '' ? '　' . e($meeting['meeting_time']) : '' ?></li>
             <li>會議地點：<?= e($meeting['location'] ?: '　　　　') ?></li>
-            <li>出席董事：<?= $type === 'agenda' ? '全體董事' : ($directorNames !== '' ? e($directorNames) : '詳見簽到簿') ?></li>
+            <li class="bm-attendees-line">出席董事：<?= $type === 'agenda' ? '全體董事' : ($directorNames !== '' ? e($directorNames) : '詳見簽到簿') ?></li>
             <?php if ($observers): ?>
                 <li>列席人員：<?= e(implode('、', array_column($observers, 'name'))) ?></li>
             <?php endif; ?>
@@ -183,7 +183,15 @@ ob_start();
             <?php if ($type === 'agenda' && $bmRemarks !== ''): ?>
                 <li>主席致詞：<div class="bm-multiline"><?= nl2br(e($bmRemarks)) ?></div></li>
             <?php endif; ?>
-            <li>報告事項：<?= $bmReport !== '' ? '<div class="bm-multiline">' . nl2br(e($bmReport)) . '</div>' : '無' ?></li>
+            <li>
+                報告事項：
+                <?php if ($bmReport === ''): ?>無<?php else: ?>
+                    <?php $bmReportLines = array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $bmReport) ?: []), static fn ($l): bool => $l !== '')); ?>
+                    <ol class="bm-notice-ol-num">
+                        <?php foreach ($bmReportLines as $rl): ?><li><?= e($rl) ?></li><?php endforeach; ?>
+                    </ol>
+                <?php endif; ?>
+            </li>
             <li>
                 討論事項：
                 <?php if ($agendaItems): ?>
