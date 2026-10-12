@@ -1862,15 +1862,15 @@ textarea:focus {
     font-size: 16px;
 }
 
-/* 紀錄／主席間距加倍,方便親筆簽名。 */
+/* 紀錄／主席間距再加倍,留出足夠簽名高度;底線變細變淡,不搶視覺焦點。 */
 .bm-signature-line {
-    margin: 12px 0;
+    margin: 24px 0;
 }
 
 .bm-signature-space {
     display: inline-block;
     min-width: 140px;
-    border-bottom: 1px solid #999999;
+    border-bottom: 0.5px solid #bbbbbb;
 }
 
 /* 開會通知(主管機關公文式):抬頭、機關資訊、公文欄位、說明階層條列、署名。 */
@@ -2074,10 +2074,11 @@ textarea:focus {
 }
 
 /* 簽名列高放大,方便親筆簽名;列數固定為 12 列(見 print.php),
-   列高加大使表格撐滿至頁面上緣附近,形成適合單頁的版面。 */
+   列高加大使表格撐滿至頁面上緣附近,形成適合單頁的版面。
+   表格線條變細變淡,不搶過簽名本身的視覺焦點。 */
 .bm-signin-table th,
 .bm-signin-table td {
-    border: 1px solid #000000;
+    border: 0.5px solid #aaaaaa;
     padding: 6px 10px;
     height: 60px;
     text-align: center;
