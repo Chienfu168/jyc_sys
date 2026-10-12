@@ -3695,7 +3695,7 @@ textarea:focus {
     }
 
     /* 費用申請憑證附件:列印時接續於申請單後,另起新頁,依 A4 版面編排。
-       單欄呈現,每張憑證完整顯示(不裁切),避免跨頁被切開,約每頁兩張。 */
+       單張憑證時單欄完整呈現;超過 1 張(最多 4 張)時改 2 欄網格,合併於單頁。 */
     .er-attach-section {
         break-before: page;
         page-break-before: always;
@@ -3735,6 +3735,21 @@ textarea:focus {
         background: transparent;
         border: 1px dashed #999999;
         color: #333333;
+    }
+
+    /* 2 張以上憑證:2 欄網格、縮小圖片上限,讓最多 4 張(2x2)合併顯示於單頁。 */
+    .er-attach-grid.er-attach-grid-multi {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6mm;
+    }
+
+    .er-attach-grid.er-attach-grid-multi .pcq-attach {
+        margin: 0;
+    }
+
+    .er-attach-grid.er-attach-grid-multi .pcq-attach img {
+        max-height: 85mm;
     }
 }
 

@@ -188,10 +188,10 @@ ob_start();
 
 <section class="panel er-attach-section<?= $attachments ? '' : ' no-print' ?>">
     <div class="panel-header">
-        <div><h2>憑證附件</h2><p class="muted-text">代墊費用的憑證照片（已壓縮）。列印時將接續於申請單後,依 A4 版面編排。</p></div>
+        <div><h2>憑證附件</h2><p class="muted-text">代墊費用的憑證照片（已壓縮）。列印時將接續於申請單後,依 A4 版面編排,超過 1 張時合併於同一頁。單筆申請最多 4 張憑證。</p></div>
     </div>
     <?php if ($attachments): ?>
-        <div class="pcq-attach-grid er-attach-grid">
+        <div class="pcq-attach-grid er-attach-grid<?= count($attachments) > 1 ? ' er-attach-grid-multi' : '' ?>">
             <?php foreach ($attachments as $idx => $file): ?>
                 <?php $isImage = str_starts_with((string) ($file['mime_type'] ?? ''), 'image/'); ?>
                 <figure class="pcq-attach">
@@ -219,16 +219,21 @@ ob_start();
         <p class="muted-text">尚無憑證附件。</p>
     <?php endif; ?>
     <?php if (!empty($isOwner) || !empty($canApprove)): ?>
-        <form method="post" action="/expense-requests/<?= e((string) $request['id']) ?>/attachments" enctype="multipart/form-data" class="form no-print" style="margin-top:14px">
-            <?= csrf_field() ?>
-            <label class="pcq-field">
-                <span class="pcq-label">新增憑證（照片會自動壓縮）</span>
-                <input type="file" name="receipts[]" accept="image/*,application/pdf" multiple required>
-            </label>
-            <div class="form-actions">
-                <button class="btn primary" type="submit">上傳憑證</button>
-            </div>
-        </form>
+        <?php if (count($attachments) >= 4): ?>
+            <p class="muted-text no-print" style="margin-top:14px">憑證附件已達上限(最多 4 張),請先刪除部分附件再上傳。</p>
+        <?php else: ?>
+            <form method="post" action="/expense-requests/<?= e((string) $request['id']) ?>/attachments" enctype="multipart/form-data" class="form no-print" style="margin-top:14px">
+                <?= csrf_field() ?>
+                <label class="pcq-field">
+                    <span class="pcq-label">新增憑證（照片會自動壓縮）</span>
+                    <input type="file" name="receipts[]" accept="image/*,application/pdf" multiple required>
+                    <span class="field-hint">單筆申請最多 4 張憑證,目前已上傳 <?= e((string) count($attachments)) ?> 張。</span>
+                </label>
+                <div class="form-actions">
+                    <button class="btn primary" type="submit">上傳憑證</button>
+                </div>
+            </form>
+        <?php endif; ?>
     <?php endif; ?>
 </section>
 

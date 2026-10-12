@@ -178,7 +178,7 @@ ob_start();
         <label class="pcq-field">
             <span class="pcq-label">憑證照片（可多張,會自動壓縮）</span>
             <input type="file" name="receipts[]" accept="image/*,application/pdf" capture="environment" multiple>
-            <span class="field-hint">可直接拍照或從相簿選取,照片會在上傳前自動壓縮。PDF 原樣保留。</span>
+            <span class="field-hint">可直接拍照或從相簿選取,照片會在上傳前自動壓縮。PDF 原樣保留。單筆申請最多 4 張憑證。</span>
         </label>
 
         <div class="form-actions">
