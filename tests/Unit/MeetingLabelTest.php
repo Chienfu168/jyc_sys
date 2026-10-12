@@ -34,8 +34,9 @@ final class MeetingLabelTest extends TestCase
 
     public function test_role_labels(): void
     {
+        $this->assertSame('董事', MeetingLabel::roleLabel('director'));
+        $this->assertSame('董事長', MeetingLabel::roleLabel('chairman'));
         $this->assertSame('列席', MeetingLabel::roleLabel('observer'));
-        $this->assertSame('出席', MeetingLabel::roleLabel('director'));
     }
 
     public function test_attendance_status_labels(): void

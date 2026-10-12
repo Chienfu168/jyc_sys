@@ -391,7 +391,7 @@ final class BoardMeetingController extends Controller
             if ($name === '') {
                 continue;
             }
-            $role = in_array($row['role'] ?? '', ['director', 'observer'], true) ? (string) $row['role'] : 'director';
+            $role = in_array($row['role'] ?? '', ['director', 'chairman', 'observer'], true) ? (string) $row['role'] : 'director';
             $attendanceStatus = in_array($row['attendance_status'] ?? '', ['present', 'leave', 'proxy'], true)
                 ? (string) $row['attendance_status']
                 : 'present';
