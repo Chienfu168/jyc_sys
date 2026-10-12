@@ -2075,18 +2075,20 @@ textarea:focus {
 .bm-signin-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 15px;
+    font-size: 18px;
 }
 
 /* 簽名列高放大,方便親筆簽名;列數固定為 12 列(見 print.php),
    列高加大使表格撐滿至頁面上緣附近,形成適合單頁的版面。
-   表格線條變細變淡,不搶過簽名本身的視覺焦點。 */
+   表格線條變細變淡,不搶過簽名本身的視覺焦點。
+   文字置中(水平+垂直),置於欄位正中間。 */
 .bm-signin-table th,
 .bm-signin-table td {
     border: 0.5px solid #aaaaaa;
     padding: 6px 10px;
     height: 60px;
     text-align: center;
+    vertical-align: middle;
 }
 
 .bm-signin-table th {
