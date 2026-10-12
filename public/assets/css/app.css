@@ -1985,7 +1985,13 @@ textarea:focus {
     left: 0;
 }
 
-.bm-notice-ol-num { counter-reset: bmnum; margin-top: 2px; }
+/* 1.2.3. 層次(說明 (一)(二) 下層):字級與行距同 (一)(二) 層次。 */
+.bm-notice-ol-num {
+    counter-reset: bmnum;
+    margin-top: 2px;
+    font-size: 13.5px;
+    line-height: 1.35;
+}
 .bm-notice-ol-num > li {
     counter-increment: bmnum;
     position: relative;
