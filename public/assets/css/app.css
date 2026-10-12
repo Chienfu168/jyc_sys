@@ -1880,19 +1880,19 @@ textarea:focus {
     margin: 0;
 }
 
-/* 通訊資料:字型縮小(10pt)、文字置左對齊,整塊置於右半(對照公文範本縮排)。 */
+/* 通訊資料:字型縮小、文字置左對齊,整塊置於右半(對照公文範本縮排)。 */
 .bm-notice-orginfo {
     text-align: left;
-    font-size: 13px;
-    line-height: 1.5;
+    font-size: 11px;
+    line-height: 1.25;
     color: #333333;
     margin: 2px 0 10px;
     margin-left: 50%;
 }
 
 .bm-notice-fields {
-    font-size: 16px;
-    line-height: 1.75;
+    font-size: 13.5px;
+    line-height: 1.4;
 }
 
 /* 欄位列以 flex 排列:標籤定寬、冒號定寬、內容左右對齊一致;內容換行時對齊
@@ -1954,7 +1954,13 @@ textarea:focus {
     left: 0;
 }
 
-.bm-notice-ol-cn { counter-reset: bmcncn; margin-top: 2px; }
+/* (一)(二)層次:字級與行距縮小,節省版面空間。 */
+.bm-notice-ol-cn {
+    counter-reset: bmcncn;
+    margin-top: 2px;
+    font-size: 13.5px;
+    line-height: 1.35;
+}
 .bm-notice-ol-cn > li {
     counter-increment: bmcncn;
     position: relative;
@@ -2002,11 +2008,11 @@ textarea:focus {
     vertical-align: baseline;
 }
 
-/* 署名放大 1 倍以上並改為藍色,凸顯董事長親簽位置。 */
+/* 署名再放大並採印章式深藍,凸顯董事長親簽位置。 */
 .bm-notice-sign-blue {
-    font-size: 56px;
-    color: #1a3d8f;
-    letter-spacing: 8px;
+    font-size: 64px;
+    color: #0a2e8a;
+    letter-spacing: 10px;
 }
 
 .bm-signin-meta {
