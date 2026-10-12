@@ -30,12 +30,13 @@ final class MeetingLabel
         };
     }
 
-    /** 出列席角色代碼轉中文標籤。 */
+    /** 出列席角色代碼轉中文身分標籤。 */
     public static function roleLabel(string $role): string
     {
         return match ($role) {
+            'chairman' => '董事長',
             'observer' => '列席',
-            default => '出席',
+            default => '董事',
         };
     }
 

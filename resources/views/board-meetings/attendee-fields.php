@@ -7,7 +7,8 @@
         <span>身分</span>
         <?php $attendeeRole = (string) ($attendee['role'] ?? 'director'); ?>
         <select name="attendees[<?= e((string) $index) ?>][role]">
-            <option value="director" <?= $attendeeRole === 'director' ? 'selected' : '' ?>>出席(董事)</option>
+            <option value="director" <?= $attendeeRole === 'director' ? 'selected' : '' ?>>董事</option>
+            <option value="chairman" <?= $attendeeRole === 'chairman' ? 'selected' : '' ?>>董事長</option>
             <option value="observer" <?= $attendeeRole === 'observer' ? 'selected' : '' ?>>列席</option>
         </select>
     </label>

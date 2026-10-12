@@ -5,7 +5,7 @@ $documentTitle = $type === 'agenda' ? '董事會議議程'
     : ($type === 'notice' ? '董事會議開會通知' : '董事會議紀錄'));
 $sessionTitle = \App\Domain\BoardMeetings\MeetingLabel::sessionTitle((int) $meeting['term_no'], (int) $meeting['session_no']);
 $foundationName = $profile['foundation_name'] ?? foundation_name();
-$directors = array_values(array_filter($attendees, static fn (array $a): bool => $a['role'] === 'director'));
+$directors = array_values(array_filter($attendees, static fn (array $a): bool => in_array($a['role'], ['director', 'chairman'], true)));
 $observers = array_values(array_filter($attendees, static fn (array $a): bool => $a['role'] === 'observer'));
 $directorNames = implode('、', array_map(static fn (array $a): string => $a['name'] . ($a['attendance_status'] === 'leave' ? '(請假)' : ($a['attendance_status'] === 'proxy' ? '(委託出席)' : '')), $directors));
 
