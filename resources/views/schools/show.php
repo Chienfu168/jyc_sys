@@ -40,8 +40,11 @@ ob_start();
             <th>類別</th><td><?= e($school['category'] ?: '-') ?></td>
         </tr>
         <tr>
+            <th>地區類別</th><td><?= e($school['area_type'] ?: '-') ?></td>
             <th>電話</th><td><?= e($school['phone'] ?: '-') ?></td>
-            <th>傳真</th><td><?= e($school['fax'] ?: '-') ?></td>
+        </tr>
+        <tr>
+            <th>傳真</th><td colspan="3"><?= e($school['fax'] ?: '-') ?></td>
         </tr>
         <tr>
             <th>地址</th><td colspan="3"><?= e($school['address'] ?: '-') ?></td>

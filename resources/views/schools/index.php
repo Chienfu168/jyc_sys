@@ -40,6 +40,12 @@ ob_start();
                 <option value="<?= e($cat) ?>" <?= $category === $cat ? 'selected' : '' ?>><?= e($cat) ?></option>
             <?php endforeach; ?>
         </select>
+        <select name="area_type">
+            <option value="">全部地區類別</option>
+            <?php foreach ($areaTypes as $at): ?>
+                <option value="<?= e($at) ?>" <?= $areaType === $at ? 'selected' : '' ?>><?= e($at) ?></option>
+            <?php endforeach; ?>
+        </select>
         <select name="status">
             <option value="active" <?= $status === 'active' ? 'selected' : '' ?>>啟用</option>
             <option value="inactive" <?= $status === 'inactive' ? 'selected' : '' ?>>已封存</option>
@@ -53,6 +59,7 @@ ob_start();
             <thead>
             <tr>
                 <th>類別</th>
+                <th>地區類別</th>
                 <th class="wrap">學校名稱</th>
                 <th>現任校長</th>
                 <th class="amount">現任人員</th>
@@ -66,6 +73,7 @@ ob_start();
             <?php foreach ($schools as $s): ?>
                 <tr>
                     <td><?= e($s['category'] ?: '-') ?></td>
+                    <td><?= e($s['area_type'] ?: '-') ?></td>
                     <td class="wrap"><strong><?= e($s['name']) ?></strong></td>
                     <td><?= e($s['principal_name'] ?: '-') ?></td>
                     <td class="amount"><?= e((string) $s['current_staff_count']) ?></td>
@@ -85,7 +93,7 @@ ob_start();
                 </tr>
             <?php endforeach; ?>
             <?php if (!$schools): ?>
-                <tr><td colspan="8" class="empty">尚無學校資料。</td></tr>
+                <tr><td colspan="9" class="empty">尚無學校資料。</td></tr>
             <?php endif; ?>
             </tbody>
         </table>

@@ -32,6 +32,16 @@ ob_start();
                 </datalist>
             </label>
             <label>
+                <span>地區類別</span>
+                <?php $areaType = (string) old('area_type', $school['area_type'] ?? ''); ?>
+                <select name="area_type">
+                    <option value="">未分類</option>
+                    <?php foreach ($areaTypes as $at): ?>
+                        <option value="<?= e($at) ?>" <?= $areaType === $at ? 'selected' : '' ?>><?= e($at) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
+            <label>
                 <span>電話</span>
                 <input type="text" name="phone" maxlength="60" value="<?= e((string) old('phone', $school['phone'] ?? '')) ?>">
             </label>

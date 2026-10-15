@@ -20,6 +20,9 @@ final class SchoolController extends Controller
     /** 常用學校類別(供下拉建議,亦可自行輸入)。 */
     private const CATEGORIES = ['國小', '國中', '高中', '大學', '幼兒園', '其他'];
 
+    /** 地區類別(教育部偏遠地區學校分級概念,固定選項)。 */
+    private const AREA_TYPES = ['都會區', '非山非市', '偏鄉', '極偏鄉'];
+
     /** 常見職稱(供下拉建議,亦可自行輸入)。 */
     private const TITLES = ['校長', '教務主任', '學務主任', '總務主任', '輔導主任', '主任', '幹事'];
 
@@ -29,6 +32,7 @@ final class SchoolController extends Controller
 
         $keyword = trim((string) ($_GET['q'] ?? ''));
         $category = trim((string) ($_GET['category'] ?? ''));
+        $areaType = in_array(($_GET['area_type'] ?? ''), self::AREA_TYPES, true) ? (string) $_GET['area_type'] : '';
         $status = in_array(($_GET['status'] ?? ''), ['active', 'inactive'], true) ? (string) $_GET['status'] : 'active';
 
         $where = [];
@@ -41,6 +45,10 @@ final class SchoolController extends Controller
         if ($category !== '') {
             $where[] = 'schools.category = :category';
             $params['category'] = $category;
+        }
+        if ($areaType !== '') {
+            $where[] = 'schools.area_type = :area_type';
+            $params['area_type'] = $areaType;
         }
         if ($status !== '') {
             $where[] = 'schools.status = :status';
@@ -75,8 +83,10 @@ final class SchoolController extends Controller
             'schools' => $schools,
             'keyword' => $keyword,
             'category' => $category,
+            'areaType' => $areaType,
             'status' => $status,
             'categories' => $this->categoryOptions(),
+            'areaTypes' => self::AREA_TYPES,
             'canManage' => Permission::can('schools.manage'),
         ]);
     }
@@ -91,6 +101,7 @@ final class SchoolController extends Controller
             'active' => 'schools',
             'school' => $this->blankSchool(),
             'categories' => $this->categoryOptions(),
+            'areaTypes' => self::AREA_TYPES,
             'action' => '/schools',
         ]);
     }
@@ -102,9 +113,9 @@ final class SchoolController extends Controller
 
         Database::pdo()->prepare(
             'INSERT INTO schools
-             (name, category, address, phone, fax, notes, status, created_by, created_at, updated_at)
+             (name, category, area_type, address, phone, fax, notes, status, created_by, created_at, updated_at)
              VALUES
-             (:name, :category, :address, :phone, :fax, :notes, :status, :created_by, :created_at, :updated_at)'
+             (:name, :category, :area_type, :address, :phone, :fax, :notes, :status, :created_by, :created_at, :updated_at)'
         )->execute($this->payload() + [
             'created_by' => $this->currentUserId() ?: null,
             'created_at' => now(),
@@ -145,6 +156,7 @@ final class SchoolController extends Controller
             'active' => 'schools',
             'school' => $this->findSchool((int) $id),
             'categories' => $this->categoryOptions(),
+            'areaTypes' => self::AREA_TYPES,
             'action' => '/schools/' . $id,
         ]);
     }
@@ -157,7 +169,7 @@ final class SchoolController extends Controller
 
         Database::pdo()->prepare(
             'UPDATE schools SET
-                name = :name, category = :category, address = :address, phone = :phone, fax = :fax,
+                name = :name, category = :category, area_type = :area_type, address = :address, phone = :phone, fax = :fax,
                 notes = :notes, status = :status, updated_at = :updated_at
              WHERE id = :id'
         )->execute($this->payload() + [
@@ -376,9 +388,12 @@ final class SchoolController extends Controller
     /** @return array<string, mixed> */
     private function payload(): array
     {
+        $areaType = trim((string) ($_POST['area_type'] ?? ''));
+
         return [
             'name' => trim((string) $_POST['name']),
             'category' => $this->nullablePost('category'),
+            'area_type' => in_array($areaType, self::AREA_TYPES, true) ? $areaType : null,
             'address' => $this->nullablePost('address'),
             'phone' => $this->nullablePost('phone'),
             'fax' => $this->nullablePost('fax'),
@@ -406,7 +421,7 @@ final class SchoolController extends Controller
     private function blankSchool(): array
     {
         return [
-            'name' => '', 'category' => '', 'address' => '', 'phone' => '', 'fax' => '',
+            'name' => '', 'category' => '', 'area_type' => '', 'address' => '', 'phone' => '', 'fax' => '',
             'notes' => '', 'status' => 'active',
         ];
     }
