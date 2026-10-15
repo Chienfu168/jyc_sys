@@ -54,8 +54,8 @@ ob_start();
                     <?php endforeach; ?>
                 </select>
             </label>
-            <label>
-                <span>互動狀態</span>
+            <label class="span-2">
+                <span>互動狀態<small class="field-hint">（由淺至深：尚未接觸－僅列名錄；已拜訪－初步接觸，尚無合作關係；已合作－已建立合作關係，尚未實際執行；已舉辦活動－合作已落實為具體活動；深度合作－長期深度合作，如已辦過深耕計畫）</small></span>
                 <?php $engagementStatus = (string) old('engagement_status', $school['engagement_status'] ?? '尚未接觸'); ?>
                 <select name="engagement_status">
                     <?php foreach ($engagementStatuses as $es): ?>
@@ -74,6 +74,14 @@ ob_start();
             <label>
                 <span>學校網站</span>
                 <input type="url" name="website" maxlength="190" placeholder="https://" value="<?= e((string) old('website', $school['website'] ?? '')) ?>">
+            </label>
+            <label>
+                <span>學生總人數<small class="field-hint">（代表學校規模）</small></span>
+                <input type="number" name="student_count" min="0" step="1" value="<?= e((string) old('student_count', $school['student_count'] ?? '')) ?>">
+            </label>
+            <label>
+                <span>人數學年度<small class="field-hint">（例如：114）</small></span>
+                <input type="text" name="student_count_year" maxlength="10" placeholder="例如：114" value="<?= e((string) old('student_count_year', $school['student_count_year'] ?? '')) ?>">
             </label>
             <label class="span-2">
                 <span>地址</span>

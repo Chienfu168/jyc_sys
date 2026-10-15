@@ -14,6 +14,7 @@ ob_start();
             <h2><?= e($school['name']) ?>
                 <span class="badge <?= $school['status'] === 'active' ? 'ok' : 'muted' ?>"><?= e($school['status'] === 'active' ? '啟用' : '已封存') ?></span>
                 <?php $engagementBadge = match ($school['engagement_status']) {
+                    '深度合作' => 'deep',
                     '已合作', '已舉辦活動' => 'ok',
                     '已拜訪' => 'warning',
                     default => 'muted',
@@ -52,6 +53,16 @@ ob_start();
         <tr>
             <th>地區類別</th><td><?= e($school['area_type'] ?: '-') ?></td>
             <th>電話</th><td><?= e($school['phone'] ?: '-') ?></td>
+        </tr>
+        <tr>
+            <th>學生總人數</th>
+            <td colspan="3">
+                <?php if ($school['student_count'] !== null): ?>
+                    <?= e(number_format((int) $school['student_count'])) ?> 人<?= $school['student_count_year'] ? '(' . e($school['student_count_year']) . ' 學年度)' : '' ?>
+                <?php else: ?>
+                    -
+                <?php endif; ?>
+            </td>
         </tr>
         <tr>
             <th>傳真</th><td><?= e($school['fax'] ?: '-') ?></td>

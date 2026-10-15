@@ -76,6 +76,7 @@ ob_start();
                 <th class="wrap">學校名稱</th>
                 <th>現任校長</th>
                 <th class="amount">現任人員</th>
+                <th class="amount">學生人數</th>
                 <th>互動狀態</th>
                 <th>電話</th>
                 <th class="wrap">地址</th>
@@ -92,7 +93,15 @@ ob_start();
                     <td class="wrap"><strong><?= e($s['name']) ?></strong></td>
                     <td><?= e($s['principal_name'] ?: '-') ?></td>
                     <td class="amount"><?= e((string) $s['current_staff_count']) ?></td>
+                    <td class="amount">
+                        <?php if ($s['student_count'] !== null): ?>
+                            <?= e(number_format((int) $s['student_count'])) ?><?= $s['student_count_year'] ? ' (' . e($s['student_count_year']) . ')' : '' ?>
+                        <?php else: ?>
+                            -
+                        <?php endif; ?>
+                    </td>
                     <?php $engagementBadge = match ($s['engagement_status']) {
+                        '深度合作' => 'deep',
                         '已合作', '已舉辦活動' => 'ok',
                         '已拜訪' => 'warning',
                         default => 'muted',
@@ -114,7 +123,7 @@ ob_start();
                 </tr>
             <?php endforeach; ?>
             <?php if (!$schools): ?>
-                <tr><td colspan="11" class="empty">尚無學校資料。</td></tr>
+                <tr><td colspan="12" class="empty">尚無學校資料。</td></tr>
             <?php endif; ?>
             </tbody>
         </table>
