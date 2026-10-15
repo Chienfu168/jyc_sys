@@ -4161,6 +4161,30 @@ textarea:focus {
     .entry-table tfoot td:empty {
         display: none;
     }
+
+    /* 明細頁常見的「標籤／值」表格(如通訊錄):窄螢幕原本 4 欄(標籤+值+標籤+值)並列,
+       儲存格被壓得極窄,中文內容被迫逐字直排。改以 grid 呈現為「標籤 | 值」兩欄配對,
+       每組標籤／值各自成行,標籤欄依內容自動收窄、值欄則延伸至可用寬度並正常換行。 */
+    .meta-table,
+    .meta-table tbody {
+        display: block;
+        width: 100%;
+    }
+    .meta-table tr {
+        display: grid;
+        grid-template-columns: max-content 1fr;
+        column-gap: 12px;
+        width: 100%;
+    }
+    .meta-table th,
+    .meta-table td {
+        display: block;
+        width: auto;
+        white-space: normal;
+        word-break: break-word;
+        padding: 8px 4px;
+        border-bottom: 1px solid var(--line);
+    }
 }
 
 /* 表單分區:基本資料常駐,其餘以 <details> 收合,減少一次顯示的欄位量。 */
