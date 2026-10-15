@@ -55,6 +55,16 @@ ob_start();
             <th>電話</th><td><?= e($school['phone'] ?: '-') ?></td>
         </tr>
         <tr>
+            <th>學生總人數</th>
+            <td colspan="3">
+                <?php if ($school['student_count'] !== null): ?>
+                    <?= e(number_format((int) $school['student_count'])) ?> 人<?= $school['student_count_year'] ? '(' . e($school['student_count_year']) . ' 學年度)' : '' ?>
+                <?php else: ?>
+                    -
+                <?php endif; ?>
+            </td>
+        </tr>
+        <tr>
             <th>傳真</th><td><?= e($school['fax'] ?: '-') ?></td>
             <th>學校網站</th>
             <td>

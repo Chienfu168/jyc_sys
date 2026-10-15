@@ -132,9 +132,11 @@ final class SchoolController extends Controller
 
         Database::pdo()->prepare(
             'INSERT INTO schools
-             (name, school_code, category, district, area_type, engagement_status, address, phone, fax, website, notes, status, created_by, created_at, updated_at)
+             (name, school_code, category, district, area_type, engagement_status, address, phone, fax, website,
+              student_count, student_count_year, notes, status, created_by, created_at, updated_at)
              VALUES
-             (:name, :school_code, :category, :district, :area_type, :engagement_status, :address, :phone, :fax, :website, :notes, :status, :created_by, :created_at, :updated_at)'
+             (:name, :school_code, :category, :district, :area_type, :engagement_status, :address, :phone, :fax, :website,
+              :student_count, :student_count_year, :notes, :status, :created_by, :created_at, :updated_at)'
         )->execute($this->payload() + [
             'created_by' => $this->currentUserId() ?: null,
             'created_at' => now(),
@@ -193,6 +195,7 @@ final class SchoolController extends Controller
                 name = :name, school_code = :school_code, category = :category, district = :district,
                 area_type = :area_type, engagement_status = :engagement_status,
                 address = :address, phone = :phone, fax = :fax, website = :website,
+                student_count = :student_count, student_count_year = :student_count_year,
                 notes = :notes, status = :status, updated_at = :updated_at
              WHERE id = :id'
         )->execute($this->payload() + [
@@ -411,6 +414,11 @@ final class SchoolController extends Controller
         if ($schoolCode !== '' && $this->schoolCodeTaken($schoolCode, $excludeId)) {
             $this->backWithInput($path, $_POST, '此學校代碼已被其他學校使用。');
         }
+
+        $studentCount = trim((string) ($_POST['student_count'] ?? ''));
+        if ($studentCount !== '' && (!ctype_digit($studentCount) || (int) $studentCount < 0)) {
+            $this->backWithInput($path, $_POST, '學生總人數須為 0 以上的整數。');
+        }
     }
 
     private function schoolCodeTaken(string $schoolCode, ?int $excludeId): bool
@@ -443,6 +451,8 @@ final class SchoolController extends Controller
             'phone' => $this->nullablePost('phone'),
             'fax' => $this->nullablePost('fax'),
             'website' => $this->nullablePost('website'),
+            'student_count' => $this->nullablePost('student_count') !== null ? (int) $_POST['student_count'] : null,
+            'student_count_year' => $this->nullablePost('student_count_year'),
             'notes' => $this->nullablePost('notes'),
             'status' => ($_POST['status'] ?? 'active') === 'inactive' ? 'inactive' : 'active',
         ];
@@ -470,6 +480,7 @@ final class SchoolController extends Controller
             'name' => '', 'school_code' => '', 'category' => '', 'district' => '', 'area_type' => '',
             'engagement_status' => self::ENGAGEMENT_STATUSES[0],
             'address' => '', 'phone' => '', 'fax' => '', 'website' => '',
+            'student_count' => '', 'student_count_year' => '',
             'notes' => '', 'status' => 'active',
         ];
     }
