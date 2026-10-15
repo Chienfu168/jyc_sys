@@ -23,11 +23,24 @@ ob_start();
                 <input type="text" name="name" maxlength="120" required value="<?= e((string) old('name', $school['name'] ?? '')) ?>">
             </label>
             <label>
+                <span>學校代碼<small class="field-hint">（教育部名錄校代碼，選填）</small></span>
+                <input type="text" name="school_code" maxlength="20" value="<?= e((string) old('school_code', $school['school_code'] ?? '')) ?>">
+            </label>
+            <label>
                 <span>類別</span>
                 <input type="text" name="category" maxlength="60" list="schoolCategories" placeholder="例如：國小、國中" value="<?= e((string) old('category', $school['category'] ?? '')) ?>">
                 <datalist id="schoolCategories">
                     <?php foreach ($categories as $cat): ?>
                         <option value="<?= e($cat) ?>"></option>
+                    <?php endforeach; ?>
+                </datalist>
+            </label>
+            <label>
+                <span>行政區</span>
+                <input type="text" name="district" maxlength="30" list="schoolDistricts" placeholder="例如：板橋區、三峽區" value="<?= e((string) old('district', $school['district'] ?? '')) ?>">
+                <datalist id="schoolDistricts">
+                    <?php foreach ($districts as $d): ?>
+                        <option value="<?= e($d) ?>"></option>
                     <?php endforeach; ?>
                 </datalist>
             </label>
@@ -57,6 +70,10 @@ ob_start();
             <label>
                 <span>傳真</span>
                 <input type="text" name="fax" maxlength="60" value="<?= e((string) old('fax', $school['fax'] ?? '')) ?>">
+            </label>
+            <label>
+                <span>學校網站</span>
+                <input type="url" name="website" maxlength="190" placeholder="https://" value="<?= e((string) old('website', $school['website'] ?? '')) ?>">
             </label>
             <label class="span-2">
                 <span>地址</span>

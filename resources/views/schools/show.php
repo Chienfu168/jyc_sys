@@ -43,6 +43,10 @@ ob_start();
         <tbody>
         <tr>
             <th>學校名稱</th><td><?= e($school['name']) ?></td>
+            <th>學校代碼</th><td><?= e($school['school_code'] ?: '-') ?></td>
+        </tr>
+        <tr>
+            <th>行政區</th><td><?= e($school['district'] ?: '-') ?></td>
             <th>類別</th><td><?= e($school['category'] ?: '-') ?></td>
         </tr>
         <tr>
@@ -50,7 +54,17 @@ ob_start();
             <th>電話</th><td><?= e($school['phone'] ?: '-') ?></td>
         </tr>
         <tr>
-            <th>傳真</th><td colspan="3"><?= e($school['fax'] ?: '-') ?></td>
+            <th>傳真</th><td><?= e($school['fax'] ?: '-') ?></td>
+            <th>學校網站</th>
+            <td>
+                <?php if (!empty($school['website'])): ?>
+                    <a class="text-link" href="<?= e($school['website']) ?>" target="_blank" rel="noopener">
+                        <?= e($school['website']) ?>
+                    </a>
+                <?php else: ?>
+                    -
+                <?php endif; ?>
+            </td>
         </tr>
         <tr>
             <th>地址</th><td colspan="3"><?= e($school['address'] ?: '-') ?></td>
