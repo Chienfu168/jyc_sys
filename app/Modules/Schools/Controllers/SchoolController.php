@@ -35,6 +35,7 @@ final class SchoolController extends Controller
 
         $keyword = trim((string) ($_GET['q'] ?? ''));
         $category = trim((string) ($_GET['category'] ?? ''));
+        $district = trim((string) ($_GET['district'] ?? ''));
         $areaType = in_array(($_GET['area_type'] ?? ''), self::AREA_TYPES, true) ? (string) $_GET['area_type'] : '';
         $engagementStatus = in_array(($_GET['engagement_status'] ?? ''), self::ENGAGEMENT_STATUSES, true) ? (string) $_GET['engagement_status'] : '';
         $status = in_array(($_GET['status'] ?? ''), ['active', 'inactive'], true) ? (string) $_GET['status'] : 'active';
@@ -42,13 +43,17 @@ final class SchoolController extends Controller
         $where = [];
         $params = [];
         if ($keyword !== '') {
-            $where[] = '(schools.name LIKE :kw OR schools.address LIKE :kw2 OR schools.phone LIKE :kw3)';
+            $where[] = '(schools.name LIKE :kw OR schools.school_code LIKE :kw2 OR schools.address LIKE :kw3 OR schools.phone LIKE :kw4)';
             $like = '%' . $keyword . '%';
-            $params += ['kw' => $like, 'kw2' => $like, 'kw3' => $like];
+            $params += ['kw' => $like, 'kw2' => $like, 'kw3' => $like, 'kw4' => $like];
         }
         if ($category !== '') {
             $where[] = 'schools.category = :category';
             $params['category'] = $category;
+        }
+        if ($district !== '') {
+            $where[] = 'schools.district = :district';
+            $params['district'] = $district;
         }
         if ($areaType !== '') {
             $where[] = 'schools.area_type = :area_type';
@@ -78,7 +83,7 @@ final class SchoolController extends Controller
         if ($where) {
             $sql .= ' WHERE ' . implode(' AND ', $where);
         }
-        $sql .= ' ORDER BY schools.category, schools.name, schools.id';
+        $sql .= ' ORDER BY schools.district, schools.category, schools.name, schools.id';
 
         $stmt = Database::pdo()->prepare($sql);
         $stmt->execute($params);
@@ -91,10 +96,12 @@ final class SchoolController extends Controller
             'schools' => $schools,
             'keyword' => $keyword,
             'category' => $category,
+            'district' => $district,
             'areaType' => $areaType,
             'engagementStatus' => $engagementStatus,
             'status' => $status,
             'categories' => $this->categoryOptions(),
+            'districts' => $this->districtOptions(),
             'areaTypes' => self::AREA_TYPES,
             'engagementStatuses' => self::ENGAGEMENT_STATUSES,
             'canManage' => Permission::can('schools.manage'),
@@ -111,6 +118,7 @@ final class SchoolController extends Controller
             'active' => 'schools',
             'school' => $this->blankSchool(),
             'categories' => $this->categoryOptions(),
+            'districts' => $this->districtOptions(),
             'areaTypes' => self::AREA_TYPES,
             'engagementStatuses' => self::ENGAGEMENT_STATUSES,
             'action' => '/schools',
@@ -120,13 +128,13 @@ final class SchoolController extends Controller
     public function store(): void
     {
         $this->requirePermission('schools.manage');
-        $this->validateSchool('/schools/create');
+        $this->validateSchool('/schools/create', null);
 
         Database::pdo()->prepare(
             'INSERT INTO schools
-             (name, category, area_type, engagement_status, address, phone, fax, notes, status, created_by, created_at, updated_at)
+             (name, school_code, category, district, area_type, engagement_status, address, phone, fax, website, notes, status, created_by, created_at, updated_at)
              VALUES
-             (:name, :category, :area_type, :engagement_status, :address, :phone, :fax, :notes, :status, :created_by, :created_at, :updated_at)'
+             (:name, :school_code, :category, :district, :area_type, :engagement_status, :address, :phone, :fax, :website, :notes, :status, :created_by, :created_at, :updated_at)'
         )->execute($this->payload() + [
             'created_by' => $this->currentUserId() ?: null,
             'created_at' => now(),
@@ -167,6 +175,7 @@ final class SchoolController extends Controller
             'active' => 'schools',
             'school' => $this->findSchool((int) $id),
             'categories' => $this->categoryOptions(),
+            'districts' => $this->districtOptions(),
             'areaTypes' => self::AREA_TYPES,
             'engagementStatuses' => self::ENGAGEMENT_STATUSES,
             'action' => '/schools/' . $id,
@@ -177,12 +186,13 @@ final class SchoolController extends Controller
     {
         $this->requirePermission('schools.manage');
         $this->findSchool((int) $id);
-        $this->validateSchool('/schools/' . $id . '/edit');
+        $this->validateSchool('/schools/' . $id . '/edit', (int) $id);
 
         Database::pdo()->prepare(
             'UPDATE schools SET
-                name = :name, category = :category, area_type = :area_type, engagement_status = :engagement_status,
-                address = :address, phone = :phone, fax = :fax,
+                name = :name, school_code = :school_code, category = :category, district = :district,
+                area_type = :area_type, engagement_status = :engagement_status,
+                address = :address, phone = :phone, fax = :fax, website = :website,
                 notes = :notes, status = :status, updated_at = :updated_at
              WHERE id = :id'
         )->execute($this->payload() + [
@@ -391,11 +401,29 @@ final class SchoolController extends Controller
 
     // ---- 內部輔助 ----
 
-    private function validateSchool(string $path): void
+    private function validateSchool(string $path, ?int $excludeId): void
     {
         if ($error = Validator::required($_POST, ['name' => '學校名稱'])) {
             $this->backWithInput($path, $_POST, $error);
         }
+
+        $schoolCode = trim((string) ($_POST['school_code'] ?? ''));
+        if ($schoolCode !== '' && $this->schoolCodeTaken($schoolCode, $excludeId)) {
+            $this->backWithInput($path, $_POST, '此學校代碼已被其他學校使用。');
+        }
+    }
+
+    private function schoolCodeTaken(string $schoolCode, ?int $excludeId): bool
+    {
+        $sql = 'SELECT id FROM schools WHERE school_code = :school_code';
+        $params = ['school_code' => $schoolCode];
+        if ($excludeId !== null) {
+            $sql .= ' AND id <> :exclude_id';
+            $params['exclude_id'] = $excludeId;
+        }
+        $stmt = Database::pdo()->prepare($sql . ' LIMIT 1');
+        $stmt->execute($params);
+        return (bool) $stmt->fetchColumn();
     }
 
     /** @return array<string, mixed> */
@@ -406,12 +434,15 @@ final class SchoolController extends Controller
 
         return [
             'name' => trim((string) $_POST['name']),
+            'school_code' => $this->nullablePost('school_code'),
             'category' => $this->nullablePost('category'),
+            'district' => $this->nullablePost('district'),
             'area_type' => in_array($areaType, self::AREA_TYPES, true) ? $areaType : null,
             'engagement_status' => in_array($engagementStatus, self::ENGAGEMENT_STATUSES, true) ? $engagementStatus : self::ENGAGEMENT_STATUSES[0],
             'address' => $this->nullablePost('address'),
             'phone' => $this->nullablePost('phone'),
             'fax' => $this->nullablePost('fax'),
+            'website' => $this->nullablePost('website'),
             'notes' => $this->nullablePost('notes'),
             'status' => ($_POST['status'] ?? 'active') === 'inactive' ? 'inactive' : 'active',
         ];
@@ -436,8 +467,9 @@ final class SchoolController extends Controller
     private function blankSchool(): array
     {
         return [
-            'name' => '', 'category' => '', 'area_type' => '', 'engagement_status' => self::ENGAGEMENT_STATUSES[0],
-            'address' => '', 'phone' => '', 'fax' => '',
+            'name' => '', 'school_code' => '', 'category' => '', 'district' => '', 'area_type' => '',
+            'engagement_status' => self::ENGAGEMENT_STATUSES[0],
+            'address' => '', 'phone' => '', 'fax' => '', 'website' => '',
             'notes' => '', 'status' => 'active',
         ];
     }
@@ -515,6 +547,14 @@ final class SchoolController extends Controller
             ->fetchAll(PDO::FETCH_COLUMN) ?: [];
 
         return array_values(array_unique(array_merge(self::CATEGORIES, array_map('strval', $existing))));
+    }
+
+    /** 資料庫既有行政區,供下拉篩選／建議(無固定清單,依實際匯入資料而定)。 @return array<int, string> */
+    private function districtOptions(): array
+    {
+        return Database::pdo()
+            ->query('SELECT DISTINCT district FROM schools WHERE district IS NOT NULL AND district <> "" ORDER BY district')
+            ->fetchAll(PDO::FETCH_COLUMN) ?: [];
     }
 
     /** 合併常用職稱與資料庫既有職稱,供下拉建議。 @return array<int, string> */

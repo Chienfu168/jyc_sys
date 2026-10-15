@@ -33,7 +33,13 @@ ob_start();
     </div>
 
     <form class="search bank-filter no-print" method="get" action="/schools">
-        <input type="search" name="q" value="<?= e($keyword) ?>" placeholder="學校名稱、地址、電話">
+        <input type="search" name="q" value="<?= e($keyword) ?>" placeholder="學校名稱、代碼、地址、電話">
+        <select name="district">
+            <option value="">全部行政區</option>
+            <?php foreach ($districts as $d): ?>
+                <option value="<?= e($d) ?>" <?= $district === $d ? 'selected' : '' ?>><?= e($d) ?></option>
+            <?php endforeach; ?>
+        </select>
         <select name="category">
             <option value="">全部類別</option>
             <?php foreach ($categories as $cat): ?>
@@ -64,6 +70,7 @@ ob_start();
         <table class="schools-table">
             <thead>
             <tr>
+                <th>行政區</th>
                 <th>類別</th>
                 <th>地區類別</th>
                 <th class="wrap">學校名稱</th>
@@ -79,6 +86,7 @@ ob_start();
             <tbody>
             <?php foreach ($schools as $s): ?>
                 <tr>
+                    <td><?= e($s['district'] ?: '-') ?></td>
                     <td><?= e($s['category'] ?: '-') ?></td>
                     <td><?= e($s['area_type'] ?: '-') ?></td>
                     <td class="wrap"><strong><?= e($s['name']) ?></strong></td>
@@ -106,7 +114,7 @@ ob_start();
                 </tr>
             <?php endforeach; ?>
             <?php if (!$schools): ?>
-                <tr><td colspan="10" class="empty">尚無學校資料。</td></tr>
+                <tr><td colspan="11" class="empty">尚無學校資料。</td></tr>
             <?php endif; ?>
             </tbody>
         </table>
