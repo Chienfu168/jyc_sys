@@ -46,6 +46,12 @@ ob_start();
                 <option value="<?= e($at) ?>" <?= $areaType === $at ? 'selected' : '' ?>><?= e($at) ?></option>
             <?php endforeach; ?>
         </select>
+        <select name="engagement_status">
+            <option value="">全部互動狀態</option>
+            <?php foreach ($engagementStatuses as $es): ?>
+                <option value="<?= e($es) ?>" <?= $engagementStatus === $es ? 'selected' : '' ?>><?= e($es) ?></option>
+            <?php endforeach; ?>
+        </select>
         <select name="status">
             <option value="active" <?= $status === 'active' ? 'selected' : '' ?>>啟用</option>
             <option value="inactive" <?= $status === 'inactive' ? 'selected' : '' ?>>已封存</option>
@@ -63,6 +69,7 @@ ob_start();
                 <th class="wrap">學校名稱</th>
                 <th>現任校長</th>
                 <th class="amount">現任人員</th>
+                <th>互動狀態</th>
                 <th>電話</th>
                 <th class="wrap">地址</th>
                 <th>狀態</th>
@@ -77,6 +84,12 @@ ob_start();
                     <td class="wrap"><strong><?= e($s['name']) ?></strong></td>
                     <td><?= e($s['principal_name'] ?: '-') ?></td>
                     <td class="amount"><?= e((string) $s['current_staff_count']) ?></td>
+                    <?php $engagementBadge = match ($s['engagement_status']) {
+                        '已合作', '已舉辦活動' => 'ok',
+                        '已拜訪' => 'warning',
+                        default => 'muted',
+                    }; ?>
+                    <td><span class="badge <?= e($engagementBadge) ?>"><?= e($s['engagement_status']) ?></span></td>
                     <td><?= e($s['phone'] ?: '-') ?></td>
                     <td class="wrap"><?= e($s['address'] ?: '-') ?></td>
                     <td><span class="badge <?= $s['status'] === 'active' ? 'ok' : 'muted' ?>"><?= e($s['status'] === 'active' ? '啟用' : '已封存') ?></span></td>
@@ -93,7 +106,7 @@ ob_start();
                 </tr>
             <?php endforeach; ?>
             <?php if (!$schools): ?>
-                <tr><td colspan="9" class="empty">尚無學校資料。</td></tr>
+                <tr><td colspan="10" class="empty">尚無學校資料。</td></tr>
             <?php endif; ?>
             </tbody>
         </table>

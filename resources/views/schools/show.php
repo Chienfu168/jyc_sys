@@ -13,6 +13,12 @@ ob_start();
         <div>
             <h2><?= e($school['name']) ?>
                 <span class="badge <?= $school['status'] === 'active' ? 'ok' : 'muted' ?>"><?= e($school['status'] === 'active' ? '啟用' : '已封存') ?></span>
+                <?php $engagementBadge = match ($school['engagement_status']) {
+                    '已合作', '已舉辦活動' => 'ok',
+                    '已拜訪' => 'warning',
+                    default => 'muted',
+                }; ?>
+                <span class="badge <?= e($engagementBadge) ?>"><?= e($school['engagement_status']) ?></span>
             </h2>
             <p class="muted-text"><?= e($school['category'] ?: '學校通訊錄') ?></p>
         </div>

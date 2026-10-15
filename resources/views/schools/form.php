@@ -42,6 +42,15 @@ ob_start();
                 </select>
             </label>
             <label>
+                <span>互動狀態</span>
+                <?php $engagementStatus = (string) old('engagement_status', $school['engagement_status'] ?? '尚未接觸'); ?>
+                <select name="engagement_status">
+                    <?php foreach ($engagementStatuses as $es): ?>
+                        <option value="<?= e($es) ?>" <?= $engagementStatus === $es ? 'selected' : '' ?>><?= e($es) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
+            <label>
                 <span>電話</span>
                 <input type="text" name="phone" maxlength="60" value="<?= e((string) old('phone', $school['phone'] ?? '')) ?>">
             </label>
