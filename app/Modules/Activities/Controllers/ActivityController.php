@@ -25,6 +25,7 @@ final class ActivityController extends Controller
         }
         $status = in_array(($_GET['status'] ?? ''), ['draft', 'published', 'closed', 'cancelled'], true) ? (string) $_GET['status'] : '';
         $projectId = (int) ($_GET['project_id'] ?? 0);
+        $schoolId = (int) ($_GET['school_id'] ?? 0);
         $keyword = trim((string) ($_GET['q'] ?? ''));
 
         [$dateWhere, $params] = DateScope::condition('activities.starts_at', $scope, $month, $year);
@@ -37,6 +38,10 @@ final class ActivityController extends Controller
             $where[] = 'activities.project_id = :project_id';
             $params['project_id'] = $projectId;
         }
+        if ($schoolId > 0) {
+            $where[] = 'activities.school_id = :school_id';
+            $params['school_id'] = $schoolId;
+        }
         if ($keyword !== '') {
             $where[] = '(activities.title LIKE :keyword OR activities.location LIKE :keyword OR activities.description LIKE :keyword OR projects.name LIKE :keyword)';
             $params['keyword'] = '%' . $keyword . '%';
@@ -46,12 +51,14 @@ final class ActivityController extends Controller
             'SELECT activities.*,
                     projects.name AS project_name,
                     projects.project_code,
+                    schools.name AS school_name,
                     COALESCE(volunteer_stats.volunteer_hours, 0) AS volunteer_hours,
                     COALESCE(volunteer_stats.service_log_count, 0) AS service_log_count,
                     COALESCE(participant_stats.registered_count, 0) AS registered_count,
                     COALESCE(participant_stats.attended_count, 0) AS attended_count
              FROM activities
              LEFT JOIN projects ON projects.id = activities.project_id
+             LEFT JOIN schools ON schools.id = activities.school_id
              LEFT JOIN (
                 SELECT activity_id, SUM(hours) AS volunteer_hours, COUNT(id) AS service_log_count
                 FROM volunteer_service_logs
@@ -79,9 +86,11 @@ final class ActivityController extends Controller
             'year' => $year,
             'status' => $status,
             'projectId' => $projectId,
+            'schoolId' => $schoolId,
             'keyword' => $keyword,
             'activities' => $activities,
             'projects' => $this->projects(),
+            'schools' => $this->schools(),
             'summary' => $this->summary($activities),
         ]);
     }
@@ -100,12 +109,14 @@ final class ActivityController extends Controller
                 'ends_at' => '',
                 'location' => '',
                 'project_id' => (int) ($_GET['project_id'] ?? 0) ?: '',
+                'school_id' => (int) ($_GET['school_id'] ?? 0) ?: '',
                 'session_no' => '',
                 'session_topic' => '',
                 'status' => 'draft',
                 'description' => '',
             ],
             'projects' => $this->projects(),
+            'schools' => $this->schools(),
             'action' => '/activities',
         ]);
     }
@@ -117,9 +128,9 @@ final class ActivityController extends Controller
 
         Database::pdo()->prepare(
             'INSERT INTO activities
-             (project_id, session_no, session_topic, title, starts_at, ends_at, location, status, description, created_by, created_at, updated_at)
+             (project_id, school_id, session_no, session_topic, title, starts_at, ends_at, location, status, description, created_by, created_at, updated_at)
              VALUES
-             (:project_id, :session_no, :session_topic, :title, :starts_at, :ends_at, :location, :status, :description, :created_by, :created_at, :updated_at)'
+             (:project_id, :school_id, :session_no, :session_topic, :title, :starts_at, :ends_at, :location, :status, :description, :created_by, :created_at, :updated_at)'
         )->execute($this->payload() + [
             'created_by' => auth()->user()['id'] ?? null,
             'created_at' => now(),
@@ -162,6 +173,7 @@ final class ActivityController extends Controller
             'active' => 'activities',
             'activity' => $this->findActivity((int) $id),
             'projects' => $this->projects(),
+            'schools' => $this->schools(),
             'action' => '/activities/' . $id,
         ]);
     }
@@ -175,6 +187,7 @@ final class ActivityController extends Controller
         Database::pdo()->prepare(
             'UPDATE activities
              SET project_id = :project_id,
+                 school_id = :school_id,
                  session_no = :session_no,
                  session_topic = :session_topic,
                  title = :title,
@@ -495,6 +508,11 @@ final class ActivityController extends Controller
         if ($projectId > 0 && !$this->projectExists($projectId)) {
             $this->backWithInput($path, $_POST, '選擇的專案不存在。');
         }
+
+        $schoolId = (int) ($_POST['school_id'] ?? 0);
+        if ($schoolId > 0 && !$this->schoolExists($schoolId)) {
+            $this->backWithInput($path, $_POST, '選擇的學校不存在。');
+        }
     }
 
     private function payload(): array
@@ -502,8 +520,11 @@ final class ActivityController extends Controller
         $projectId = (int) ($_POST['project_id'] ?? 0);
         $sessionNo = trim((string) ($_POST['session_no'] ?? ''));
 
+        $schoolId = (int) ($_POST['school_id'] ?? 0);
+
         return [
             'project_id' => $projectId > 0 ? $projectId : null,
+            'school_id' => $schoolId > 0 ? $schoolId : null,
             'session_no' => ($projectId > 0 && $sessionNo !== '' && ctype_digit($sessionNo)) ? (int) $sessionNo : null,
             'session_topic' => $projectId > 0 ? (trim((string) ($_POST['session_topic'] ?? '')) ?: null) : null,
             'title' => trim((string) $_POST['title']),
@@ -521,10 +542,12 @@ final class ActivityController extends Controller
             'SELECT activities.*,
                     users.name AS created_by_name,
                     projects.name AS project_name,
-                    projects.project_code
+                    projects.project_code,
+                    schools.name AS school_name
              FROM activities
              LEFT JOIN users ON users.id = activities.created_by
              LEFT JOIN projects ON projects.id = activities.project_id
+             LEFT JOIN schools ON schools.id = activities.school_id
              WHERE activities.id = :id
              LIMIT 1'
         );
@@ -552,6 +575,20 @@ final class ActivityController extends Controller
     private function projectExists(int $id): bool
     {
         $stmt = Database::pdo()->prepare('SELECT id FROM projects WHERE id = :id LIMIT 1');
+        $stmt->execute(['id' => $id]);
+        return (bool) $stmt->fetchColumn();
+    }
+
+    private function schools(): array
+    {
+        return Database::pdo()->query(
+            'SELECT id, name FROM schools WHERE status = "active" ORDER BY category, name, id'
+        )->fetchAll();
+    }
+
+    private function schoolExists(int $id): bool
+    {
+        $stmt = Database::pdo()->prepare('SELECT id FROM schools WHERE id = :id LIMIT 1');
         $stmt->execute(['id' => $id]);
         return (bool) $stmt->fetchColumn();
     }
