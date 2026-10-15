@@ -30,6 +30,14 @@ ob_start();
                     </option>
                 <?php endforeach; ?>
             </select>
+            <select name="school_id">
+                <option value="">全部學校</option>
+                <?php foreach ($schools as $school): ?>
+                    <option value="<?= e((string) $school['id']) ?>" <?= $schoolId === (int) $school['id'] ? 'selected' : '' ?>>
+                        <?= e($school['name']) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
             <select name="status">
                 <option value="">全部狀態</option>
                 <option value="draft" <?= $status === 'draft' ? 'selected' : '' ?>>草稿</option>
@@ -54,6 +62,7 @@ ob_start();
                 <th>時間</th>
                 <th>活動名稱</th>
                 <th>所屬專案</th>
+                <th>所屬學校</th>
                 <th>地點</th>
                 <th class="amount">報名 / 出席</th>
                 <th class="amount">志工時數</th>
@@ -80,6 +89,13 @@ ob_start();
                             -
                         <?php endif; ?>
                     </td>
+                    <td>
+                        <?php if (!empty($activity['school_id'])): ?>
+                            <a class="text-link" href="/schools/<?= e((string) $activity['school_id']) ?>"><?= e($activity['school_name']) ?></a>
+                        <?php else: ?>
+                            -
+                        <?php endif; ?>
+                    </td>
                     <td><?= e($activity['location'] ?: '-') ?></td>
                     <td class="amount"><?= e(number_format((int) $activity['registered_count'])) ?> / <?= e(number_format((int) $activity['attended_count'])) ?></td>
                     <td class="amount"><?= e(number_format((float) $activity['volunteer_hours'], 2)) ?></td>
@@ -97,7 +113,7 @@ ob_start();
                 </tr>
             <?php endforeach; ?>
             <?php if (!$activities): ?>
-                <tr><td colspan="8" class="empty">尚無活動資料。</td></tr>
+                <tr><td colspan="9" class="empty">尚無活動資料。</td></tr>
             <?php endif; ?>
             </tbody>
         </table>

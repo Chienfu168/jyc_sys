@@ -29,6 +29,18 @@
         </select>
     </label>
     <label>
+        <span>所屬學校</span>
+        <?php $selectedSchool = (string) old('school_id', $activity['school_id'] ?? ''); ?>
+        <select name="school_id">
+            <option value="">未指定學校</option>
+            <?php foreach ($schools as $school): ?>
+                <option value="<?= e((string) $school['id']) ?>" <?= $selectedSchool === (string) $school['id'] ? 'selected' : '' ?>>
+                    <?= e($school['name']) ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+    </label>
+    <label>
         <span>課程週次<small class="field-hint">（歸屬專案時填，如 1、2…16）</small></span>
         <input type="number" name="session_no" min="1" max="60" value="<?= e((string) old('session_no', $activity['session_no'] ?? '')) ?>" placeholder="非課程可留空">
     </label>

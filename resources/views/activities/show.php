@@ -62,8 +62,18 @@ ob_start();
                     -
                 <?php endif; ?>
             </td>
-            <th>行事曆連動</th>
+            <th>所屬學校</th>
             <td>
+                <?php if (!empty($activity['school_id'])): ?>
+                    <a class="text-link" href="/schools/<?= e((string) $activity['school_id']) ?>"><?= e($activity['school_name']) ?></a>
+                <?php else: ?>
+                    -
+                <?php endif; ?>
+            </td>
+        </tr>
+        <tr>
+            <th>行事曆連動</th>
+            <td colspan="3">
                 <?php if ($calendarEvent): ?>
                     <a class="text-link" href="/calendar/<?= e((string) $calendarEvent['id']) ?>">已建立行事曆事件</a>
                 <?php else: ?>
