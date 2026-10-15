@@ -613,6 +613,13 @@ textarea:focus {
     background: var(--danger-bg);
 }
 
+/* 深度合作等「最深層級」狀態:以實心深色呈現,與 .badge.ok 的淺色區隔,
+   一眼可辨識為比一般「已合作」更進一步的關係。 */
+.badge.deep {
+    color: #ffffff;
+    background: var(--primary-strong);
+}
+
 .danger-text {
     color: var(--danger);
     font-weight: 700;

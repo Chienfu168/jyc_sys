@@ -24,7 +24,7 @@ final class SchoolController extends Controller
     private const AREA_TYPES = ['都會區', '非山非市', '偏鄉', '極偏鄉'];
 
     /** 互動狀態:與基金會的往來程度,固定選項。 */
-    private const ENGAGEMENT_STATUSES = ['尚未接觸', '已拜訪', '已合作', '已舉辦活動'];
+    private const ENGAGEMENT_STATUSES = ['尚未接觸', '已拜訪', '已合作', '已舉辦活動', '深度合作'];
 
     /** 常見職稱(供下拉建議,亦可自行輸入)。 */
     private const TITLES = ['校長', '教務主任', '學務主任', '總務主任', '輔導主任', '主任', '幹事'];

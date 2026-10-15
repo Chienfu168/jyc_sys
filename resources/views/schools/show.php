@@ -14,6 +14,7 @@ ob_start();
             <h2><?= e($school['name']) ?>
                 <span class="badge <?= $school['status'] === 'active' ? 'ok' : 'muted' ?>"><?= e($school['status'] === 'active' ? '啟用' : '已封存') ?></span>
                 <?php $engagementBadge = match ($school['engagement_status']) {
+                    '深度合作' => 'deep',
                     '已合作', '已舉辦活動' => 'ok',
                     '已拜訪' => 'warning',
                     default => 'muted',

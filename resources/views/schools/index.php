@@ -93,6 +93,7 @@ ob_start();
                     <td><?= e($s['principal_name'] ?: '-') ?></td>
                     <td class="amount"><?= e((string) $s['current_staff_count']) ?></td>
                     <?php $engagementBadge = match ($s['engagement_status']) {
+                        '深度合作' => 'deep',
                         '已合作', '已舉辦活動' => 'ok',
                         '已拜訪' => 'warning',
                         default => 'muted',

@@ -54,8 +54,8 @@ ob_start();
                     <?php endforeach; ?>
                 </select>
             </label>
-            <label>
-                <span>互動狀態</span>
+            <label class="span-2">
+                <span>互動狀態<small class="field-hint">（由淺至深：尚未接觸－僅列名錄；已拜訪－初步接觸，尚無合作關係；已合作－已建立合作關係，尚未實際執行；已舉辦活動－合作已落實為具體活動；深度合作－長期深度合作，如已辦過深耕計畫）</small></span>
                 <?php $engagementStatus = (string) old('engagement_status', $school['engagement_status'] ?? '尚未接觸'); ?>
                 <select name="engagement_status">
                     <?php foreach ($engagementStatuses as $es): ?>
