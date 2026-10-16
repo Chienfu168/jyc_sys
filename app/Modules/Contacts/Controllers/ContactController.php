@@ -24,7 +24,12 @@ final class ContactController extends Controller
 
         $keyword = trim((string) ($_GET['q'] ?? ''));
         $category = trim((string) ($_GET['category'] ?? ''));
-        $status = in_array(($_GET['status'] ?? ''), ['active', 'inactive'], true) ? (string) $_GET['status'] : 'active';
+        // 狀態篩選:未帶 status 參數時預設僅顯示啟用;帶了但值非 active/inactive
+        // (例如下拉選單「全部」送出的空字串)則視為不篩選,顯示全部。
+        $status = 'active';
+        if (isset($_GET['status'])) {
+            $status = in_array($_GET['status'], ['active', 'inactive'], true) ? (string) $_GET['status'] : '';
+        }
 
         $where = [];
         $params = [];
