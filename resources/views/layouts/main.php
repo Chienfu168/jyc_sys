@@ -42,6 +42,7 @@ $navWorkflow = [
     // 陳報／核備主管機關(教育局)的治理文件集中一區,置於帳務之後(決算報表依帳務彙整)。
     ['title' => '主管機關核備', 'items' => [
         ['perm' => 'board_meetings.view', 'key' => 'board-meetings', 'href' => '/board-meetings', 'icon' => '董', 'label' => '董事會議'],
+        ['perm' => 'board_meetings.view', 'key' => 'board-directors', 'href' => '/board-directors', 'icon' => '名', 'label' => '董事名冊'],
         ['perm' => 'work_plans.view', 'key' => 'work-plans', 'href' => '/work-plans', 'icon' => '計', 'label' => '工作計畫'],
         ['perm' => 'annual_budgets.view', 'key' => 'annual-budgets', 'href' => '/annual-budgets', 'icon' => '預', 'label' => '年度預算'],
         ['perm' => 'operating_statements.view', 'key' => 'operating-statements', 'href' => '/operating-statements', 'icon' => '營', 'label' => '收支營運表'],
