@@ -1,0 +1,170 @@
+<?php
+$active = 'annual-budgets';
+$documentTitle = '經費預算表(核備精簡版)';
+ob_start();
+?>
+<section class="stats-grid budget-summary no-print">
+    <div class="stat-card"><span>本年度收益</span><strong><?= e(number_format((float) $statement['income']['current'], 0)) ?></strong></div>
+    <div class="stat-card"><span>本年度費損</span><strong><?= e(number_format((float) $statement['expense']['current'], 0)) ?></strong></div>
+    <div class="stat-card"><span>本期賸餘 / 短絀</span><strong><?= e(number_format((float) $statement['balance']['current'], 0)) ?></strong></div>
+    <div class="stat-card"><span>上年度比較</span><strong><?= e(number_format((float) $statement['balance']['variance'], 0)) ?></strong></div>
+</section>
+
+<section class="panel budget-statement print-scale-root">
+    <div class="panel-header no-print">
+        <div>
+            <p class="eyebrow">主管機關核備用(精簡版)</p>
+            <h2><?= e($budget['title']) ?></h2>
+            <p class="muted-text"><?= e(roc_year_label($budget['fiscal_year'])) ?>，單位：新臺幣元。僅呈現款／項／目／次，不列最細項的「節」,供核備查閱;完整明細請見<a href="/annual-budgets/<?= e((string) $budget['id']) ?>/statement">經費預算表(完整版)</a>。</p>
+        </div>
+        <div class="actions">
+            <a class="btn" href="/annual-budgets/<?= e((string) $budget['id']) ?>">返回預算</a>
+            <?php require base_path('resources/views/shared/print-options.php'); ?>
+        </div>
+    </div>
+
+    <div class="table-wrap">
+        <table class="data-table statement-table">
+            <thead>
+            <!-- 抬頭置於表頭:跨頁時每頁自動重複顯示(僅列印顯示,畫面上方另有標題)。 -->
+            <tr class="statement-heading print-only">
+                <th colspan="10">
+                    <div class="statement-heading-inner">
+                        <div class="sh-foundation"><?= e($profile['foundation_name'] ?? foundation_name()) ?></div>
+                        <div class="sh-report">經費預算表(精簡版)</div>
+                        <div class="sh-year">中華民國<?= e((string) roc_year($budget['fiscal_year'])) ?>年度</div>
+                        <div class="sh-unit">單位：新臺幣元</div>
+                    </div>
+                </th>
+            </tr>
+            <tr>
+                <th rowspan="2">款</th>
+                <th rowspan="2">項</th>
+                <th rowspan="2">目</th>
+                <th rowspan="2">次</th>
+                <th rowspan="2">項目名稱</th>
+                <th rowspan="2">本年度<br>預算數(A)</th>
+                <th rowspan="2">上年度<br>預算數(B)</th>
+                <th colspan="2">本年度與上年度預算比較</th>
+                <th rowspan="2">備註</th>
+            </tr>
+            <tr>
+                <th>增(減)數<br>(C)=(A)-(B)</th>
+                <th>增(減)比率%<br>(D)=(C)/(A)*100</th>
+            </tr>
+            </thead>
+            <tbody>
+            <?php render_statement_brief_section('income', '收益', $statement); ?>
+            <?php render_statement_brief_total('收益合計', $statement['income']); ?>
+            <?php render_statement_brief_section('expense', '費損', $statement); ?>
+            <?php render_statement_brief_total('費損合計', $statement['expense']); ?>
+            <?php render_statement_brief_total('本期稅前賸餘(短絀)', $statement['balance']); ?>
+            <tr>
+                <td colspan="5">所得稅利益(費用)</td>
+                <td class="amount">-</td>
+                <td class="amount">-</td>
+                <td class="amount">-</td>
+                <td class="amount">-</td>
+                <td></td>
+            </tr>
+            <?php render_statement_brief_total('本期稅後賸餘(短絀)', $statement['balance']); ?>
+            <?php if (!$items): ?>
+                <tr><td colspan="10" class="empty-state">尚無預算明細。</td></tr>
+            <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
+
+    <?php if (!empty($budget['notes'])): ?>
+        <p class="print-notes">備註：<?= nl2br(e($budget['notes'])) ?></p>
+    <?php endif; ?>
+
+    <?php
+    // 依主管機關經費預算表格式:會計人員／執行長／董事長。
+    $profile = $profile ?? foundation_profile();
+    // 核章列僅保留職稱與簽名空位,不帶入姓名(供實際簽章)。
+    $signatureRoles = [
+        ['label' => '會計', 'name' => ''],
+        ['label' => '執行長', 'name' => ''],
+        ['label' => '董事長', 'name' => ''],
+    ];
+    // 單行核章列(職稱：____),置中並適度間距,不畫用印框。
+    $signatureInline = true;
+    require base_path('resources/views/shared/signatures.php');
+    ?>
+</section>
+<?php
+/**
+ * 精簡版區段渲染:與完整版(render_statement_section)共用同一份 $statement 彙總資料,
+ * 僅略過「節」層級(gov_level5 有值)的明細列、少輸出一欄節。各小計/合計金額取自
+ * $statement 既有彙總(未重新計算),故與完整版數字必然一致。
+ */
+function render_statement_brief_section(string $type, string $label, array $statement): void
+{
+    // 款：區段標題列(收益／費損),不含金額。
+    echo '<tr class="statement-section"><td>' . ($type === 'income' ? '1' : '2') . '</td><td colspan="3"></td><td>' . e($label) . '</td><td colspan="5"></td></tr>';
+
+    $groups = $statement['groups'][$type];
+    // 單一分類且名稱等同區段(如收益)時,項目即為項次列,不再重複顯示分類標題與小計(其小計即為區段合計)。
+    $flat = count($groups) === 1 && trim((string) (($first = reset($groups)) ? ($first['name'] ?? '') : '')) === $label;
+
+    $xiang = 0;
+    foreach ($groups as $group) {
+        $xiang++;
+        if (!$flat) {
+            // 項：分類標題列(項次＋名稱),不含金額(依主管機關格式,小計置於分類最後)。
+            echo '<tr class="statement-group"><td></td><td>' . $xiang . '</td><td colspan="2"></td><td>' . e($group['name']) . '</td><td colspan="5"></td></tr>';
+        }
+
+        foreach ($group['items'] as $item) {
+            // 核備精簡版:略過「節」層級(最細項)明細列,僅呈現款/項/目/次。
+            if (trim((string) ($item['gov_level5'] ?? '')) !== '') {
+                continue;
+            }
+
+            $class = !empty($item['is_subtotal']) ? ' class="statement-subtotal"' : '';
+            echo '<tr' . $class . '>';
+            foreach (['gov_level1', 'gov_level2', 'gov_level3', 'gov_level4'] as $key) {
+                echo '<td>' . e((string) ($item[$key] ?? '')) . '</td>';
+            }
+            echo '<td>' . e($item['item_name']) . '</td>';
+            echo '<td class="amount">' . e(statement_brief_money($item['amount'])) . '</td>';
+            echo '<td class="amount">' . e(statement_brief_money($item['previous_amount'] ?? 0)) . '</td>';
+            echo '<td class="amount">' . e(statement_brief_money($item['variance_amount'])) . '</td>';
+            echo '<td class="amount">' . e(statement_brief_rate($item['variance_rate'])) . '</td>';
+            echo '<td>' . e((string) (($item['comparison_note'] ?? '') ?: ($item['notes'] ?? ''))) . '</td>';
+            echo '</tr>';
+        }
+
+        if (!$flat) {
+            // 分類小計列(如：業務費合計)置於該分類最後,符合主管機關格式。
+            render_statement_brief_total($group['name'] . '合計', $group);
+        }
+    }
+}
+
+function render_statement_brief_total(string $label, array $row): void
+{
+    echo '<tr class="statement-total">';
+    echo '<td colspan="5">' . e($label) . '</td>';
+    echo '<td class="amount">' . e(statement_brief_money($row['current'])) . '</td>';
+    echo '<td class="amount">' . e(statement_brief_money($row['previous'])) . '</td>';
+    echo '<td class="amount">' . e(statement_brief_money($row['variance'])) . '</td>';
+    echo '<td class="amount">' . e(statement_brief_rate($row['variance_rate'])) . '</td>';
+    echo '<td></td></tr>';
+}
+
+function statement_brief_money($value): string
+{
+    $amount = (float) $value;
+    return abs($amount) < 0.005 ? '-' : number_format($amount, 0);
+}
+
+function statement_brief_rate($value): string
+{
+    $rate = (float) $value;
+    return abs($rate) < 0.005 ? '0.00%' : number_format($rate, 2) . '%';
+}
+
+$content = ob_get_clean();
+require base_path('resources/views/layouts/main.php');
