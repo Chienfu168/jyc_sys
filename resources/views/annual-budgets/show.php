@@ -23,7 +23,8 @@ ob_start();
         </div>
         <div class="actions">
             <a class="btn" href="/annual-budgets">返回列表</a>
-            <a class="btn primary" href="/annual-budgets/<?= e((string) $budget['id']) ?>/statement">經費預算表</a>
+            <a class="btn primary" href="/annual-budgets/<?= e((string) $budget['id']) ?>/statement">經費預算表(完整版)</a>
+            <a class="btn" href="/annual-budgets/<?= e((string) $budget['id']) ?>/statement-brief">經費預算表(核備精簡版)</a>
             <?php if ($canManage): ?>
                 <a class="btn" href="/annual-budgets/<?= e((string) $budget['id']) ?>/duplicate">複製</a>
                 <a class="btn" href="/annual-budgets/<?= e((string) $budget['id']) ?>/edit">編輯</a>

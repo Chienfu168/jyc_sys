@@ -176,6 +176,28 @@ final class AnnualBudgetController extends Controller
         ]);
     }
 
+    /**
+     * 經費預算表(精簡版):供主管機關核備用,不顯示最細項的「節」,僅呈現款/項/目/次。
+     * 與完整版共用同一套彙總邏輯(statementSummary),僅在畫面呈現時略過節層級的明細列,
+     * 不重新計算金額,故各層小計/合計與完整版必然一致。
+     */
+    public function statementBrief(string $id): void
+    {
+        $this->requirePermission('annual_budgets.view');
+        $budget = $this->findBudget((int) $id);
+        $items = $this->items((int) $id);
+
+        $this->render('annual-budgets.statement-brief', [
+            'title' => '經費預算表(核備精簡版)',
+            'section' => '主管機關核備',
+            'active' => 'annual-budgets',
+            'budget' => $budget,
+            'items' => $items,
+            'statement' => $this->statementSummary($items),
+            'profile' => foundation_profile(),
+        ]);
+    }
+
     public function edit(string $id): void
     {
         $this->requirePermission('annual_budgets.manage');
