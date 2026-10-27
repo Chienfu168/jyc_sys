@@ -223,7 +223,7 @@ ob_start();
         <p class="print-notes">備註：<?= nl2br(e($expense['notes'])) ?></p>
     <?php endif; ?>
 
-    <?php require base_path('resources/views/shared/signatures.php'); ?>
+    <p class="print-notes">本單為講師費用請款附件，請以「<a href="/lecturer-expenses/reports/bank-payout?month=<?= e(substr((string) $expense['expense_date'], 0, 7)) ?>">講師費用銀行出帳請款總表</a>」為正式簽核文件，本單不另行簽核。</p>
 </section>
 <?php
 function lecturer_expense_show_status(string $status): string

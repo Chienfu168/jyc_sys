@@ -657,8 +657,9 @@ final class LecturerExpenseController extends Controller
     }
 
     /**
-     * 銀行出帳記錄報表:列印指定月份各講師應付總額與匯款帳戶資訊,供財務出帳使用。
-     * 同一講師若有多筆月紀錄(如分散於不同專案/學校),會合併為單一出帳行。
+     * 銀行出帳請款總表:列印指定月份各講師應付總額與匯款帳戶資訊,做為講師費用請款的
+     * 正式簽核文件(各講師個別請款單僅作附件,不另簽核)。同一講師若有多筆月紀錄
+     * (如分散於不同專案/學校),會合併為單一出帳行。
      */
     public function bankPayoutReport(): void
     {
@@ -683,7 +684,7 @@ final class LecturerExpenseController extends Controller
         $rows = $stmt->fetchAll();
 
         $this->render('lecturer-expenses.bank-payout-report', [
-            'title' => '講師費用銀行出帳記錄',
+            'title' => '講師費用銀行出帳請款總表',
             'section' => '財務會計',
             'active' => 'lecturer-expenses',
             'month' => $month,

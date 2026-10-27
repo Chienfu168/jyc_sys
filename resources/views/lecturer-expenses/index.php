@@ -32,7 +32,7 @@ ob_start();
         <div class="actions">
             <a class="btn" href="/finance">返回財務會計</a>
             <a class="btn" href="/lecturer-expenses/reports/monthly">月報表</a>
-            <a class="btn" href="/lecturer-expenses/reports/bank-payout">銀行出帳記錄</a>
+            <a class="btn" href="/lecturer-expenses/reports/bank-payout">銀行出帳請款總表</a>
             <?php if (\App\Core\Permission::can('lecturer_expenses.manage')): ?>
                 <a class="btn primary" href="/lecturer-expenses/create">新增講師費用</a>
             <?php endif; ?>
