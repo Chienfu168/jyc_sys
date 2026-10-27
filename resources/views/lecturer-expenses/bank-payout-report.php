@@ -1,6 +1,6 @@
 <?php
 $active = 'lecturer-expenses';
-$documentTitle = '講師費用銀行出帳記錄';
+$documentTitle = '講師費用銀行出帳請款總表';
 ob_start();
 ?>
 <?php require base_path('resources/views/shared/print-header.php'); ?>
@@ -8,8 +8,8 @@ ob_start();
 <section class="panel">
     <div class="panel-header no-print">
         <div>
-            <h2>講師費用銀行出帳記錄</h2>
-            <p class="muted-text">列印指定月份各講師匯款帳戶與應付金額，供財務出帳使用。同一講師若有多筆月紀錄（如分散於不同專案/學校），會自動合併為一筆出帳金額。</p>
+            <h2>講師費用銀行出帳請款總表</h2>
+            <p class="muted-text">列印指定月份各講師匯款帳戶與應付金額，做為講師費用請款之正式簽核文件；各講師個別請款單僅作附件，不另行簽核。同一講師若有多筆月紀錄（如分散於不同專案/學校），會自動合併為一筆出帳金額。</p>
         </div>
         <div class="actions">
             <form class="search" method="get" action="/lecturer-expenses/reports/bank-payout">
@@ -22,7 +22,7 @@ ob_start();
     </div>
 
     <div class="print-only" style="text-align:center;margin-bottom:8px">
-        <strong style="font-size:16px"><?= e($month) ?> 講師費用銀行出帳記錄</strong>
+        <strong style="font-size:16px"><?= e($month) ?> 講師費用銀行出帳請款總表</strong>
     </div>
 
     <table class="meta-table no-print">
@@ -73,6 +73,8 @@ ob_start();
             </tfoot>
         </table>
     </div>
+
+    <?php require base_path('resources/views/shared/signatures.php'); ?>
 </section>
 <?php
 $content = ob_get_clean();
