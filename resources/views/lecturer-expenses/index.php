@@ -47,7 +47,7 @@ ob_start();
                 <th>講師</th>
                 <th>服務內容</th>
                 <th>專案 / 活動</th>
-                <th class="amount">時數</th>
+                <th class="amount">堂數</th>
                 <th class="amount">應付</th>
                 <th class="amount">實付</th>
                 <th>狀態</th>

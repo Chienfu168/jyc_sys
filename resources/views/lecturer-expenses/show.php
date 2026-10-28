@@ -83,7 +83,7 @@ ob_start();
             <td><?= e(trim(($expense['project_name'] ?: '-') . ' / ' . ($expense['activity_name'] ?: '-'))) ?></td>
         </tr>
         <tr>
-            <th>總時數</th>
+            <th>總堂數</th>
             <td colspan="3"><?= e(number_format((float) $expense['hours'], 2)) ?></td>
         </tr>
         <tr>
@@ -118,10 +118,10 @@ ob_start();
                 <tr>
                     <th>日期</th>
                     <th>上課地點</th>
-                    <th class="amount">時數</th>
-                    <th class="amount">鐘點費單價</th>
+                    <th class="amount">堂數</th>
+                    <th class="amount">鐘點費/堂</th>
                     <th class="amount">鐘點費</th>
-                    <th class="amount">交通費</th>
+                    <th class="amount">交通補貼</th>
                     <th class="amount">小計</th>
                     <th>備註</th>
                     <?php if ($canManageExpense && $sessionsMutable): ?><th class="actions no-print">操作</th><?php endif; ?>
@@ -171,7 +171,7 @@ ob_start();
                 <td class="amount"><?= e(number_format((float) $expense['lecture_fee'], 0)) ?></td>
             </tr>
             <tr>
-                <td>交通費</td>
+                <td>交通補貼</td>
                 <td class="amount"><?= e(number_format((float) $expense['transportation_fee'], 0)) ?></td>
             </tr>
             <tr>

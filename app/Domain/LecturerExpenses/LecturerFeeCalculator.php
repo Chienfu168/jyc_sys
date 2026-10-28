@@ -6,13 +6,13 @@ namespace App\Domain\LecturerExpenses;
  * 講師費計算的純邏輯:鐘點費、費用合計與代扣所得稅後淨額。
  *
  * 從 LecturerExpenseController 抽出,不依賴資料庫。代扣稅額由使用者輸入,
- * 本類別負責由時數、鐘點費、交通費、其他費用推算應付總額與實付淨額。
+ * 本類別負責由堂數、鐘點費、交通補貼、其他費用推算應付總額與實付淨額。
  * 金額一律四捨五入至小數 2 位。
  */
 final class LecturerFeeCalculator
 {
     /**
-     * 鐘點費 = 時數 × 每小時鐘點費。
+     * 鐘點費 = 堂數 × 每堂鐘點費。
      */
     public static function lectureFee(float $hours, float $hourlyRate): float
     {
@@ -20,7 +20,7 @@ final class LecturerFeeCalculator
     }
 
     /**
-     * 應付總額 = 鐘點費 + 交通費 + 其他費用。
+     * 應付總額 = 鐘點費 + 交通補貼 + 其他費用。
      */
     public static function grossTotal(float $lectureFee, float $transportationFee, float $otherFee): float
     {
@@ -36,7 +36,7 @@ final class LecturerFeeCalculator
     }
 
     /**
-     * 單筆上課明細小計 = 鐘點費(時數 × 單價) + 該次交通費。
+     * 單筆上課明細小計 = 鐘點費(堂數 × 單價) + 該次交通補貼。
      */
     public static function sessionSubtotal(float $lectureFee, float $transportationFee): float
     {

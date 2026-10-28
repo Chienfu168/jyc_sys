@@ -9,7 +9,7 @@ ob_start();
     <div class="panel-header no-print">
         <div>
             <h2>講師費用月報表</h2>
-            <p class="muted-text">列印指定月份各講師之上課次數明細（上課地點、日期、時數、交通費）與應付金額。</p>
+            <p class="muted-text">列印指定月份各講師之上課次數明細（上課地點、日期、堂數、交通補貼）與應付金額。</p>
         </div>
         <div class="actions">
             <form class="search" method="get" action="/lecturer-expenses/reports/monthly">
@@ -36,7 +36,7 @@ ob_start();
                 <tr>
                     <th>講師總計</th>
                     <th class="amount">月紀錄筆數</th>
-                    <th class="amount">總時數</th>
+                    <th class="amount">總堂數</th>
                     <th class="amount">應付總額</th>
                     <th class="amount">實付金額</th>
                 </tr>
@@ -68,7 +68,7 @@ ob_start();
                     <td><?= e($expense['service_title']) ?></td>
                 </tr>
                 <tr>
-                    <th>總時數</th>
+                    <th>總堂數</th>
                     <td><?= e(number_format((float) $expense['hours'], 2)) ?></td>
                     <th>應付總額</th>
                     <td><?= e(number_format((float) $expense['gross_total'], 0)) ?></td>
@@ -82,10 +82,10 @@ ob_start();
                         <th>日期</th>
                         <th>星期</th>
                         <th>上課地點</th>
-                        <th class="amount">時數</th>
-                        <th class="amount">鐘點費單價</th>
+                        <th class="amount">堂數</th>
+                        <th class="amount">鐘點費/堂</th>
                         <th class="amount">鐘點費</th>
-                        <th class="amount">交通費</th>
+                        <th class="amount">交通補貼</th>
                         <th class="amount">小計</th>
                     </tr>
                     </thead>

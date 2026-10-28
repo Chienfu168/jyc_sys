@@ -24,15 +24,15 @@ ob_start();
             <input type="text" name="location" value="<?= e((string) old('location', $session['location'] ?? '')) ?>">
         </label>
         <label>
-            <span>時數</span>
+            <span>堂數</span>
             <input data-calc type="number" min="0" step="0.5" name="hours" value="<?= e((string) old('hours', $session['hours'] ?? '')) ?>">
         </label>
         <label>
-            <span>鐘點費單價</span>
+            <span>鐘點費/堂</span>
             <input data-calc type="number" min="0" step="1" name="hourly_rate" value="<?= e((string) old('hourly_rate', $session['hourly_rate'] ?? '')) ?>">
         </label>
         <label>
-            <span>交通費</span>
+            <span>交通補貼</span>
             <input data-calc type="number" min="0" step="1" name="transportation_fee" value="<?= e((string) old('transportation_fee', $session['transportation_fee'] ?? 0)) ?>">
         </label>
         <label class="span-2">
@@ -41,7 +41,7 @@ ob_start();
         </label>
         <div class="calc-summary span-2">
             <span>鐘點費 <strong id="calc-lecture-fee">0</strong></span>
-            <span>小計(鐘點費＋交通費) <strong id="calc-subtotal">0</strong></span>
+            <span>小計(鐘點費＋交通補貼) <strong id="calc-subtotal">0</strong></span>
         </div>
         <div class="form-actions span-2">
             <a class="btn" href="/lecturer-expenses/<?= e((string) $expense['id']) ?>">返回</a>
