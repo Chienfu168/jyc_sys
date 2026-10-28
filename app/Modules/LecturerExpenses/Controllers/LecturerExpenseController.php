@@ -479,7 +479,7 @@ final class LecturerExpenseController extends Controller
 
     /**
      * 複製月紀錄:講師固定每月有課程時,複製上個月(或任一月份)的紀錄與上課明細到
-     * 新的月份,複製後只需調整日期、時數等少數內容即可使用,不必整筆重新輸入。
+     * 新的月份,複製後只需調整日期、堂數等少數內容即可使用,不必整筆重新輸入。
      */
     public function copyCreate(string $id): void
     {
@@ -590,7 +590,7 @@ final class LecturerExpenseController extends Controller
     }
 
     /**
-     * 講師費用月報表:列印指定月份(或全部)的所有講師月紀錄,含上課明細(地點、日期、時數、交通費)。
+     * 講師費用月報表:列印指定月份(或全部)的所有講師月紀錄,含上課明細(地點、日期、堂數、交通補貼)。
      */
     public function monthlyReport(): void
     {
@@ -628,7 +628,7 @@ final class LecturerExpenseController extends Controller
 
     /**
      * 將同一講師在該月份(可能分散於不同專案/學校)的多筆月紀錄彙總為講師總計,
-     * 供月報表方便統計同一講師當月合計時數與應付金額。
+     * 供月報表方便統計同一講師當月合計堂數與應付金額。
      *
      * @param array<int, array<string, mixed>> $expenses
      * @return array<int, array{lecturer_name: string, record_count: int, hours: float, gross_total: float, net_total: float}>
@@ -867,7 +867,7 @@ final class LecturerExpenseController extends Controller
 
         foreach (['hours', 'hourly_rate', 'transportation_fee'] as $key) {
             if ($this->amountValue($key) < 0) {
-                $this->backWithInput($path, $_POST, '金額與時數不可小於 0。');
+                $this->backWithInput($path, $_POST, '金額與堂數不可小於 0。');
             }
         }
     }
@@ -894,7 +894,7 @@ final class LecturerExpenseController extends Controller
     }
 
     /**
-     * 依上課明細彙總重算月紀錄的時數、鐘點費、交通費與應付／實付總額。
+     * 依上課明細彙總重算月紀錄的堂數、鐘點費、交通補貼與應付／實付總額。
      * 於新增／編輯月紀錄(其他費用、代扣稅額變動)及上課明細異動後呼叫,
      * 確保月紀錄的彙總欄位永遠等於底下明細加總。
      */

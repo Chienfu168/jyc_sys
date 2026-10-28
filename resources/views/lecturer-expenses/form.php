@@ -53,7 +53,7 @@
 
     <div class="form-section">
         <h3>其他費用</h3>
-        <p class="muted-text">鐘點費、交通費由下方「上課明細」逐筆記錄後自動加總，此處僅填寫每月一次性的其他費用與代扣稅額。</p>
+        <p class="muted-text">鐘點費、交通補貼由下方「上課明細」逐筆記錄後自動加總，此處僅填寫每月一次性的其他費用與代扣稅額。</p>
         <div class="grid-form">
             <label>
                 <span>其他費用</span>
@@ -66,7 +66,7 @@
         </div>
         <?php if (isset($expense['id'])): ?>
             <div class="calc-summary">
-                <span>目前上課明細鐘點費＋交通費合計 <strong><?= e(number_format((float) ($expense['lecture_fee'] ?? 0) + (float) ($expense['transportation_fee'] ?? 0), 0)) ?></strong></span>
+                <span>目前上課明細鐘點費＋交通補貼合計 <strong><?= e(number_format((float) ($expense['lecture_fee'] ?? 0) + (float) ($expense['transportation_fee'] ?? 0), 0)) ?></strong></span>
                 <span>應付總額 <strong><?= e(number_format((float) ($expense['gross_total'] ?? 0), 0)) ?></strong></span>
                 <span>實付金額 <strong><?= e(number_format((float) ($expense['net_total'] ?? 0), 0)) ?></strong></span>
             </div>
