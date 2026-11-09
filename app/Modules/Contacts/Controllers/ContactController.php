@@ -71,6 +71,40 @@ final class ContactController extends Controller
         ]);
     }
 
+    /** 批次列印標籤:將勾選的聯絡人輸出為三用電腦標籤(100mm×45mm,每頁12格)。 */
+    public function labels(): void
+    {
+        $this->requirePermission('contacts.view');
+        $ids = $this->selectedIds();
+
+        $labels = [];
+        if ($ids) {
+            $placeholders = implode(',', array_fill(0, count($ids), '?'));
+            $stmt = Database::pdo()->prepare(
+                "SELECT * FROM contacts WHERE id IN ($placeholders) ORDER BY category, organization, name, id"
+            );
+            $stmt->execute($ids);
+            foreach ($stmt->fetchAll() as $c) {
+                $labels[] = [
+                    'line1' => $c['organization'] ?: $c['name'],
+                    'line2' => $c['organization']
+                        ? trim($c['name'] . ' ' . ($c['job_title'] ?: ''))
+                        : ($c['job_title'] ?: null),
+                    'address' => $c['address'],
+                ];
+            }
+        }
+
+        $this->render('shared.label-sheet', [
+            'title' => '通訊錄列印標籤',
+            'section' => '業務推動',
+            'active' => 'contacts',
+            'documentTitle' => '通訊錄 — 列印標籤',
+            'backHref' => '/contacts',
+            'labels' => $labels,
+        ]);
+    }
+
     public function create(): void
     {
         $this->requirePermission('contacts.manage');

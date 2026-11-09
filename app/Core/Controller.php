@@ -64,4 +64,22 @@ abstract class Controller
         flash('error', $message);
         redirect($path);
     }
+
+    /**
+     * 從 POST 取出已勾選的正整數 ID 清單(如批次列印標籤、批次操作等勾選表單),
+     * 過濾非數字與重複值。
+     *
+     * @return array<int, int>
+     */
+    protected function selectedIds(string $key = 'ids'): array
+    {
+        $raw = $_POST[$key] ?? [];
+        if (!is_array($raw)) {
+            return [];
+        }
+
+        $ids = array_map('intval', $raw);
+        $ids = array_filter($ids, static fn (int $id): bool => $id > 0);
+        return array_values(array_unique($ids));
+    }
 }

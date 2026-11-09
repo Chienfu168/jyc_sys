@@ -353,6 +353,37 @@ $quickLinks = $currentUser
 </script>
 <?php endif; ?>
 <script>
+    // 批次勾選表單通用邏輯(如列印標籤):.select-all 勾選/取消其所屬
+    // data-group 內所有 .row-check;任一 .row-check 變動時同步更新該群組
+    // 的 .select-all 狀態(全選/部分/未選)。供全站各頁共用,無需逐頁重複撰寫。
+    (function () {
+        function rowChecks(group) {
+            return document.querySelectorAll('.row-check[data-group="' + group + '"]');
+        }
+        function syncSelectAll(group) {
+            var all = document.querySelector('.select-all[data-group="' + group + '"]');
+            if (!all) { return; }
+            var boxes = rowChecks(group);
+            var checked = Array.prototype.filter.call(boxes, function (b) { return b.checked; });
+            all.checked = boxes.length > 0 && checked.length === boxes.length;
+            all.indeterminate = checked.length > 0 && checked.length < boxes.length;
+        }
+        document.addEventListener('change', function (event) {
+            var target = event.target;
+            if (target.classList.contains('select-all')) {
+                var group = target.getAttribute('data-group');
+                rowChecks(group).forEach(function (b) { b.checked = target.checked; });
+                target.indeterminate = false;
+            } else if (target.classList.contains('row-check')) {
+                syncSelectAll(target.getAttribute('data-group'));
+            }
+        });
+        document.querySelectorAll('.select-all').forEach(function (el) {
+            syncSelectAll(el.getAttribute('data-group'));
+        });
+    })();
+</script>
+<script>
     // 註冊 Service Worker 以啟用 PWA(可安裝、離線提示、靜態資源快取)。
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', function () {

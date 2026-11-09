@@ -113,6 +113,44 @@ final class SchoolController extends Controller
         ]);
     }
 
+    /** 批次列印標籤:將勾選的學校輸出為三用電腦標籤(100mm×45mm,每頁12格)。 */
+    public function labels(): void
+    {
+        $this->requirePermission('schools.view');
+        $ids = $this->selectedIds();
+
+        $labels = [];
+        if ($ids) {
+            $placeholders = implode(',', array_fill(0, count($ids), '?'));
+            $stmt = Database::pdo()->prepare(
+                "SELECT schools.*,
+                        (SELECT name FROM school_staff
+                         WHERE school_id = schools.id AND status = \"current\" AND title = \"校長\"
+                         ORDER BY id LIMIT 1) AS principal_name
+                 FROM schools
+                 WHERE schools.id IN ($placeholders)
+                 ORDER BY schools.name"
+            );
+            $stmt->execute($ids);
+            foreach ($stmt->fetchAll() as $s) {
+                $labels[] = [
+                    'line1' => $s['name'],
+                    'line2' => $s['principal_name'] ? '校長 ' . $s['principal_name'] : null,
+                    'address' => $s['address'],
+                ];
+            }
+        }
+
+        $this->render('shared.label-sheet', [
+            'title' => '學校通訊錄列印標籤',
+            'section' => '業務推動',
+            'active' => 'schools',
+            'documentTitle' => '學校通訊錄 — 列印標籤',
+            'backHref' => '/schools',
+            'labels' => $labels,
+        ]);
+    }
+
     public function create(): void
     {
         $this->requirePermission('schools.manage');
