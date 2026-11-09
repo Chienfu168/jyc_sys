@@ -26,6 +26,7 @@ ob_start();
         </div>
         <div class="actions no-print">
             <button class="btn" type="button" onclick="window.print()">列印 / 另存 PDF</button>
+            <button class="btn" type="submit" form="contactsLabelForm">列印標籤</button>
             <?php if (!empty($canManage)): ?>
                 <a class="btn primary" href="/contacts/create">新增聯絡人</a>
             <?php endif; ?>
@@ -48,10 +49,16 @@ ob_start();
         <button class="btn" type="submit">查詢</button>
     </form>
 
+    <?php /* 與逐列的刪除表單不可巢狀,改用 form 屬性關聯勾選框與送出按鈕。 */ ?>
+    <form id="contactsLabelForm" class="no-print" method="post" action="/contacts/labels" target="_blank">
+        <?= csrf_field() ?>
+    </form>
+
     <div class="table-wrap">
         <table class="contacts-table">
             <thead>
             <tr>
+                <th class="no-print"><input type="checkbox" class="select-all" data-group="contact-ids" title="全選"></th>
                 <th>分類</th>
                 <th class="wrap">單位</th>
                 <th>姓名</th>
@@ -66,6 +73,7 @@ ob_start();
             <tbody>
             <?php foreach ($contacts as $c): ?>
                 <tr>
+                    <td class="no-print"><input type="checkbox" form="contactsLabelForm" name="ids[]" value="<?= e((string) $c['id']) ?>" class="row-check" data-group="contact-ids"></td>
                     <td><?= e($c['category'] ?: '-') ?></td>
                     <td class="wrap"><?= e($c['organization'] ?: '-') ?></td>
                     <td><strong><?= e($c['name']) ?></strong></td>
@@ -87,7 +95,7 @@ ob_start();
                 </tr>
             <?php endforeach; ?>
             <?php if (!$contacts): ?>
-                <tr><td colspan="9" class="empty">尚無聯絡人資料。</td></tr>
+                <tr><td colspan="10" class="empty">尚無聯絡人資料。</td></tr>
             <?php endif; ?>
             </tbody>
         </table>

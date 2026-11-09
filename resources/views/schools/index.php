@@ -26,6 +26,7 @@ ob_start();
         </div>
         <div class="actions no-print">
             <button class="btn" type="button" onclick="window.print()">列印 / 另存 PDF</button>
+            <button class="btn" type="submit" form="schoolsLabelForm">列印標籤</button>
             <?php if (!empty($canManage)): ?>
                 <a class="btn primary" href="/schools/create">新增學校</a>
             <?php endif; ?>
@@ -66,10 +67,16 @@ ob_start();
         <button class="btn" type="submit">查詢</button>
     </form>
 
+    <?php /* 與逐列的刪除表單不可巢狀,改用 form 屬性關聯勾選框與送出按鈕。 */ ?>
+    <form id="schoolsLabelForm" class="no-print" method="post" action="/schools/labels" target="_blank">
+        <?= csrf_field() ?>
+    </form>
+
     <div class="table-wrap">
         <table class="schools-table">
             <thead>
             <tr>
+                <th class="no-print"><input type="checkbox" class="select-all" data-group="school-ids" title="全選"></th>
                 <th>行政區</th>
                 <th>類別</th>
                 <th>地區類別</th>
@@ -87,6 +94,7 @@ ob_start();
             <tbody>
             <?php foreach ($schools as $s): ?>
                 <tr>
+                    <td class="no-print"><input type="checkbox" form="schoolsLabelForm" name="ids[]" value="<?= e((string) $s['id']) ?>" class="row-check" data-group="school-ids"></td>
                     <td><?= e($s['district'] ?: '-') ?></td>
                     <td><?= e($s['category'] ?: '-') ?></td>
                     <td><?= e($s['area_type'] ?: '-') ?></td>
@@ -123,7 +131,7 @@ ob_start();
                 </tr>
             <?php endforeach; ?>
             <?php if (!$schools): ?>
-                <tr><td colspan="12" class="empty">尚無學校資料。</td></tr>
+                <tr><td colspan="13" class="empty">尚無學校資料。</td></tr>
             <?php endif; ?>
             </tbody>
         </table>

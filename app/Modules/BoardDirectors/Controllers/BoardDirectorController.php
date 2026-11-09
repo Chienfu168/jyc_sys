@@ -66,6 +66,38 @@ final class BoardDirectorController extends Controller
         ]);
     }
 
+    /** 批次列印標籤:將勾選的董事輸出為三用電腦標籤(100mm×45mm,每頁12格)。 */
+    public function labels(): void
+    {
+        $this->requirePermission('board_meetings.view');
+        $ids = $this->selectedIds();
+
+        $labels = [];
+        if ($ids) {
+            $placeholders = implode(',', array_fill(0, count($ids), '?'));
+            $stmt = Database::pdo()->prepare(
+                "SELECT * FROM board_directors WHERE id IN ($placeholders) ORDER BY FIELD(title, \"董事長\") DESC, sort_order, id"
+            );
+            $stmt->execute($ids);
+            foreach ($stmt->fetchAll() as $d) {
+                $labels[] = [
+                    'line1' => trim($d['name'] . ($d['title'] ? ' ' . $d['title'] : '')),
+                    'line2' => $d['organization'] ?: null,
+                    'address' => $d['address'],
+                ];
+            }
+        }
+
+        $this->render('shared.label-sheet', [
+            'title' => '董事名冊列印標籤',
+            'section' => '主管機關核備',
+            'active' => 'board-directors',
+            'documentTitle' => '董事名冊 — 列印標籤',
+            'backHref' => '/board-directors',
+            'labels' => $labels,
+        ]);
+    }
+
     public function create(): void
     {
         $this->requirePermission('board_meetings.manage');

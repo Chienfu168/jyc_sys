@@ -5,6 +5,7 @@ use App\Modules\Schools\Controllers\SchoolController;
 $router->get('/schools', [SchoolController::class, 'index']);
 $router->get('/schools/create', [SchoolController::class, 'create']);
 $router->post('/schools', [SchoolController::class, 'store']);
+$router->post('/schools/labels', [SchoolController::class, 'labels']);
 $router->get('/schools/{id}', [SchoolController::class, 'show']);
 $router->get('/schools/{id}/edit', [SchoolController::class, 'edit']);
 $router->post('/schools/{id}', [SchoolController::class, 'update']);
