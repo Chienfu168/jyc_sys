@@ -81,7 +81,7 @@ final class BoardDirectorController extends Controller
             $stmt->execute($ids);
             foreach ($stmt->fetchAll() as $d) {
                 $labels[] = [
-                    'line1' => trim($d['name'] . ($d['title'] ? ' ' . $d['title'] : '')),
+                    'line1' => trim($d['name'] . ($d['title'] ? ' ' . $d['title'] : '')) . ' 親啟',
                     'line2' => $d['organization'] ?: null,
                     'address' => $d['address'],
                 ];
