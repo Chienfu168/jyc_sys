@@ -1761,6 +1761,59 @@ textarea:focus {
     color: #222222;
 }
 
+/* 聘書／感謝狀:沿用官方收據的素雅單線外框風格,版面較開闊以利留白 */
+.certificate-sheet {
+    max-width: 18cm;
+    min-height: 22cm;
+    margin: 0 auto;
+    padding: 20mm 20mm 16mm;
+    color: #000000;
+    background: #ffffff;
+    border: 2px solid #333333;
+    border-radius: 6px;
+    font-family: "DFKai-SB", "BiauKai", "標楷體", "KaiTi", "TW-Kai", "Noto Serif TC", "PMingLiU", serif;
+    line-height: 1.9;
+    display: flex;
+    flex-direction: column;
+}
+
+.certificate-sheet .cert-org {
+    text-align: center;
+    font-size: 16px;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+}
+
+.certificate-sheet .cert-title {
+    text-align: center;
+    font-size: 34px;
+    font-weight: 700;
+    letter-spacing: 18px;
+    text-indent: 18px;
+    margin: 6px 0 40px;
+}
+
+.certificate-sheet .cert-body {
+    font-size: 19px;
+    line-height: 2.1;
+    text-align: justify;
+    white-space: pre-wrap;
+    flex: 1 0 auto;
+}
+
+.certificate-sheet .cert-signoff {
+    text-align: right;
+    font-size: 17px;
+    line-height: 2.1;
+    margin-top: 32px;
+}
+
+.certificate-sheet .cert-date {
+    text-align: right;
+    font-size: 17px;
+    margin-top: 8px;
+}
+
 /* 董事會議議程／紀錄列印版面 */
 .board-meeting-print {
     max-width: 18cm;

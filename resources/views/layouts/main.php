@@ -18,6 +18,7 @@ $navWorkflow = [
         ['perm' => 'calendar.view', 'key' => 'calendar', 'href' => '/calendar', 'icon' => '曆', 'label' => '行事曆管理'],
         ['perm' => 'contacts.view', 'key' => 'contacts', 'href' => '/contacts', 'icon' => '訊', 'label' => '通訊錄'],
         ['perm' => 'schools.view', 'key' => 'schools', 'href' => '/schools', 'icon' => '校', 'label' => '學校通訊錄'],
+        ['perm' => 'certificates.view', 'key' => 'certificates', 'href' => '/certificates', 'icon' => '狀', 'label' => '聘書與感謝狀'],
     ]],
     ['title' => '人事差勤', 'items' => [
         ['perm' => 'personnel.view', 'key' => 'personnel', 'href' => '/personnel', 'icon' => '人', 'label' => '人事管理'],
