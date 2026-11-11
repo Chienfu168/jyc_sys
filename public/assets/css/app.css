@@ -1862,12 +1862,12 @@ textarea:focus {
 
 .certificate-sheet .cert-body {
     font-size: 22px;
-    line-height: 1.9;
+    line-height: 1.5;
     text-align: center;
 }
 
 .certificate-sheet .cert-body p {
-    margin: 0 0 16px;
+    margin: 0 0 8px;
 }
 
 .certificate-sheet .cert-body p:last-child {
@@ -1880,12 +1880,12 @@ textarea:focus {
     font-weight: 700;
     letter-spacing: 6px;
     color: #1f2d3d;
-    margin: 6px 0 16px;
+    margin: 4px 0 8px;
 }
 
 /* 聘期句字型縮小、維持自然字距且不換行,避免日期或句尾「止。」被拆到下一行 */
 .certificate-sheet .cert-term {
-    margin-top: 32px;
+    margin-top: 24px;
     font-size: 16px;
     letter-spacing: normal;
     white-space: nowrap;

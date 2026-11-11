@@ -55,7 +55,8 @@ ob_start();
             <div class="cert-body">
                 <?php
                 $certName = trim((string) $certificate['recipient_name']);
-                $certParagraphs = preg_split('/\n{2,}/u', trim($certificate['body_text'])) ?: [];
+                $certBodyNormalized = str_replace(["\r\n", "\r"], "\n", (string) $certificate['body_text']);
+                $certParagraphs = preg_split('/\n{2,}/u', trim($certBodyNormalized)) ?: [];
                 ?>
                 <?php foreach ($certParagraphs as $certParagraph): ?>
                     <?php $certParagraphTrim = trim($certParagraph); ?>
