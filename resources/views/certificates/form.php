@@ -33,6 +33,14 @@ ob_start();
                 <select name="variant_key" id="variantKey"></select>
             </label>
             <label>
+                <span>外框樣式</span>
+                <select name="frame_style">
+                    <?php foreach ($frameStyleOptions as $frameStyle): ?>
+                        <option value="<?= e($frameStyle['key']) ?>" <?= (old('frame_style', $certificate['frame_style'] ?? 'classic') === $frameStyle['key']) ? 'selected' : '' ?>><?= e($frameStyle['label']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
+            <label>
                 <span>姓名／受贈者 <span style="color:#b32d2d">*</span></span>
                 <input type="text" name="recipient_name" id="recipientName" maxlength="160" required value="<?= e((string) old('recipient_name', $certificate['recipient_name'] ?? '')) ?>">
             </label>

@@ -7,6 +7,7 @@ use App\Core\Controller;
 use App\Core\Database;
 use App\Core\Permission;
 use App\Core\Validator;
+use App\Domain\Certificates\CertificateFrameStyles;
 use App\Domain\Certificates\CertificateTemplates;
 use PDO;
 
@@ -71,6 +72,7 @@ final class CertificateController extends Controller
             'active' => 'certificates',
             'certificate' => $this->blankCertificate(),
             'templates' => CertificateTemplates::all(),
+            'frameStyleOptions' => CertificateFrameStyles::options(),
             'action' => '/certificates',
             'preserveBody' => false,
         ]);
@@ -90,6 +92,7 @@ final class CertificateController extends Controller
             'active' => 'certificates',
             'certificate' => $source,
             'templates' => CertificateTemplates::all(),
+            'frameStyleOptions' => CertificateFrameStyles::options(),
             'action' => '/certificates',
             'preserveBody' => true,
         ]);
@@ -102,10 +105,10 @@ final class CertificateController extends Controller
 
         Database::pdo()->prepare(
             'INSERT INTO certificates
-             (template_key, variant_key, title, recipient_name, body_text, term_no, term_start, term_end,
+             (template_key, variant_key, title, frame_style, recipient_name, body_text, term_no, term_start, term_end,
               issued_on, signer_title, signer_name, notes, created_by, created_at, updated_at)
              VALUES
-             (:template_key, :variant_key, :title, :recipient_name, :body_text, :term_no, :term_start, :term_end,
+             (:template_key, :variant_key, :title, :frame_style, :recipient_name, :body_text, :term_no, :term_start, :term_end,
               :issued_on, :signer_title, :signer_name, :notes, :created_by, :created_at, :updated_at)'
         )->execute($this->payload() + [
             'created_by' => $this->currentUserId() ?: null,
@@ -143,6 +146,7 @@ final class CertificateController extends Controller
             'active' => 'certificates',
             'certificate' => $this->findCertificate((int) $id),
             'templates' => CertificateTemplates::all(),
+            'frameStyleOptions' => CertificateFrameStyles::options(),
             'action' => '/certificates/' . $id,
             'preserveBody' => true,
         ]);
@@ -157,7 +161,7 @@ final class CertificateController extends Controller
         Database::pdo()->prepare(
             'UPDATE certificates SET
                 template_key = :template_key, variant_key = :variant_key, title = :title,
-                recipient_name = :recipient_name, body_text = :body_text, term_no = :term_no,
+                frame_style = :frame_style, recipient_name = :recipient_name, body_text = :body_text, term_no = :term_no,
                 term_start = :term_start, term_end = :term_end, issued_on = :issued_on,
                 signer_title = :signer_title, signer_name = :signer_name, notes = :notes,
                 updated_at = :updated_at
@@ -215,6 +219,7 @@ final class CertificateController extends Controller
             'template_key' => $templateKey,
             'variant_key' => $variantKey,
             'title' => $tpl['title'],
+            'frame_style' => CertificateFrameStyles::normalize((string) ($_POST['frame_style'] ?? '')),
             'recipient_name' => trim((string) $_POST['recipient_name']),
             'body_text' => trim($this->normalizeNewlines((string) $_POST['body_text'])),
             'term_no' => ($termNo !== '' && ctype_digit($termNo)) ? (int) $termNo : null,
@@ -260,6 +265,7 @@ final class CertificateController extends Controller
         return [
             'template_key' => 'board_director',
             'variant_key' => 'standard',
+            'frame_style' => 'classic',
             'recipient_name' => '',
             'body_text' => CertificateTemplates::mergeBody('board_director', 'standard', '', null, null, null),
             'term_no' => '',
