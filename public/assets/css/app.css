@@ -1764,10 +1764,11 @@ textarea:focus {
 /* 聘書／感謝狀:正式彩色版面,金色雙線外框＋四角菱飾,米色底呼應傳統聘書格式 */
 .certificate-sheet {
     position: relative;
-    max-width: 19cm;
-    min-height: 24cm;
+    width: 210mm;
+    height: 297mm;
+    box-sizing: border-box;
     margin: 0 auto;
-    padding: 30mm 26mm 22mm;
+    padding: 20mm 24mm 18mm;
     color: #262016;
     background: radial-gradient(ellipse at center, #fffdf6 0%, #faf2dd 100%);
     border: 8px double #b8860b;
@@ -1778,6 +1779,15 @@ textarea:focus {
     line-height: 1.9;
     display: flex;
     flex-direction: column;
+}
+
+.certificate-sheet .cert-logo {
+    display: block;
+    height: 72px;
+    width: auto;
+    max-width: 200px;
+    object-fit: contain;
+    margin: 0 auto 12px;
 }
 
 /* 四角菱形飾紋,呼應傳統聘書的邊框花飾 */
@@ -1797,7 +1807,7 @@ textarea:focus {
 
 .certificate-sheet .cert-org {
     text-align: center;
-    font-size: 18px;
+    font-size: 22px;
     font-weight: 700;
     letter-spacing: 2px;
     color: #1f2d3d;
@@ -1806,29 +1816,29 @@ textarea:focus {
 
 .certificate-sheet .cert-title {
     text-align: center;
-    font-size: 38px;
+    font-size: 48px;
     font-weight: 700;
-    letter-spacing: 20px;
-    text-indent: 20px;
+    letter-spacing: 16px;
+    text-indent: 16px;
     color: #8b1a2b;
     text-shadow: 1px 1px 0 rgba(184, 134, 11, 0.25);
-    margin: 10px 0 14px;
+    margin: 14px 0 16px;
 }
 
 /* 標題下方的金色花飾分隔線 */
 .certificate-sheet .cert-divider {
     text-align: center;
     color: #b8860b;
-    font-size: 15px;
+    font-size: 16px;
     letter-spacing: 10px;
-    margin: 0 0 34px;
+    margin: 0 0 40px;
 }
 
 .certificate-sheet .cert-divider::before,
 .certificate-sheet .cert-divider::after {
     content: "";
     display: inline-block;
-    width: 70px;
+    width: 80px;
     height: 1px;
     background: #b8860b;
     vertical-align: middle;
@@ -1836,7 +1846,7 @@ textarea:focus {
 }
 
 .certificate-sheet .cert-body {
-    font-size: 19px;
+    font-size: 22px;
     line-height: 2.1;
     text-align: justify;
     white-space: pre-wrap;
@@ -1847,19 +1857,20 @@ textarea:focus {
     display: flex;
     justify-content: flex-end;
     align-items: flex-end;
-    gap: 18px;
+    gap: 20px;
     margin-top: 36px;
 }
 
 .certificate-sheet .cert-signoff {
     text-align: right;
-    font-size: 17px;
+    font-size: 20px;
     line-height: 2.1;
 }
 
 .certificate-sheet .cert-signoff strong {
-    font-size: 19px;
+    font-size: 32px;
     color: #1f2d3d;
+    margin-left: 4px;
 }
 
 /* 用印位置:朱紅色虛線框,呼應實體聘書的大小章 */
@@ -1868,19 +1879,19 @@ textarea:focus {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 76px;
-    height: 76px;
+    width: 88px;
+    height: 88px;
     border: 2px dashed #b3312c;
     border-radius: 6px;
     color: #c75a55;
-    font-size: 12px;
-    letter-spacing: 2px;
+    font-size: 14px;
+    letter-spacing: 3px;
     writing-mode: vertical-rl;
 }
 
 .certificate-sheet .cert-date {
     text-align: center;
-    font-size: 17px;
+    font-size: 20px;
     letter-spacing: 1px;
     margin-top: 28px;
 }
