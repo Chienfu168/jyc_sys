@@ -1798,11 +1798,11 @@ textarea:focus {
 
 .certificate-sheet .cert-logo {
     display: block;
-    height: 72px;
+    height: 110px;
     width: auto;
-    max-width: 200px;
+    max-width: 260px;
     object-fit: contain;
-    margin: 0 auto 12px;
+    margin: 0 auto 14px;
 }
 
 /* 四角菱形飾紋,呼應傳統聘書的邊框花飾 */
@@ -1862,9 +1862,33 @@ textarea:focus {
 
 .certificate-sheet .cert-body {
     font-size: 22px;
-    line-height: 2.1;
-    text-align: justify;
-    white-space: pre-wrap;
+    line-height: 1.9;
+    text-align: center;
+}
+
+.certificate-sheet .cert-body p {
+    margin: 0 0 16px;
+}
+
+.certificate-sheet .cert-body p:last-child {
+    margin-bottom: 0;
+}
+
+/* 受聘人姓名獨立成行並放大,呼應傳統聘書以姓名為視覺焦點的排版 */
+.certificate-sheet .cert-name {
+    font-size: 42px;
+    font-weight: 700;
+    letter-spacing: 6px;
+    color: #1f2d3d;
+    margin: 6px 0 16px;
+}
+
+/* 聘期句維持自然字距、不換行,避免日期或句尾「止。」被拆到下一行 */
+.certificate-sheet .cert-term {
+    margin-top: 32px;
+    font-size: 18px;
+    letter-spacing: normal;
+    white-space: nowrap;
 }
 
 .certificate-sheet .cert-signoff-row {
