@@ -38,8 +38,9 @@ ob_start();
 
 <?php $certLogo = foundation_logo_data_uri(); ?>
 <?php $certSeal = foundation_seal_data_uri(); ?>
+<?php $certFrameStyle = \App\Domain\Certificates\CertificateFrameStyles::normalize((string) ($certificate['frame_style'] ?? 'classic')); ?>
 <article class="certificate-sheet">
-    <div class="cert-frame">
+    <div class="cert-frame cert-frame--<?= e($certFrameStyle) ?>">
         <span class="cert-corner cert-corner--tl" aria-hidden="true"></span>
         <span class="cert-corner cert-corner--tr" aria-hidden="true"></span>
         <span class="cert-corner cert-corner--bl" aria-hidden="true"></span>

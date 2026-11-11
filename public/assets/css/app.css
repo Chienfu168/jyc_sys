@@ -1820,6 +1820,29 @@ textarea:focus {
 .certificate-sheet .cert-corner--bl { bottom: 14px; left: 14px; }
 .certificate-sheet .cert-corner--br { bottom: 14px; right: 14px; }
 
+/* 外框樣式:獎狀(酒紅實框),角飾改為酒紅漸層呼應外框色 */
+.certificate-sheet .cert-frame--award {
+    border: 6px solid #8b1a2b;
+    outline: 2px solid #d9b65c;
+    outline-offset: -10px;
+}
+
+.certificate-sheet .cert-frame--award .cert-corner {
+    background: linear-gradient(135deg, #c0485a, #8b1a2b);
+    box-shadow: 0 0 0 2px #fffdf6, 0 0 0 3px #8b1a2b;
+}
+
+/* 外框樣式:簡約(細框),不使用角飾、不加陰影,風格低調 */
+.certificate-sheet .cert-frame--simple {
+    border: 2px solid #8a8a8a;
+    outline: none;
+    box-shadow: none;
+}
+
+.certificate-sheet .cert-frame--simple .cert-corner {
+    display: none;
+}
+
 .certificate-sheet .cert-org {
     text-align: center;
     font-size: 22px;
