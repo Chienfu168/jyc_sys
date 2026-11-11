@@ -1837,16 +1837,18 @@ textarea:focus {
     text-indent: 16px;
     color: #8b1a2b;
     text-shadow: 1px 1px 0 rgba(184, 134, 11, 0.25);
-    margin: 14px 0 16px;
+    line-height: 1.2;
+    margin: 14px 0 6px;
 }
 
-/* 標題下方的金色花飾分隔線 */
+/* 標題下方的金色花飾分隔線:縮小與標題間距,使其更靠近標題 */
 .certificate-sheet .cert-divider {
     text-align: center;
     color: #b8860b;
     font-size: 16px;
     letter-spacing: 10px;
-    margin: 0 0 40px;
+    line-height: 1;
+    margin: 0 0 32px;
 }
 
 .certificate-sheet .cert-divider::before,
