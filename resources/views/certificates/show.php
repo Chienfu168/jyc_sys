@@ -30,12 +30,21 @@ ob_start();
 </section>
 
 <article class="certificate-sheet">
+    <span class="cert-corner cert-corner--tl" aria-hidden="true"></span>
+    <span class="cert-corner cert-corner--tr" aria-hidden="true"></span>
+    <span class="cert-corner cert-corner--bl" aria-hidden="true"></span>
+    <span class="cert-corner cert-corner--br" aria-hidden="true"></span>
+
     <div class="cert-org"><?= e($profile['foundation_name'] ?? foundation_name()) ?></div>
     <div class="cert-title"><?= e($certificate['title']) ?></div>
+    <div class="cert-divider">❖</div>
     <div class="cert-body"><?= nl2br(e($certificate['body_text'])) ?></div>
-    <div class="cert-signoff">
-        <?= e($profile['foundation_name'] ?? foundation_name()) ?><br>
-        <?= e($certificate['signer_title']) ?>　<?= e($certificate['signer_name']) ?>
+    <div class="cert-signoff-row">
+        <div class="cert-signoff">
+            <?= e($profile['foundation_name'] ?? foundation_name()) ?><br>
+            <?= e($certificate['signer_title']) ?>　<strong><?= e($certificate['signer_name']) ?></strong>
+        </div>
+        <div class="cert-stamp" aria-hidden="true">蓋章處</div>
     </div>
     <div class="cert-date"><?= e(roc_date($certificate['issued_on'])) ?></div>
 </article>
