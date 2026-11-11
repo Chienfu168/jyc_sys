@@ -1782,7 +1782,8 @@ textarea:focus {
     box-sizing: border-box;
     width: 100%;
     height: 100%;
-    padding: 15mm;
+    /* 上緣留白縮小,讓機構 LOGO 更貼近外框上緣 */
+    padding: 8mm 15mm 15mm;
     border: 8px double #b8860b;
     outline: 1px solid #d9b65c;
     outline-offset: -14px;
