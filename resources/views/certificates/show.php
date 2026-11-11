@@ -52,7 +52,22 @@ ob_start();
             <div class="cert-org"><?= e($profile['foundation_name'] ?? foundation_name()) ?></div>
             <div class="cert-title"><?= e($certificate['title']) ?></div>
             <div class="cert-divider">❖</div>
-            <div class="cert-body"><?= nl2br(e($certificate['body_text'])) ?></div>
+            <div class="cert-body">
+                <?php
+                $certName = trim((string) $certificate['recipient_name']);
+                $certParagraphs = preg_split('/\n{2,}/u', trim($certificate['body_text'])) ?: [];
+                ?>
+                <?php foreach ($certParagraphs as $certParagraph): ?>
+                    <?php $certParagraphTrim = trim($certParagraph); ?>
+                    <?php if ($certName !== '' && $certParagraphTrim === $certName): ?>
+                        <p class="cert-name"><?= e($certParagraphTrim) ?></p>
+                    <?php elseif (str_starts_with($certParagraphTrim, '聘期')): ?>
+                        <p class="cert-term"><?= nl2br(e($certParagraph)) ?></p>
+                    <?php else: ?>
+                        <p><?= nl2br(e($certParagraph)) ?></p>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+            </div>
             <div class="cert-signoff-row">
                 <div class="cert-signoff">
                     <?= e($profile['foundation_name'] ?? foundation_name()) ?><br>

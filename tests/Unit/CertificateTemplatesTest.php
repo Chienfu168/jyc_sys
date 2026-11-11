@@ -18,7 +18,7 @@ final class CertificateTemplatesTest extends TestCase
     {
         $body = CertificateTemplates::mergeBody('board_director', 'standard', '王小明', 3, '2026-03-20', '2030-03-19');
 
-        $this->assertStringContainsString('茲聘請 王小明 擔任本會第3屆董事', $body);
+        $this->assertStringContainsString("茲聘請\n\n王小明\n\n擔任本會第3屆董事", $body);
         $this->assertStringContainsString('聘期自中華民國115 年 3 月 20 日起至119 年 3 月 19 日止。', $body);
     }
 
@@ -35,14 +35,14 @@ final class CertificateTemplatesTest extends TestCase
     {
         $body = CertificateTemplates::mergeBody('board_director', 'brief', '王小明', 3, '2026-03-20', '2030-03-19');
 
-        $this->assertSame('茲聘請王小明擔任本會第3屆董事。', $body);
+        $this->assertSame("茲聘請\n\n王小明\n\n擔任本會第3屆董事。", $body);
     }
 
     public function test_thank_you_appends_fixed_closing_line(): void
     {
         $body = CertificateTemplates::mergeBody('thank_you', 'volunteer', '李小華', null, null, null);
 
-        $this->assertStringContainsString('感謝李小華於本會', $body);
+        $this->assertStringContainsString("感謝\n\n李小華\n\n於本會", $body);
         $this->assertStringEndsWith('特頒此狀，以申謝忱。', $body);
     }
 
@@ -50,7 +50,7 @@ final class CertificateTemplatesTest extends TestCase
     {
         $body = CertificateTemplates::mergeBody('thank_you', 'no_such_variant', '李小華', null, null, null);
 
-        $this->assertStringContainsString('感謝 李小華 協助本會辦理', $body);
+        $this->assertStringContainsString("感謝\n\n李小華\n\n協助本會辦理", $body);
     }
 
     public function test_template_options_include_all_four_templates(): void
