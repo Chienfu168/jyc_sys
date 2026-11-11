@@ -216,7 +216,7 @@ final class CertificateController extends Controller
             'variant_key' => $variantKey,
             'title' => $tpl['title'],
             'recipient_name' => trim((string) $_POST['recipient_name']),
-            'body_text' => trim((string) $_POST['body_text']),
+            'body_text' => trim($this->normalizeNewlines((string) $_POST['body_text'])),
             'term_no' => ($termNo !== '' && ctype_digit($termNo)) ? (int) $termNo : null,
             'term_start' => $this->nullableDate('term_start'),
             'term_end' => $this->nullableDate('term_end'),
@@ -231,6 +231,16 @@ final class CertificateController extends Controller
     {
         $value = trim((string) ($_POST[$key] ?? ''));
         return $value !== '' ? $value : null;
+    }
+
+    /**
+     * 瀏覽器提交表單時會將 textarea 內容的換行統一轉為 CRLF(\r\n),
+     * 導致正文中範本原本以 "\n\n" 分段的段落(受聘人姓名、聘期等)
+     * 無法被辨識而合併成一段。於存檔前統一轉回 "\n",確保分段正確。
+     */
+    private function normalizeNewlines(string $value): string
+    {
+        return str_replace(["\r\n", "\r"], "\n", $value);
     }
 
     private function nullableDate(string $key): ?string
