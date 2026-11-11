@@ -1761,7 +1761,7 @@ textarea:focus {
     color: #222222;
 }
 
-/* 聘書／感謝狀:正式彩色版面,金色雙線外框＋四角菱飾,米色底呼應傳統聘書格式 */
+/* 聘書／感謝狀:正式彩色版面,金色雙線外框＋四角菱飾,底圖為白色(可自行列印於彩色紙張上) */
 .certificate-sheet {
     position: relative;
     width: 210mm;
@@ -1771,7 +1771,7 @@ textarea:focus {
     /* 上下左右均留白 2.5 公分:與頁面邊緣之間不放外框或任何內容 */
     padding: 25mm;
     color: #262016;
-    background: radial-gradient(ellipse at center, #fffdf6 0%, #faf2dd 100%);
+    background: #ffffff;
     font-family: "DFKai-SB", "BiauKai", "標楷體", "KaiTi", "TW-Kai", "Noto Serif TC", "PMingLiU", serif;
     line-height: 1.9;
 }
@@ -3948,17 +3948,13 @@ textarea:focus {
         max-height: 85mm;
     }
 
-    /* 聘書／感謝狀為全系統唯一彩色列印文件,保留金色外框／米色底,
-       不隨其餘文件退回黑白,需明確告知瀏覽器列印時不要省略背景色。 */
+    /* 聘書／感謝狀為全系統唯一彩色列印文件(金色外框／朱紅標題等),底圖維持白色
+       （可自行列印於彩色紙張上),僅外框與文字顏色需明確告知瀏覽器列印時不要省略。 */
     .certificate-sheet,
     .certificate-sheet .cert-frame,
     .certificate-sheet .cert-corner {
         print-color-adjust: exact;
         -webkit-print-color-adjust: exact;
-    }
-
-    .certificate-sheet {
-        background: #faf2dd;
     }
 
     .certificate-sheet .cert-frame {
