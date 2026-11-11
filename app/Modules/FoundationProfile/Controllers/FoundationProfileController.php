@@ -41,22 +41,37 @@ final class FoundationProfileController extends Controller
         $logoPath = $currentLogo !== '' ? $currentLogo : null;
 
         if (!empty($_POST['remove_logo'])) {
-            $this->deleteLogo($currentLogo);
+            $this->deleteUploadedImage($currentLogo);
             $logoPath = null;
         } elseif (isset($_FILES['logo']) && ($_FILES['logo']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
-            $stored = $this->storeLogo($_FILES['logo']);
+            $stored = $this->storeUploadedImage($_FILES['logo'], 'logo');
             if ($stored === null) {
                 $this->backWithInput('/foundation-profile', $_POST, 'LOGO 上傳失敗:請提供 5MB 以內的 PNG／JPG／GIF／WEBP 圖片。');
             }
-            $this->deleteLogo($currentLogo);
+            $this->deleteUploadedImage($currentLogo);
             $logoPath = $stored;
+        }
+
+        $currentSeal = trim((string) (foundation_profile()['seal_path'] ?? ''));
+        $sealPath = $currentSeal !== '' ? $currentSeal : null;
+
+        if (!empty($_POST['remove_seal'])) {
+            $this->deleteUploadedImage($currentSeal);
+            $sealPath = null;
+        } elseif (isset($_FILES['seal']) && ($_FILES['seal']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+            $stored = $this->storeUploadedImage($_FILES['seal'], 'seal');
+            if ($stored === null) {
+                $this->backWithInput('/foundation-profile', $_POST, '官印上傳失敗:請提供 5MB 以內的 PNG／JPG／GIF／WEBP 圖片。');
+            }
+            $this->deleteUploadedImage($currentSeal);
+            $sealPath = $stored;
         }
 
         Database::pdo()->prepare(
             'INSERT INTO foundation_profiles
-             (id, foundation_name, english_name, tax_id, registration_no, competent_authority, approval_date, approval_doc_no, representative, executive_director, undertaker, phone, email, website, logo_path, address, mailing_address, mission, service_area, fiscal_year_start_month, updated_by, created_at, updated_at)
+             (id, foundation_name, english_name, tax_id, registration_no, competent_authority, approval_date, approval_doc_no, representative, executive_director, undertaker, phone, email, website, logo_path, seal_path, address, mailing_address, mission, service_area, fiscal_year_start_month, updated_by, created_at, updated_at)
              VALUES
-             (1, :foundation_name, :english_name, :tax_id, :registration_no, :competent_authority, :approval_date, :approval_doc_no, :representative, :executive_director, :undertaker, :phone, :email, :website, :logo_path, :address, :mailing_address, :mission, :service_area, :fiscal_year_start_month, :updated_by, :created_at, :updated_at)
+             (1, :foundation_name, :english_name, :tax_id, :registration_no, :competent_authority, :approval_date, :approval_doc_no, :representative, :executive_director, :undertaker, :phone, :email, :website, :logo_path, :seal_path, :address, :mailing_address, :mission, :service_area, :fiscal_year_start_month, :updated_by, :created_at, :updated_at)
              ON DUPLICATE KEY UPDATE
                foundation_name = VALUES(foundation_name),
                english_name = VALUES(english_name),
@@ -72,6 +87,7 @@ final class FoundationProfileController extends Controller
                email = VALUES(email),
                website = VALUES(website),
                logo_path = VALUES(logo_path),
+               seal_path = VALUES(seal_path),
                address = VALUES(address),
                mailing_address = VALUES(mailing_address),
                mission = VALUES(mission),
@@ -94,6 +110,7 @@ final class FoundationProfileController extends Controller
             'email' => trim((string) ($_POST['email'] ?? '')),
             'website' => trim((string) ($_POST['website'] ?? '')),
             'logo_path' => $logoPath,
+            'seal_path' => $sealPath,
             'address' => trim((string) ($_POST['address'] ?? '')),
             'mailing_address' => trim((string) ($_POST['mailing_address'] ?? '')),
             'mission' => trim((string) ($_POST['mission'] ?? '')),
@@ -116,11 +133,11 @@ final class FoundationProfileController extends Controller
     }
 
     /**
-     * 驗證並儲存上傳的 LOGO,回傳相對於 storage/ 的路徑;失敗回傳 null。
+     * 驗證並儲存上傳的圖片(LOGO 或官印),回傳相對於 storage/ 的路徑;失敗回傳 null。
      *
      * @param array<string, mixed> $file
      */
-    private function storeLogo(array $file): ?string
+    private function storeUploadedImage(array $file, string $prefix): ?string
     {
         if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
             return null;
@@ -152,7 +169,7 @@ final class FoundationProfileController extends Controller
             return null;
         }
 
-        $name = 'logo_' . date('YmdHis') . '_' . bin2hex(random_bytes(6)) . '.' . $extension;
+        $name = $prefix . '_' . date('YmdHis') . '_' . bin2hex(random_bytes(6)) . '.' . $extension;
         $target = $dir . DIRECTORY_SEPARATOR . $name;
         if (!move_uploaded_file($tmp, $target)) {
             return null;
@@ -161,7 +178,7 @@ final class FoundationProfileController extends Controller
         return 'private_uploads/foundation/' . $name;
     }
 
-    private function deleteLogo(string $relativePath): void
+    private function deleteUploadedImage(string $relativePath): void
     {
         $relativePath = trim($relativePath);
         if ($relativePath === '' || !str_starts_with($relativePath, 'private_uploads/foundation/')) {

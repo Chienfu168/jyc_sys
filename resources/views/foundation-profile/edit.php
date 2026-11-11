@@ -77,6 +77,23 @@ ob_start();
             <input type="file" name="logo" accept="image/png,image/jpeg,image/gif,image/webp">
             <small class="logo-field__hint">支援 PNG／JPG／GIF／WEBP,建議寬高比接近正方形,檔案 5MB 以內。上傳後將顯示於各項列印報表抬頭。</small>
         </div>
+        <div class="span-2 logo-field">
+            <span class="logo-field__label">基金會官印</span>
+            <?php if (!empty($profile['seal_path'])): ?>
+                <?php $sealUri = foundation_seal_data_uri(); ?>
+                <?php if ($sealUri !== null): ?>
+                    <div class="logo-field__preview">
+                        <img src="<?= e($sealUri) ?>" alt="目前官印">
+                    </div>
+                    <label class="logo-field__remove">
+                        <input type="checkbox" name="remove_seal" value="1">
+                        <span>移除目前的官印</span>
+                    </label>
+                <?php endif; ?>
+            <?php endif; ?>
+            <input type="file" name="seal" accept="image/png,image/jpeg,image/gif,image/webp">
+            <small class="logo-field__hint">支援 PNG／JPG／GIF／WEBP,建議使用透明底印章圖檔,檔案 5MB 以內。上傳後將顯示於聘書／感謝狀等正式文件的落款處,取代原本的「蓋章處」占位框。</small>
+        </div>
         <label class="span-2">
             <span>會址</span>
             <input type="text" name="address" value="<?= e((string) old('address', $profile['address'] ?? '')) ?>">

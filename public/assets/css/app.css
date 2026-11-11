@@ -1768,7 +1768,8 @@ textarea:focus {
     height: 297mm;
     box-sizing: border-box;
     margin: 0 auto;
-    padding: 20mm 24mm 18mm;
+    /* 上下左右均留白 2.5 公分,內容於留白範圍內置中呈現 */
+    padding: 25mm;
     color: #262016;
     background: radial-gradient(ellipse at center, #fffdf6 0%, #faf2dd 100%);
     border: 8px double #b8860b;
@@ -1779,6 +1780,11 @@ textarea:focus {
     line-height: 1.9;
     display: flex;
     flex-direction: column;
+    justify-content: center;
+}
+
+.certificate-sheet .cert-content {
+    flex: none;
 }
 
 .certificate-sheet .cert-logo {
@@ -1850,7 +1856,6 @@ textarea:focus {
     line-height: 2.1;
     text-align: justify;
     white-space: pre-wrap;
-    flex: 1 0 auto;
 }
 
 .certificate-sheet .cert-signoff-row {
@@ -1873,20 +1878,13 @@ textarea:focus {
     margin-left: 4px;
 }
 
-/* 用印位置:朱紅色虛線框,呼應實體聘書的大小章 */
-.certificate-sheet .cert-stamp {
+/* 基金會官印:已上傳時顯示於落款處,呼應實體聘書的蓋章位置 */
+.certificate-sheet .cert-seal {
     flex: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 88px;
-    height: 88px;
-    border: 2px dashed #b3312c;
-    border-radius: 6px;
-    color: #c75a55;
-    font-size: 14px;
-    letter-spacing: 3px;
-    writing-mode: vertical-rl;
+    width: auto;
+    height: 92px;
+    max-width: 92px;
+    object-fit: contain;
 }
 
 .certificate-sheet .cert-date {
@@ -3941,11 +3939,10 @@ textarea:focus {
         max-height: 85mm;
     }
 
-    /* 聘書／感謝狀為全系統唯一彩色列印文件,保留金色外框／米色底／朱紅印章框,
+    /* 聘書／感謝狀為全系統唯一彩色列印文件,保留金色外框／米色底,
        不隨其餘文件退回黑白,需明確告知瀏覽器列印時不要省略背景色。 */
     .certificate-sheet,
-    .certificate-sheet .cert-corner,
-    .certificate-sheet .cert-stamp {
+    .certificate-sheet .cert-corner {
         print-color-adjust: exact;
         -webkit-print-color-adjust: exact;
     }
@@ -3957,10 +3954,6 @@ textarea:focus {
 
     .certificate-sheet .cert-title {
         color: #8b1a2b !important;
-    }
-
-    .certificate-sheet .cert-stamp {
-        color: #c75a55 !important;
     }
 }
 
