@@ -61,7 +61,7 @@ ob_start();
                 ?>
                 <?php foreach ($certParagraphs as $certParagraph): ?>
                     <?php $certParagraphTrim = trim($certParagraph); ?>
-                    <?php if ($certName !== '' && $certParagraphTrim === $certName): ?>
+                    <?php if ($certName !== '' && str_contains($certParagraphTrim, $certName)): ?>
                         <p class="cert-name"><?= e($certParagraphTrim) ?></p>
                     <?php elseif (str_starts_with($certParagraphTrim, '聘期')): ?>
                         <p class="cert-term"><?= nl2br(e($certParagraph)) ?></p>
