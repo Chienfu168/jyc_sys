@@ -4,6 +4,13 @@ $certificate = $certificate ?? [];
 $documentTitle = $certificate['title'] . ' — ' . $certificate['recipient_name'];
 ob_start();
 ?>
+<style>
+/* 聘書／感謝狀改為滿版 A4(210mm×297mm),列印邊界歸零由版面自身留白控制,
+   僅此文件適用,不影響其他列印頁面的 @page 邊界設定。 */
+@media print {
+    @page { size: A4; margin: 0; }
+}
+</style>
 <section class="panel no-print">
     <div class="panel-header">
         <div>
@@ -29,12 +36,16 @@ ob_start();
     </div>
 </section>
 
+<?php $certLogo = foundation_logo_data_uri(); ?>
 <article class="certificate-sheet">
     <span class="cert-corner cert-corner--tl" aria-hidden="true"></span>
     <span class="cert-corner cert-corner--tr" aria-hidden="true"></span>
     <span class="cert-corner cert-corner--bl" aria-hidden="true"></span>
     <span class="cert-corner cert-corner--br" aria-hidden="true"></span>
 
+    <?php if ($certLogo !== null): ?>
+        <img class="cert-logo" src="<?= e($certLogo) ?>" alt="">
+    <?php endif; ?>
     <div class="cert-org"><?= e($profile['foundation_name'] ?? foundation_name()) ?></div>
     <div class="cert-title"><?= e($certificate['title']) ?></div>
     <div class="cert-divider">❖</div>
