@@ -37,27 +37,32 @@ ob_start();
 </section>
 
 <?php $certLogo = foundation_logo_data_uri(); ?>
+<?php $certSeal = foundation_seal_data_uri(); ?>
 <article class="certificate-sheet">
     <span class="cert-corner cert-corner--tl" aria-hidden="true"></span>
     <span class="cert-corner cert-corner--tr" aria-hidden="true"></span>
     <span class="cert-corner cert-corner--bl" aria-hidden="true"></span>
     <span class="cert-corner cert-corner--br" aria-hidden="true"></span>
 
-    <?php if ($certLogo !== null): ?>
-        <img class="cert-logo" src="<?= e($certLogo) ?>" alt="">
-    <?php endif; ?>
-    <div class="cert-org"><?= e($profile['foundation_name'] ?? foundation_name()) ?></div>
-    <div class="cert-title"><?= e($certificate['title']) ?></div>
-    <div class="cert-divider">❖</div>
-    <div class="cert-body"><?= nl2br(e($certificate['body_text'])) ?></div>
-    <div class="cert-signoff-row">
-        <div class="cert-signoff">
-            <?= e($profile['foundation_name'] ?? foundation_name()) ?><br>
-            <?= e($certificate['signer_title']) ?>　<strong><?= e($certificate['signer_name']) ?></strong>
+    <div class="cert-content">
+        <?php if ($certLogo !== null): ?>
+            <img class="cert-logo" src="<?= e($certLogo) ?>" alt="">
+        <?php endif; ?>
+        <div class="cert-org"><?= e($profile['foundation_name'] ?? foundation_name()) ?></div>
+        <div class="cert-title"><?= e($certificate['title']) ?></div>
+        <div class="cert-divider">❖</div>
+        <div class="cert-body"><?= nl2br(e($certificate['body_text'])) ?></div>
+        <div class="cert-signoff-row">
+            <div class="cert-signoff">
+                <?= e($profile['foundation_name'] ?? foundation_name()) ?><br>
+                <?= e($certificate['signer_title']) ?>　<strong><?= e($certificate['signer_name']) ?></strong>
+            </div>
+            <?php if ($certSeal !== null): ?>
+                <img class="cert-seal" src="<?= e($certSeal) ?>" alt="">
+            <?php endif; ?>
         </div>
-        <div class="cert-stamp" aria-hidden="true">蓋章處</div>
+        <div class="cert-date"><?= e(roc_date($certificate['issued_on'])) ?></div>
     </div>
-    <div class="cert-date"><?= e(roc_date($certificate['issued_on'])) ?></div>
 </article>
 <?php
 $content = ob_get_clean();
