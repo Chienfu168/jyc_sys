@@ -1921,7 +1921,8 @@ textarea:focus {
     justify-content: flex-end;
     align-items: flex-end;
     gap: 20px;
-    margin-top: 36px;
+    /* 落款(基金會名稱／簽署人)較聘期句再往下 1 公分 */
+    margin-top: calc(36px + 10mm);
 }
 
 .certificate-sheet .cert-signoff {
