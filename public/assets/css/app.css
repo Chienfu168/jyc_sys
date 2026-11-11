@@ -1768,16 +1768,25 @@ textarea:focus {
     height: 297mm;
     box-sizing: border-box;
     margin: 0 auto;
-    /* 上下左右均留白 2.5 公分,內容於留白範圍內置中呈現 */
+    /* 上下左右均留白 2.5 公分:與頁面邊緣之間不放外框或任何內容 */
     padding: 25mm;
     color: #262016;
     background: radial-gradient(ellipse at center, #fffdf6 0%, #faf2dd 100%);
+    font-family: "DFKai-SB", "BiauKai", "標楷體", "KaiTi", "TW-Kai", "Noto Serif TC", "PMingLiU", serif;
+    line-height: 1.9;
+}
+
+/* 金色雙線外框實際框住的範圍,置於留白範圍之內,內容於框內置中呈現 */
+.certificate-sheet .cert-frame {
+    position: relative;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    padding: 15mm;
     border: 8px double #b8860b;
     outline: 1px solid #d9b65c;
     outline-offset: -14px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
-    font-family: "DFKai-SB", "BiauKai", "標楷體", "KaiTi", "TW-Kai", "Noto Serif TC", "PMingLiU", serif;
-    line-height: 1.9;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -1891,7 +1900,7 @@ textarea:focus {
     text-align: center;
     font-size: 20px;
     letter-spacing: 1px;
-    margin-top: 28px;
+    margin-top: 64px;
 }
 
 /* 董事會議議程／紀錄列印版面 */
@@ -3942,14 +3951,18 @@ textarea:focus {
     /* 聘書／感謝狀為全系統唯一彩色列印文件,保留金色外框／米色底,
        不隨其餘文件退回黑白,需明確告知瀏覽器列印時不要省略背景色。 */
     .certificate-sheet,
+    .certificate-sheet .cert-frame,
     .certificate-sheet .cert-corner {
         print-color-adjust: exact;
         -webkit-print-color-adjust: exact;
     }
 
     .certificate-sheet {
-        box-shadow: none;
         background: #faf2dd;
+    }
+
+    .certificate-sheet .cert-frame {
+        box-shadow: none;
     }
 
     .certificate-sheet .cert-title {
