@@ -1768,8 +1768,8 @@ textarea:focus {
     height: 297mm;
     box-sizing: border-box;
     margin: 0 auto;
-    /* 上下左右均留白 2.5 公分:與頁面邊緣之間不放外框或任何內容 */
-    padding: 25mm;
+    /* 上下左右均留白 1.8 公分:與頁面邊緣之間不放外框或任何內容 */
+    padding: 18mm;
     color: #262016;
     background: #ffffff;
     font-family: "DFKai-SB", "BiauKai", "標楷體", "KaiTi", "TW-Kai", "Noto Serif TC", "PMingLiU", serif;
@@ -1886,7 +1886,7 @@ textarea:focus {
 }
 
 .certificate-sheet .cert-body {
-    font-size: 22px;
+    font-size: 26px;
     line-height: 1.5;
     text-align: center;
 }
@@ -1931,7 +1931,7 @@ textarea:focus {
 }
 
 .certificate-sheet .cert-signoff strong {
-    font-size: 32px;
+    font-size: 40px;
     color: #1f2d3d;
     margin-left: 4px;
 }
